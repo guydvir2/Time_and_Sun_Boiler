@@ -41,58 +41,70 @@ update_for_today = False
 
 
 def get_weather(location, start_hour, end_hour, days_back=0):
+    """Fetch weather data from Open-Meteo API."""
+    print("\n" + "=" * 60)
+    print("🌤️  FETCHING WEATHER DATA")
+    print("=" * 60)
+
     lat, lon = location
     target_date = date.today() - timedelta(days=days_back)
-    now = datetime.now()  # Add this line
+    now = datetime.now()
 
-    print("Fetching Open-Meteo weather")
-    print(f"Location: {lat}, {lon}")
-    print(f"Target date: {target_date}")
-    print(f"Hours window: {start_hour}:00–{end_hour}:00")
+    print(f"📍 Location: {lat}, {lon}")
+    print(f"📅 Target date: {target_date}")
+    print(f"⏰ Hours window: {start_hour}:00–{end_hour}:00")
 
-    r = requests.get(
-        weather_url,
-        params={
-            "latitude": lat,
-            "longitude": lon,
-            "hourly": "temperature_2m,cloudcover",
-            "past_days": days_back,
-            "timezone": "auto"
-        }
-    )
-    weather = []
+    try:
+        r = requests.get(
+            weather_url,
+            params={
+                "latitude": lat,
+                "longitude": lon,
+                "hourly": "temperature_2m,cloudcover",
+                "past_days": days_back,
+                "timezone": "auto"
+            }
+        )
 
-    r.raise_for_status()
-    if r.status_code != 200:
-        return weather, False
-    else:
-        hourly = r.json()["hourly"]
+        r.raise_for_status()
+        weather = []
 
-        for t, temp, clouds in zip(
-                hourly["time"],
-                hourly["temperature_2m"],
-                hourly["cloudcover"]
-        ):
-            ts = datetime.fromisoformat(t)
+        if r.status_code != 200:
+            print("❌ Failed to fetch weather data")
+            return weather, False
+        else:
+            hourly = r.json()["hourly"]
 
-            if ts.date() != target_date:
-                continue
-            if not (start_hour <= ts.hour <= end_hour):
-                continue
+            for t, temp, clouds in zip(
+                    hourly["time"],
+                    hourly["temperature_2m"],
+                    hourly["cloudcover"]
+            ):
+                ts = datetime.fromisoformat(t)
 
-            # Skip future hours when looking at today
-            if days_back == 0 and ts > now:
-                continue  # Return False if future data encountered
+                if ts.date() != target_date:
+                    continue
+                if not (start_hour <= ts.hour <= end_hour):
+                    continue
 
-            weather.append({
-                "time": ts,
-                "temp": temp,
-                "clouds": clouds
-            })
+                # Skip future hours when looking at today
+                if days_back == 0 and ts > now:
+                    continue
 
-            print(f"{ts} | T={temp}°C | Clouds={clouds}%")
+                weather.append({
+                    "time": ts,
+                    "temp": temp,
+                    "clouds": clouds
+                })
 
-        return weather, len(weather) > 0
+                print(f"   {ts.strftime('%H:%M')} | 🌡️  {temp}°C | ☁️  {clouds}%")
+
+            print(f"✅ Successfully fetched {len(weather)} weather data points")
+            return weather, len(weather) > 0
+
+    except Exception as e:
+        print(f"❌ Error fetching weather: {e}")
+        return [], False
 
 
 def get_sun_times(location, days_back=0, default_sunrise=7, default_sunset=17):
@@ -108,11 +120,15 @@ def get_sun_times(location, days_back=0, default_sunrise=7, default_sunset=17):
     Returns:
         dict with 'sunrise' and 'sunset' as integers (hour 0-23)
     """
+    print("\n" + "=" * 60)
+    print("🌅 FETCHING SUNRISE/SUNSET TIMES")
+    print("=" * 60)
+
     lat, lon = location
     target_date = date.today() - timedelta(days=days_back)
 
-    # print(f"Fetching sunrise/sunset for {target_date}")
-    # print(f"Location: {lat}, {lon}")
+    print(f"📍 Location: {lat}, {lon}")
+    print(f"📅 Target date: {target_date}")
 
     try:
         r = requests.get(
@@ -148,21 +164,24 @@ def get_sun_times(location, days_back=0, default_sunrise=7, default_sunset=17):
                 sunrise_hour = sunrise_hour % 24
                 sunset_hour = sunset_hour % 24
 
-                print(f"Sunrise: {sunrise_dt.strftime('%H:%M')} → hour {sunrise_hour}")
-                print(f"Sunset:  {sunset_dt.strftime('%H:%M')} → hour {sunset_hour}")
+                print(f"🌅 Sunrise: {sunrise_dt.strftime('%H:%M')} → hour {sunrise_hour}")
+                print(f"🌇 Sunset:  {sunset_dt.strftime('%H:%M')} → hour {sunset_hour}")
+                print("✅ Successfully fetched sun times")
 
                 return {
                     "sunrise": sunrise_hour,
                     "sunset": sunset_hour
                 }
 
-        print(f"No data found for {target_date}, using defaults")
+        print(f"⚠️  No data found for {target_date}, using defaults")
 
     except Exception as e:
-        print(f"Error fetching sun times: {e}, using defaults")
+        print(f"❌ Error fetching sun times: {e}")
+        print(f"⚠️  Using defaults")
 
     # Return defaults if anything fails
-    print(f"Using default values: sunrise={default_sunrise}, sunset={default_sunset}")
+    print(f"🌅 Default sunrise: {default_sunrise}:00")
+    print(f"🌇 Default sunset:  {default_sunset}:00")
     return {
         "sunrise": default_sunrise,
         "sunset": default_sunset
@@ -170,25 +189,42 @@ def get_sun_times(location, days_back=0, default_sunrise=7, default_sunset=17):
 
 
 def save_weather_to_csv(weather, filename):
+    """Save weather data to CSV file."""
+    print("\n" + "=" * 30)
+    print("💾 SAVING WEATHER DATA TO CSV")
+    print("=" * 30)
+
     if not weather:
-        print("No weather data to save.")
+        print("⚠️  No weather data to save")
         return
 
-    with open(filename, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["time", "temp", "clouds"])  # header
+    try:
+        with open(filename, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["time", "temp", "clouds"])  # header
 
-        for entry in weather:
-            writer.writerow([
-                entry["time"].isoformat(),
-                entry["temp"],
-                entry["clouds"]
-            ])
+            for entry in weather:
+                writer.writerow([
+                    entry["time"].isoformat(),
+                    entry["temp"],
+                    entry["clouds"]
+                ])
 
-    print(f"Weather data saved to {filename}")
+        print(f"📁 Filename: {filename}")
+        print(f"📊 Data points saved: {len(weather)}")
+        print("✅ Weather data saved successfully")
+
+    except Exception as e:
+        print(f"❌ Error saving weather data: {e}")
 
 
 def load_weather_from_csv(filename):
+    """Load weather data from CSV file."""
+    print("\n" + "=" * 60)
+    print("📂 LOADING WEATHER DATA FROM CSV")
+    print("=" * 60)
+    print(f"📁 Filename: {filename}")
+
     weather = []
     try:
         with open(filename, newline="") as f:
@@ -199,37 +235,58 @@ def load_weather_from_csv(filename):
                     "temp": float(row["temp"]),
                     "clouds": float(row["clouds"])
                 })
-        print(f"Loaded weather from {filename}")
+
+        print(f"📊 Data points loaded: {len(weather)}")
+        print("✅ Weather data loaded successfully")
         return weather, True
 
     except FileNotFoundError:
-        print(f"File not found: {filename}")
+        print(f"❌ File not found: {filename}")
+        return [], False
+    except Exception as e:
+        print(f"❌ Error loading weather data: {e}")
         return [], False
 
 
 def generate_filename_csv(date_back):
+    """Generate CSV filename based on date."""
     filename = "stored_data/" + f"{date.today() - timedelta(days=date_back)}.csv"
     return filename
 
 
 def get_entity_state(entity_id):
+    """Get state of Home Assistant entity."""
+    print(f"\n🔍 Getting state for entity: {entity_id}")
+
     url = HA_URL_STATES + f"/{entity_id}"
-    response = requests.get(url, headers=headers)
 
-    if response.status_code != 200:
-        raise Exception(f"Error: {response.status_code} - {response.text}")
+    try:
+        response = requests.get(url, headers=headers)
 
-    return response.json()
+        if response.status_code != 200:
+            print(f"❌ Error: {response.status_code} - {response.text}")
+            raise Exception(f"Error: {response.status_code} - {response.text}")
+
+        print("✅ Entity state retrieved successfully")
+        return response.json()
+
+    except Exception as e:
+        print(f"❌ Failed to get entity state: {e}")
+        raise
 
 
 def get_slide_value(entity_id):
+    """Get current value of Home Assistant slider."""
     slider_data_json = get_entity_state(entity_id)
     current_value = int(float(slider_data_json["state"]))
-    # print(f"    📈 Current value of '{entity_id}': {current_value}")
+    print(f"📊 Current value: {current_value}")
     return current_value
 
 
 def set_slide_value(entity_id, value=5, min_value=0, max_value=MAX_DURATION_MINUTES_BOILER):
+    """Set value of Home Assistant slider."""
+    print(f"\n📈 Setting slider value for: {entity_id}")
+
     # Send POST request
     try:
         # Try to convert to integer
@@ -238,19 +295,27 @@ def set_slide_value(entity_id, value=5, min_value=0, max_value=MAX_DURATION_MINU
         # Clamp to range
         value = max(min_value, min(value, max_value))
 
+        print(f"🎯 Target value: {value} (range: {min_value}-{max_value})")
+
     except (ValueError, TypeError) as e:
-        print(f"Warning: Invalid value '{value}' for {entity_id}. Using min_value={min_value}. Error: {e}")
+        print(f"⚠️  Invalid value '{value}'. Using min_value={min_value}. Error: {e}")
         value = min_value
 
     entity_json = {"entity_id": entity_id, "value": value if min_value <= value <= max_value else min_value}
-    response = requests.post(HA_URL_SERVICES + f"/input_number/set_value", headers=headers, json=entity_json)
 
-    # Check response
-    if response.ok:
-        # print(f"    📈 Slider '{entity_id}' updated to {value}")
-        return True
-    else:
-        print(f"Failed to update slider: {response.text}")
+    try:
+        response = requests.post(HA_URL_SERVICES + f"/input_number/set_value", headers=headers, json=entity_json)
+
+        # Check response
+        if response.ok:
+            print(f"✅ Slider updated to {value}")
+            return True
+        else:
+            print(f"❌ Failed to update slider: {response.text}")
+            return False
+
+    except Exception as e:
+        print(f"❌ Error updating slider: {e}")
         return False
 
 
@@ -261,7 +326,12 @@ def daily_mean_T_CC(data, sunrise, sunset, start_offset=2, end_offset=1):
 
     Returns (None, None) if insufficient data.
     """
+    print("\n" + "=" * 60)
+    print("📊 CALCULATING DAILY MEAN TEMPERATURE & CLOUD COVER")
+    print("=" * 60)
+
     if not data:
+        print("⚠️  No data available")
         return None, None
 
     data = sorted(data, key=lambda x: x["time"])
@@ -269,16 +339,26 @@ def daily_mean_T_CC(data, sunrise, sunset, start_offset=2, end_offset=1):
     start_hour = sunrise + start_offset
     end_hour = sunset - end_offset
 
+    print(f"🌅 Sunrise: {sunrise}:00 (+ {start_offset}h offset = {start_hour}:00)")
+    print(f"🌇 Sunset:  {sunset}:00 (- {end_offset}h offset = {end_hour}:00)")
+    print(f"⏰ Analysis window: {start_hour}:00 - {end_hour}:00")
+
     filtered = [
         d for d in data
         if start_hour <= d["time"].hour <= end_hour
     ]
 
     if not filtered:
+        print("⚠️  No data points in the analysis window")
         return None, None
 
     mean_T = mean(d["temp"] for d in filtered)
     mean_CC = mean(d["clouds"] for d in filtered)
+
+    print(f"📊 Data points used: {len(filtered)}")
+    print(f"🌡️  Mean Temperature: {mean_T:.1f}°C")
+    print(f"☁️  Mean Cloud Cover: {mean_CC:.1f}%")
+    print("✅ Calculation complete")
 
     return mean_T, mean_CC
 
@@ -289,14 +369,19 @@ def boiler_duration(T: float, CC: float, k: float = 0.6, MAX_ON=180) -> int:
 
     T: temperature in °C
     CC: cloud coverage in %
-    k: max cloud impact factor (default 0.3)
+    k: max cloud impact factor (default 0.6)
     """
+    print("\n" + "=" * 60)
+    print("🔥 CALCULATING BOILER DURATION")
+    print("=" * 60)
+    print(f"🌡️  Input Temperature: {T:.1f}°C")
+    print(f"☁️  Input Cloud Cover: {CC:.1f}%")
+    print(f"⚙️  Cloud impact factor (k): {k}")
 
     MIN_TEMP_SUN_RELEVANT = 10
     MAX_TEMP_SUN_RELEVANT = 20
 
     # === 1) TEMP → BASE DURATION LUT ===
-    # (from your graph)
     temp_lut = {
         6: 180, 8: 180, 10: 160,
         12: 150, 14: 130, 16: 100,
@@ -321,7 +406,9 @@ def boiler_duration(T: float, CC: float, k: float = 0.6, MAX_ON=180) -> int:
                 ratio = (T - t0) / (t1 - t0)
                 base = v0 + ratio * (v1 - v0)
                 break
-    print("Temperature only calculation: {}".format(base))
+
+    print(f"📐 Base duration (temp only): {base:.0f} minutes")
+
     # === 2) CLOUD CORRECTION α(CC, T) ===
     # Temperature sensitivity: 0 at <=10°C, 1 at >=24°C
     ST = (T - MIN_TEMP_SUN_RELEVANT) / (MAX_TEMP_SUN_RELEVANT - MIN_TEMP_SUN_RELEVANT)
@@ -330,32 +417,60 @@ def boiler_duration(T: float, CC: float, k: float = 0.6, MAX_ON=180) -> int:
     # Full alpha
     alpha = k * (CC / 100.0) * ST
 
+    print(f"🌤️  Sun sensitivity factor: {ST:.2f}")
+    print(f"☁️  Cloud correction (α): {alpha:.3f}")
+
     # === 3) Apply cloud correction ===
-    print(base)
     result = min(int(round(base * (1 + alpha))), MAX_ON)
+
+    print(f"🔥 Final duration: {result} minutes (max: {MAX_ON})")
+    print("✅ Calculation complete")
 
     return result
 
 
 def update_homeassistant(dur, entity1, entity2):
+    """Update Home Assistant boiler entities with calculated duration."""
+    print("\n" + "=" * 60)
+    print("🏠 UPDATING HOME ASSISTANT")
+    print("=" * 60)
+    print(f"⏱️  Total duration to set: {dur} minutes")
+    print(f"📊 Max per boiler: {MAX_DURATION_MINUTES_BOILER} minutes")
 
     set_slide_value(entity1, dur)
+
     if dur > MAX_DURATION_MINUTES_BOILER:
-        a= set_slide_value(entity2, dur - MAX_DURATION_MINUTES_BOILER)
-        return a
+        remaining = dur - MAX_DURATION_MINUTES_BOILER
+        print(f"⚠️  Duration exceeds max, splitting across both boilers")
+        print(f"   Boiler 1: {MAX_DURATION_MINUTES_BOILER} minutes")
+        print(f"   Boiler 2: {remaining} minutes")
+        a = set_slide_value(entity2, remaining)
     else:
+        print(f"✅ Duration within limits, using only Boiler 1")
+        print(f"   Boiler 1: {dur} minutes")
+        print(f"   Boiler 2: 0 minutes")
         a = set_slide_value(entity2, 0)
-        return a
 
-
+    print("=" * 60)
+    return a
 
 
 def download_data(days):
+    """Download weather data for specified number of days."""
+    print("\n" + "=" * 60)
+    print(f"📥 DOWNLOADING WEATHER DATA FOR {days} DAY(S)")
+    print("=" * 60)
+
     for i in range(days):
+        print(f"\n📅 Processing day {i} ({date.today() - timedelta(days=i)})")
         file_name_csv = generate_filename_csv(i)
         sun_time = get_sun_times((latitude, longitude), i)
         w, got_weather_flag = get_weather((latitude, longitude), sun_time["sunrise"], sun_time["sunset"], i)
         save_weather_to_csv(w, file_name_csv)
+
+    print("\n" + "=" * 60)
+    print("✅ DOWNLOAD COMPLETE")
+    print("=" * 60)
 
 
 SAVE_DATA = True
@@ -366,11 +481,27 @@ DAYS_BACK_WEATHER_DATA = 0  # 0 = today, 1 = yesterday, 2 = the day before yeste
 
 # Main execution
 if __name__ == "__main__":
-    print("Current time is {}".format(datetime.now()))
+    print("\n" + "=" * 60)
+    print("🚀 BOILER CONTROL SYSTEM STARTED")
+    print("=" * 60)
+    print(f"🕐 Current time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"🐛 Debug mode: {debug_mode_ignore_update_time}")
+    print(f"💾 Save data: {SAVE_DATA}")
+    print(f"📂 Read from file: {READ_DATA_FROM_FILE}")
+    print(f"⏰ Sleep interval: {SLEEP_MINUTES} minutes")
+    print("=" * 60)
 
     while True:
-        if (datetime.now().time() >= time(17, 0) or debug_mode_ignore_update_time) and not update_for_today:
-            sun_time = get_sun_times((latitude, longitude), DAYS_BACK_WEATHER_DATA)  # get sunrise and sunset
+        current_time = datetime.now().time()
+
+        if (current_time >= time(17, 0) or debug_mode_ignore_update_time) and not update_for_today:
+            print("\n" + "=" * 30)
+            print("STARTING DAILY UPDATE CYCLE")
+            print("=" * 30)
+            print(f"⏰ Trigger time: {datetime.now().strftime('%H:%M:%S')}")
+            print(f"📅 Date: {date.today()}")
+
+            sun_time = get_sun_times((latitude, longitude), DAYS_BACK_WEATHER_DATA)
 
             if READ_DATA_FROM_FILE:
                 file_name_csv = generate_filename_csv(DAYS_BACK_WEATHER_DATA)
@@ -378,7 +509,7 @@ if __name__ == "__main__":
                 if read_weather_flag:
                     w, got_weather_flag = load_weather_from_csv(file_name_csv)
                 else:
-                    print("Failed to load weather from file {}".format(file_name_csv))
+                    print(f"❌ Failed to load weather from file {file_name_csv}")
                     break
             else:
                 w, got_weather_flag = get_weather((latitude, longitude), sun_time["sunrise"], sun_time["sunset"],
@@ -388,17 +519,31 @@ if __name__ == "__main__":
                     save_weather_to_csv(w, file_name_csv)
 
             daily_t, daily_cc = daily_mean_T_CC(w, sun_time["sunrise"], sun_time["sunset"])
-            print(f"Daily mean T: {daily_t} °C, Daily mean CC: {daily_cc} %")
-            duration = boiler_duration(daily_t, daily_cc)
-            print(f"Calculated boiler duration: {duration} minutes")
 
-            update_homeassistant(duration, BOILER_1ST_ON_ENTITY_ID, BOILER_2ND_ON_ENTITY_ID)
-            update_for_today = True
+            if daily_t is not None and daily_cc is not None:
+                duration = boiler_duration(daily_t, daily_cc)
+                update_homeassistant(duration, BOILER_1ST_ON_ENTITY_ID, BOILER_2ND_ON_ENTITY_ID)
+                update_for_today = True
 
-        elif (time(7, 0) <= datetime.now().time() < time(17,
-                                                         0) and update_for_today) and not debug_mode_ignore_update_time:
+                print("\n" + "=" * 40)
+                print("DAILY UPDATE COMPLETED SUCCESSFULLY")
+                print("=" * 40)
+            else:
+                print("\n" + "=" * 40)
+                print("DAILY UPDATE FAILED - INSUFFICIENT DATA")
+                print("=" * 40)
+
+        elif (time(7, 0) <= current_time < time(17, 0) and update_for_today) and not debug_mode_ignore_update_time:
             update_for_today = False
-            print("After midnight, resetting for the next day")
+            print("\n" + "=" * 30)
+            print("🌅 NEW DAY - RESETTING UPDATE FLAG")
+            print(f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}")
+            print("=" * 30)
+
         else:
-            print("nothing to do yet...")
+            print(f"\n⏸️  [{datetime.now().strftime('%H:%M:%S')}] Waiting... (next check in {SLEEP_MINUTES} min)")
+            print(f"   Current time: {current_time.strftime('%H:%M')}")
+            print(f"   Update window: 17:00+")
+            print(f"   Updated today: {update_for_today}")
+            print(f"   Debug mode: {debug_mode_ignore_update_time}")
             sleep(60 * SLEEP_MINUTES)
