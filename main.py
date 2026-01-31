@@ -5,8 +5,6 @@ from time import sleep
 from statistics import mean
 from datetime import datetime, timedelta, time, date
 
-from scipy.stats import false_discovery_control
-
 config = configparser.ConfigParser()
 config.read('config.ini')
 
@@ -476,7 +474,7 @@ def download_data(days):
 SAVE_DATA = True
 SLEEP_MINUTES = 10
 READ_DATA_FROM_FILE = False
-debug_mode_ignore_update_time = True
+debug_mode_ignore_update_time = False
 DAYS_BACK_WEATHER_DATA = 0  # 0 = today, 1 = yesterday, 2 = the day before yesterday
 
 # Main execution
