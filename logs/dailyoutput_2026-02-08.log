@@ -1,0 +1,317 @@
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T12:43:47.532875] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T12:43:47.532989] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T12:43:47.532975"}
+[2026-02-08T12:43:48.150982] info: Daily means calculated | {"mean_T": 20.86, "mean_CC": 42.6}
+[2026-02-08T12:43:48.151519] info: Calculated duration | {"duration_min": 32}
+[2026-02-08T12:43:48.199507] info: Home Assistant update OK | {"duration": 32}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T14:40:32.487195] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T14:40:32.487432] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T14:40:32.487422"}
+[2026-02-08T14:41:41.297086] info: Daily means calculated | {"mean_T": 21.857142857142858, "mean_CC": 57.42857142857143}
+[2026-02-08T14:41:50.312876] info: Calculated duration | {"duration_min": 28}
+[2026-02-08T14:42:39.817850] info: Home Assistant update OK | {"duration": 28}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T14:42:56.453683] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T14:42:56.453972] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T14:42:56.453962"}
+[2026-02-08T14:43:11.102901] info: Daily means calculated | {"mean_T": 21.857142857142858, "mean_CC": 57.42857142857143}
+[2026-02-08T14:43:13.549161] info: Calculated duration | {"duration_min": 28}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T14:44:02.839836] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T14:44:02.839935] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T14:44:02.839931"}
+[2026-02-08T14:44:03.447532] info: Daily means calculated | {"mean_T": 21.857142857142858, "mean_CC": 57.42857142857143}
+[2026-02-08T14:44:03.448114] info: Calculated duration | {"duration_min": 28}
+[2026-02-08T14:44:03.485780] info: Home Assistant update OK | {"duration": 28}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T14:50:05.550773] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T14:50:05.550878] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T14:50:05.550873"}
+[2026-02-08T14:50:07.831250] info: Daily means calculated | {"mean_T": 21.857142857142858, "mean_CC": 57.42857142857143}
+[2026-02-08T14:50:07.831992] info: Calculated duration | {"duration_min": 28}
+[2026-02-08T14:50:07.867345] info: Home Assistant update OK | {"duration": 28}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T14:50:48.552620] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T14:50:48.552706] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T14:50:48.552702"}
+[2026-02-08T14:50:49.177069] info: Daily means calculated | {"mean_T": 21.857142857142858, "mean_CC": 57.42857142857143}
+[2026-02-08T14:50:49.177685] info: Calculated duration | {"duration_min": 28}
+[2026-02-08T14:50:49.206622] info: Home Assistant update OK | {"duration": 28}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T14:51:49.307851] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T14:51:49.308103] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T14:51:49.308095"}
+[2026-02-08T14:51:49.987867] info: Daily means calculated | {"mean_T": 21.857142857142858, "mean_CC": 57.42857142857143}
+[2026-02-08T14:51:49.989504] info: Calculated duration | {"duration_min": 28}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T14:54:02.851387] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T14:54:02.851485] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T14:54:02.851482"}
+[2026-02-08T14:54:03.463418] info: Daily means calculated | {"mean_T": 21.857142857142858, "mean_CC": 57.42857142857143}
+[2026-02-08T14:54:03.463980] info: Calculated duration | {"duration_min": 28}
+[2026-02-08T14:54:03.515671] info: Home Assistant update OK | {"duration": 28}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T14:54:16.062063] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T14:54:16.062627] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T14:54:16.062611"}
+[2026-02-08T14:54:16.688281] info: Daily means calculated | {"mean_T": 21.857142857142858, "mean_CC": 57.42857142857143}
+[2026-02-08T14:54:16.690293] info: Calculated duration | {"duration_min": 28}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T14:58:34.301556] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T14:58:34.301784] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T14:58:34.301775"}
+[2026-02-08T14:58:34.940841] info: Daily means calculated | {"mean_T": 21.857142857142858, "mean_CC": 57.42857142857143}
+[2026-02-08T14:58:34.941372] info: Calculated duration | {"duration_min": 28}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T15:00:26.394712] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T15:00:26.394954] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T15:00:26.394945"}
+[2026-02-08T15:00:27.040199] info: Daily means calculated | {"mean_T": 22.15, "mean_CC": 59.5}
+[2026-02-08T15:00:27.041553] info: Calculated duration | {"duration_min": 26}
+[2026-02-08T15:00:36.546673] info: Home Assistant update OK | {"duration": 26}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T15:11:09.095566] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T15:11:09.095669] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T15:11:09.095664"}
+[2026-02-08T15:11:09.695725] info: Weather data fetched from website | {"points": 16}
+[2026-02-08T15:11:09.696402] info: Weather data ready | {"points": 16}
+[2026-02-08T15:11:09.696750] info: Daily means calculated | {"mean_T": 22.15, "mean_CC": 59.5}
+[2026-02-08T15:11:09.696919] info: Calculated duration | {"duration_min": 26}
+[2026-02-08T15:11:10.771357] info: Boiler start script executed successfully | {"script": "start_waterheater_using_ui"}
+[2026-02-08T15:11:10.771661] info: Home Assistant update OK | {"duration": 26}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T15:12:12.751243] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T15:12:12.751349] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T15:12:12.751346"}
+[2026-02-08T15:12:13.375135] info: Weather data fetched from website | {"points": 16}
+[2026-02-08T15:12:13.375700] info: Weather data ready | {"points": 16}
+[2026-02-08T15:12:13.376112] info: Daily means calculated | {"mean_T": 22.15, "mean_CC": 59.5}
+[2026-02-08T15:12:13.376275] info: Calculated duration | {"duration_min": 26}
+[2026-02-08T15:12:15.447966] info: Boiler start script executed successfully | {"script": "start_waterheater_using_ui"}
+[2026-02-08T15:12:15.448258] info: Home Assistant update OK | {"duration": 26}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T15:13:26.047985] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T15:13:26.048074] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T15:13:26.048070"}
+[2026-02-08T15:13:26.694283] info: Weather data fetched from website | {"points": 16}
+[2026-02-08T15:13:26.695082] info: Weather data ready | {"points": 16}
+[2026-02-08T15:13:26.695656] info: Daily means calculated | {"mean_T": 22.15, "mean_CC": 59.5}
+[2026-02-08T15:13:26.695939] info: Calculated duration | {"duration_min": 26}
+[2026-02-08T15:13:30.775940] info: Boiler start script executed successfully | {"script": "start_waterheater_using_ui"}
+[2026-02-08T15:13:30.776292] info: Home Assistant update OK | {"duration": 26}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T15:17:50.096278] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T15:17:50.096378] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T15:17:50.096375"}
+[2026-02-08T15:17:50.757226] info: Weather data fetched from website | {"points": 16}
+[2026-02-08T15:17:50.757786] info: Weather data ready | {"points": 16}
+[2026-02-08T15:17:50.758064] info: Daily means calculated | {"mean_T": 22.15, "mean_CC": 59.5}
+[2026-02-08T15:17:50.758189] info: Calculated duration | {"duration_min": 26}
+[2026-02-08T15:17:52.814490] error (SCRIPT_EXEC_FAIL): Failed to execute boiler start script | {"script": "start_waterheater_using_ui"}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T15:18:10.047922] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T15:18:10.048171] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T15:18:10.048164"}
+[2026-02-08T15:18:10.748682] info: Weather data fetched from website | {"points": 16}
+[2026-02-08T15:18:10.749166] info: Weather data ready | {"points": 16}
+[2026-02-08T15:18:10.749759] info: Daily means calculated | {"mean_T": 22.15, "mean_CC": 59.5}
+[2026-02-08T15:18:10.749982] info: Calculated duration | {"duration_min": 26}
+[2026-02-08T15:18:10.785444] error (SCRIPT_EXEC_FAIL): Failed to execute boiler start script | {"script": "start_waterheater_using_ui"}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T15:18:21.943746] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T15:18:21.944013] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T15:18:21.944005"}
+[2026-02-08T15:18:22.615422] info: Weather data fetched from website | {"points": 16}
+[2026-02-08T15:18:22.616009] info: Weather data ready | {"points": 16}
+[2026-02-08T15:18:22.616785] info: Daily means calculated | {"mean_T": 22.15, "mean_CC": 59.5}
+[2026-02-08T15:18:22.616971] info: Calculated duration | {"duration_min": 26}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T15:18:58.836974] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T15:18:58.837220] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T15:18:58.837211"}
+[2026-02-08T15:18:59.473853] info: Weather data fetched from website | {"points": 16}
+[2026-02-08T15:18:59.474469] info: Weather data ready | {"points": 16}
+[2026-02-08T15:18:59.475267] info: Daily means calculated | {"mean_T": 22.15, "mean_CC": 59.5}
+[2026-02-08T15:18:59.475623] info: Calculated duration | {"duration_min": 26}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T15:21:16.166887] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T15:21:16.167126] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T15:21:16.167119"}
+[2026-02-08T15:21:16.829589] info: Weather data fetched from website | {"points": 16}
+[2026-02-08T15:21:16.830247] info: Weather data ready | {"points": 16}
+[2026-02-08T15:21:16.831135] info: Daily means calculated | {"mean_T": 22.15, "mean_CC": 59.5}
+[2026-02-08T15:21:16.831484] info: Calculated duration | {"duration_min": 26}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T15:22:45.246621] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T15:22:45.247239] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T15:22:45.247228"}
+[2026-02-08T15:22:45.884452] info: Weather data fetched from website | {"points": 16}
+[2026-02-08T15:22:45.885004] info: Weather data ready | {"points": 16}
+[2026-02-08T15:22:45.885577] info: Daily means calculated | {"mean_T": 22.15, "mean_CC": 59.5}
+[2026-02-08T15:22:45.885757] info: Calculated duration | {"duration_min": 26}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T15:26:58.425868] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T15:26:58.426103] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T15:26:58.426095"}
+[2026-02-08T15:26:59.061357] info: Weather data fetched from website | {"points": 16}
+[2026-02-08T15:26:59.062229] info: Weather data ready | {"points": 16}
+[2026-02-08T15:26:59.063386] info: Daily means calculated | {"mean_T": 22.15, "mean_CC": 59.5}
+[2026-02-08T15:26:59.063679] info: Calculated duration | {"duration_min": 26}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T15:29:35.551295] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T15:29:35.551381] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T15:29:35.551378"}
+[2026-02-08T15:29:36.183733] info: Weather data fetched from website | {"points": 16}
+[2026-02-08T15:29:36.186049] info: Weather data ready | {"points": 16}
+[2026-02-08T15:29:36.186357] info: Daily means calculated | {"mean_T": 22.15, "mean_CC": 59.5}
+[2026-02-08T15:29:36.186491] info: Calculated duration | {"duration_min": 26}
+[2026-02-08T15:29:36.236233] error (SCRIPT_EXEC_FAIL): Failed to execute boiler start script | {"script": "start_waterheater_using_ui"}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T15:30:05.329391] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T15:30:05.329632] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T15:30:05.329623"}
+[2026-02-08T15:30:07.164156] info: Weather data fetched from website | {"points": 16}
+[2026-02-08T15:30:07.164737] info: Weather data ready | {"points": 16}
+[2026-02-08T15:30:07.165960] info: Daily means calculated | {"mean_T": 23.014285714285712, "mean_CC": 64.57142857142857}
+[2026-02-08T15:30:07.166471] info: Calculated duration | {"duration_min": 21}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T16:11:22.535473] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T16:11:22.535572] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T16:11:22.535569"}
+[2026-02-08T16:11:23.164169] info: Weather data fetched from website | {"points": 17}
+[2026-02-08T16:11:23.165052] info: Weather data ready | {"points": 17}
+[2026-02-08T16:11:23.165660] info: Daily means calculated | {"mean_T": 22.31111111111111, "mean_CC": 60}
+[2026-02-08T16:11:23.166033] info: Calculated duration | {"duration_min": 25}
+[2026-02-08T16:11:23.204645] error (SCRIPT_EXEC_FAIL): Failed to execute boiler start script | {"script": "start_waterheater_using_ui"}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T16:13:30.160345] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T16:13:30.160584] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T16:13:30.160575"}
+[2026-02-08T16:13:30.806945] info: Weather data fetched from website | {"points": 17}
+[2026-02-08T16:13:30.807991] info: Weather data ready | {"points": 17}
+[2026-02-08T16:13:30.810314] info: Daily means calculated | {"mean_T": 22.31111111111111, "mean_CC": 60}
+[2026-02-08T16:13:30.811244] info: Calculated duration | {"duration_min": 25}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T16:15:14.495547] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T16:15:14.495779] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T16:15:14.495770"}
+[2026-02-08T16:15:15.126430] info: Weather data fetched from website | {"points": 17}
+[2026-02-08T16:15:15.127688] info: Weather data ready | {"points": 17}
+[2026-02-08T16:15:15.130613] info: Daily means calculated | {"mean_T": 22.31111111111111, "mean_CC": 60}
+[2026-02-08T16:15:15.131780] info: Calculated duration | {"duration_min": 25}
+[2026-02-08T16:15:15.184795] error (SCRIPT_EXEC_FAIL): Failed to execute boiler start script | {"script": "start_waterheater_using_ui"}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T16:15:26.539388] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T16:15:26.539639] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T16:15:26.539628"}
+[2026-02-08T16:15:27.190358] info: Weather data fetched from website | {"points": 17}
+[2026-02-08T16:15:27.191198] info: Weather data ready | {"points": 17}
+[2026-02-08T16:15:27.191924] info: Daily means calculated | {"mean_T": 22.31111111111111, "mean_CC": 60}
+[2026-02-08T16:15:27.192203] info: Calculated duration | {"duration_min": 25}
+[2026-02-08T16:15:27.242864] error (SCRIPT_EXEC_FAIL): Failed to execute boiler start script | {"script": "start_waterheater_using_ui"}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T16:15:46.442560] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T16:15:46.442845] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T16:15:46.442834"}
+[2026-02-08T16:15:47.067083] info: Weather data fetched from website | {"points": 17}
+[2026-02-08T16:15:47.067957] info: Weather data ready | {"points": 17}
+[2026-02-08T16:15:47.070115] info: Daily means calculated | {"mean_T": 22.31111111111111, "mean_CC": 60}
+[2026-02-08T16:15:47.070624] info: Calculated duration | {"duration_min": 25}
+[2026-02-08T16:16:51.179679] info: Boiler start script executed successfully | {"script": "start_waterheater_using_ui"}
+[2026-02-08T16:16:53.984270] info: Home Assistant update OK | {"duration": 25}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T16:27:35.196978] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T16:27:35.197066] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T16:27:35.197062"}
+[2026-02-08T16:27:35.818278] info: Weather data fetched from website | {"points": 17}
+[2026-02-08T16:27:35.819101] info: Weather data ready | {"points": 17}
+[2026-02-08T16:27:35.819659] info: Daily means calculated | {"mean_T": 22.31111111111111, "mean_CC": 60}
+[2026-02-08T16:27:35.819990] info: Calculated duration | {"duration_min": 25}
+[2026-02-08T16:27:35.854339] error (SCRIPT_EXEC_FAIL): Failed to execute boiler start script | {"script": "start_waterheater_using_ui"}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T16:27:48.936474] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T16:27:48.936576] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T16:27:48.936573"}
+[2026-02-08T16:27:49.608007] info: Weather data fetched from website | {"points": 17}
+[2026-02-08T16:27:49.608446] info: Weather data ready | {"points": 17}
+[2026-02-08T16:27:49.609191] info: Daily means calculated | {"mean_T": 22.31111111111111, "mean_CC": 60}
+[2026-02-08T16:27:49.609604] info: Calculated duration | {"duration_min": 25}
+[2026-02-08T16:27:51.687970] info: Boiler start script executed successfully | {"script": "start_waterheater_using_ui"}
+[2026-02-08T16:27:51.688308] info: Home Assistant update OK | {"duration": 25}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T16:31:25.964706] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T16:31:25.965003] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T16:31:25.964993"}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T16:43:11.564969] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T16:43:11.565085] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T16:43:11.565081"}
+[2026-02-08T16:43:12.213989] info: Weather data fetched from website | {"points": 17}
+[2026-02-08T16:43:12.214705] info: Weather data ready | {"points": 17}
+[2026-02-08T16:43:12.215866] info: Daily means calculated | {"mean_T": 22.31111111111111, "mean_CC": 60}
+[2026-02-08T16:43:12.216253] info: Calculated duration | {"duration_min": 25}
+[2026-02-08T16:43:12.247275] error (SCRIPT_EXEC_FAIL): Failed to execute boiler start script | {"script": "start_waterheater_using_ui"}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T16:48:49.410368] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T16:48:49.410455] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T16:48:49.410452"}
+[2026-02-08T16:48:50.043862] info: Weather data fetched from website | {"points": 17}
+[2026-02-08T16:48:50.046000] info: Weather data ready | {"points": 17}
+[2026-02-08T16:48:50.046727] info: Daily means calculated | {"mean_T": 22.31111111111111, "mean_CC": 60}
+[2026-02-08T16:48:50.047159] info: Calculated duration | {"duration_min": 25}
+[2026-02-08T16:48:50.071096] error (SCRIPT_EXEC_FAIL): Failed to execute boiler start script | {"script": "start_waterheater_using_ui"}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T16:49:08.826625] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T16:49:08.826717] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T16:49:08.826713"}
+[2026-02-08T16:49:09.448593] info: Weather data fetched from website | {"points": 17}
+[2026-02-08T16:49:09.449376] info: Weather data ready | {"points": 17}
+[2026-02-08T16:49:09.449665] info: Daily means calculated | {"mean_T": 22.31111111111111, "mean_CC": 60}
+[2026-02-08T16:49:09.449796] info: Calculated duration | {"duration_min": 25}
+[2026-02-08T16:49:11.492142] info: Boiler start script executed successfully | {"script": "start_waterheater_using_ui"}
+[2026-02-08T16:49:11.492240] info: Home Assistant update OK | {"duration": 25}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T16:56:14.755984] info: Main run started | {"app_version": "1.0.2"}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T17:08:13.182462] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T17:08:13.182564] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T17:08:13.182560"}
+[2026-02-08T17:08:13.797110] info: Weather data fetched from website | {"points": 18}
+[2026-02-08T17:08:13.798126] info: Weather data ready | {"points": 18}
+[2026-02-08T17:08:13.798528] info: Wether data saved to file | {"points": 18}
+[2026-02-08T17:08:13.798884] info: Daily means calculated | {"mean_T": 22.31111111111111, "mean_CC": 60}
+[2026-02-08T17:08:13.799068] info: Calculated duration | {"duration_min": 25}
+[2026-02-08T17:08:15.849704] info: Boiler start script executed successfully | {"script": "start_waterheater_using_ui"}
+[2026-02-08T17:08:15.850046] info: Home Assistant update OK | {"duration": 25}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T18:23:14.094477] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T18:23:14.094585] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T18:23:14.094580"}
+[2026-02-08T18:23:14.733387] info: Weather data fetched from website | {"points": 19}
+[2026-02-08T18:23:14.734330] info: Weather data ready | {"points": 19}
+[2026-02-08T18:23:14.734652] info: Wether data saved to file | {"points": 19}
+[2026-02-08T18:23:14.734935] info: Daily means calculated | {"mean_T": 22.244444444444444, "mean_CC": 63.77777777777778}
+[2026-02-08T18:23:14.735035] error (UNHANDLED_EXCEPTION): Unhandled exception in main loop | {"exception": "0"}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T19:02:25.875921] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T19:02:25.876196] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T19:02:25.876188"}
+[2026-02-08T19:02:26.538761] info: Weather data fetched from website | {"points": 20}
+[2026-02-08T19:02:26.539269] info: Weather data ready | {"points": 20}
+[2026-02-08T19:02:26.539668] info: Wether data saved to file | {"points": 20}
+[2026-02-08T19:02:26.540201] info: Daily means calculated | {"mean_T": 22.244444444444444, "mean_CC": 63.77777777777778}
+[2026-02-08T19:02:31.676293] error (UNHANDLED_EXCEPTION): Unhandled exception in main loop | {"exception": "0"}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T19:03:54.999076] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T19:03:54.999435] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T19:03:54.999427"}
+[2026-02-08T19:03:55.658744] info: Weather data fetched from website | {"points": 20}
+[2026-02-08T19:03:55.659667] info: Weather data ready | {"points": 20}
+[2026-02-08T19:03:55.660548] info: Wether data saved to file | {"points": 20}
+[2026-02-08T19:03:55.661635] info: Daily means calculated | {"mean_T": 22.244444444444444, "mean_CC": 63.77777777777778}
+[2026-02-08T19:04:01.959131] error (UNHANDLED_EXCEPTION): Unhandled exception in main loop | {"exception": "'dict_keys' object is not subscriptable"}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T19:04:27.891896] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T19:04:27.892167] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T19:04:27.892147"}
+[2026-02-08T19:04:28.567444] info: Weather data fetched from website | {"points": 20}
+[2026-02-08T19:04:28.568402] info: Weather data ready | {"points": 20}
+[2026-02-08T19:04:28.569372] info: Wether data saved to file | {"points": 20}
+[2026-02-08T19:04:28.570752] info: Daily means calculated | {"mean_T": 22.244444444444444, "mean_CC": 63.77777777777778}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T19:07:02.519737] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T19:07:02.520034] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T19:07:02.520017"}
+[2026-02-08T19:07:03.242334] info: Weather data fetched from website | {"points": 20}
+[2026-02-08T19:07:03.243206] info: Weather data ready | {"points": 20}
+[2026-02-08T19:07:03.244059] info: Wether data saved to file | {"points": 20}
+[2026-02-08T19:07:03.245254] info: Daily means calculated | {"mean_T": 22.244444444444444, "mean_CC": 63.77777777777778}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T19:17:42.345360] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T19:17:42.345674] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T19:17:42.345665"}
+[2026-02-08T19:17:42.992856] info: Weather data fetched from website | {"points": 20}
+[2026-02-08T19:17:42.993307] info: Weather data ready | {"points": 20}
+[2026-02-08T19:17:42.993725] info: Wether data saved to file | {"points": 20}
+[2026-02-08T19:17:42.994202] info: Daily means calculated | {"mean_T": 22.244444444444444, "mean_CC": 63.77777777777778}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T19:17:59.430691] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T19:17:59.430784] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T19:17:59.430780"}
+[2026-02-08T19:18:00.054397] info: Weather data fetched from website | {"points": 20}
+[2026-02-08T19:18:00.055099] info: Weather data ready | {"points": 20}
+[2026-02-08T19:18:00.055648] info: Wether data saved to file | {"points": 20}
+[2026-02-08T19:18:00.056072] info: Daily means calculated | {"mean_T": 22.244444444444444, "mean_CC": 63.77777777777778}
+[2026-02-08T19:18:00.056297] info: Calculated duration | {"duration_min": 18}
+[2026-02-08T19:18:02.106665] info: Boiler start script executed successfully | {"script": "start_waterheater_using_ui"}
+[2026-02-08T19:18:02.106768] info: Home Assistant update OK | {"duration": 18}
+===== DAILY LOG 2026-02-08 START =====
+[2026-02-08T19:26:19.994897] info: Main run started | {"app_version": "1.0.2"}
+[2026-02-08T19:26:19.994988] info: Starting daily update cycle | {"date": "2026-02-08", "trigger": "2026-02-08T19:26:19.994985"}
+[2026-02-08T19:26:20.647869] info: Weather data fetched from website | {"points": 20}
+[2026-02-08T19:26:20.648581] info: Weather data ready | {"points": 20}
+[2026-02-08T19:26:20.649227] info: Wether data saved to file | {"points": 20}
+[2026-02-08T19:26:20.649710] info: Daily means calculated | {"mean_T": 22.244444444444444, "mean_CC": 63.77777777777778}
+[2026-02-08T19:26:20.649994] info: Calculated duration | {"duration_min": 18}
+[2026-02-08T19:26:22.702912] info: Boiler start script executed successfully | {"script": "start_waterheater_using_ui"}
+[2026-02-08T19:26:22.703243] info: Home Assistant update OK | {"duration": 18}

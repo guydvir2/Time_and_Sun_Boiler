@@ -1,0 +1,91 @@
+{
+  "date": "2026-02-08",
+  "generated_at": "2026-02-08T19:26:22.703482",
+  "status": "success",
+  "error": null,
+  "events": [
+    {
+      "ts": "2026-02-08T19:26:19.994897",
+      "level": "info",
+      "code": null,
+      "message": "Main run started",
+      "data": {
+        "app_version": "1.0.2"
+      }
+    },
+    {
+      "ts": "2026-02-08T19:26:19.994988",
+      "level": "info",
+      "code": null,
+      "message": "Starting daily update cycle",
+      "data": {
+        "date": "2026-02-08",
+        "trigger": "2026-02-08T19:26:19.994985"
+      }
+    },
+    {
+      "ts": "2026-02-08T19:26:20.647869",
+      "level": "info",
+      "code": null,
+      "message": "Weather data fetched from website",
+      "data": {
+        "points": 20
+      }
+    },
+    {
+      "ts": "2026-02-08T19:26:20.648581",
+      "level": "info",
+      "code": null,
+      "message": "Weather data ready",
+      "data": {
+        "points": 20
+      }
+    },
+    {
+      "ts": "2026-02-08T19:26:20.649227",
+      "level": "info",
+      "code": null,
+      "message": "Wether data saved to file",
+      "data": {
+        "points": 20
+      }
+    },
+    {
+      "ts": "2026-02-08T19:26:20.649710",
+      "level": "info",
+      "code": null,
+      "message": "Daily means calculated",
+      "data": {
+        "mean_T": 22.244444444444444,
+        "mean_CC": 63.77777777777778
+      }
+    },
+    {
+      "ts": "2026-02-08T19:26:20.649994",
+      "level": "info",
+      "code": null,
+      "message": "Calculated duration",
+      "data": {
+        "duration_min": 18
+      }
+    },
+    {
+      "ts": "2026-02-08T19:26:22.702912",
+      "level": "info",
+      "code": null,
+      "message": "Boiler start script executed successfully",
+      "data": {
+        "script": "start_waterheater_using_ui"
+      }
+    },
+    {
+      "ts": "2026-02-08T19:26:22.703243",
+      "level": "info",
+      "code": null,
+      "message": "Home Assistant update OK",
+      "data": {
+        "duration": 18
+      }
+    }
+  ]
+}

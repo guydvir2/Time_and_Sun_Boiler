@@ -31,11 +31,6 @@ READ_DATA_FROM_FILE = config["parameters"]["READ_DATA_FROM_FILE"].lower() == "tr
 debug_mode_ignore_update_time = config["parameters"]["debug_mode_ignore_update_time"].lower() == "true"
 DAYS_BACK_WEATHER_DATA = int(config["parameters"]["DAYS_BACK_WEATHER_DATA"])
 
-temp_lut = {
-    int(k): v
-    for k, v in json.loads(config["temperature_duration_lut"]["temp_lut"]).items()
-}
-
 APP_VERSION = "1.0.2"
 
 # Build URLs in Python (where f-strings work)
@@ -429,6 +424,13 @@ def ha_execute_boiler_start_script(script_id):
 
 
 ### Core logic functions: calculating mean temperature/cloud cover and boiler duration ##
+def get_lut():
+    """Get the temperature to duration lookup table from config."""
+    return {
+        int(k): v
+        for k, v in json.loads(config["temperature_duration_lut"]["temp_lut"]).items()
+    }
+
 def calc_daily_mean_T_CC(data, sunrise, sunset, start_offset=2, end_offset=1):
     """
     Computes mean temperature and cloud cover in the window:
@@ -472,7 +474,6 @@ def calc_daily_mean_T_CC(data, sunrise, sunset, start_offset=2, end_offset=1):
 
     return mean_T, mean_CC
 
-
 def calc_duration(T: float, CC: float, k: float = 0.6, MAX_ON=180) -> int:
     """
     Compute boiler ON duration (minutes) from outdoor temperature (T) and cloud coverage (CC).
@@ -487,6 +488,8 @@ def calc_duration(T: float, CC: float, k: float = 0.6, MAX_ON=180) -> int:
     print(f"🌡️  Input Temperature: {T:.1f}°C")
     print(f"☁️  Input Cloud Cover: {CC:.1f}%")
     print(f"⚙️  Cloud impact factor (k): {k}")
+
+    temp_lut = get_lut()
 
     MIN_TEMP_SUN_RELEVANT = min(temp_lut)
     MAX_TEMP_SUN_RELEVANT = max(temp_lut)
@@ -529,6 +532,33 @@ def calc_duration(T: float, CC: float, k: float = 0.6, MAX_ON=180) -> int:
 
     return result
 
+def read_data_from_saved_file(days_back=DAYS_BACK_WEATHER_DATA):
+    file_name_csv = generate_filename_csv(days_back)
+    w, got_weather_flag = load_weather_from_csv(file_name_csv)
+
+    if got_weather_flag:
+        log_event("info", "Weather data ready", data={"points": len(w)})
+        return True
+    else:
+        print(f"❌ Failed to load weather from file {file_name_csv}")
+        log_event("error", "Failed to obtain weather data", code="WEATHER_FETCH_FAIL")
+        return False
+
+def read_data_from_website():
+    w, got_weather_flag = get_weather((latitude, longitude), 0, 23, DAYS_BACK_WEATHER_DATA)
+    log_event("info", "Weather data fetched from website", data={"points": len(w)})
+
+    if got_weather_flag:
+        log_event("info", "Weather data ready", data={"points": len(w)})
+        if SAVE_DATA:
+            file_name_csv = generate_filename_csv(DAYS_BACK_WEATHER_DATA)
+            save_weather_to_csv(w, file_name_csv)
+            log_event("info", "Wether data saved to file", data={"points": len(w)})
+        return True
+    else:
+        print(f"❌ Failed to load weather from website")
+        log_event("error", "Failed to obtain weather data", code="WEATHER_FETCH_FAIL")
+        return False
 
 def main_headers():
     print("\n" + "=" * 60)
@@ -541,7 +571,6 @@ def main_headers():
     print(f"⏰ Sleep interval: {SLEEP_MINUTES} minutes")
     print("=" * 60)
 
-
 def main_run():
     global update_for_today
 
@@ -549,9 +578,10 @@ def main_run():
     try:
         while True:
             current_time = datetime.now().time()
+            sun_time = get_sun_times((latitude, longitude), DAYS_BACK_WEATHER_DATA)
 
             # Daily update check
-            if (current_time >= time(17, 1) or debug_mode_ignore_update_time) and not update_for_today:
+            if (current_time >= time(sun_time["sunset"], 2*SLEEP_MINUTES) or debug_mode_ignore_update_time) and not update_for_today:
                 print("\n" + "=" * 30)
                 print("STARTING DAILY UPDATE CYCLE")
                 log_event("info", "Starting daily update cycle",
@@ -561,35 +591,14 @@ def main_run():
                 print(f"⏰ Trigger time: {datetime.now().strftime('%H:%M:%S')}")
                 print(f"📅 Date: {date.today()}")
 
-                sun_time = get_sun_times((latitude, longitude), DAYS_BACK_WEATHER_DATA)
-
                 # Load from file
                 if READ_DATA_FROM_FILE:
-                    file_name_csv = generate_filename_csv(DAYS_BACK_WEATHER_DATA)
-                    w, got_weather_flag = load_weather_from_csv(file_name_csv)
-
-                    if got_weather_flag:
-                        log_event("info", "Weather data ready", data={"points": len(w)})
-                    else:
-                        print(f"❌ Failed to load weather from file {file_name_csv}")
-                        log_event("error", "Failed to obtain weather data", code="WEATHER_FETCH_FAIL")
+                    if not read_data_from_saved_file():
                         sleep(60 * SLEEP_MINUTES)
                         break
-
                 # Fetch from API
                 else:
-                    w, got_weather_flag = get_weather((latitude, longitude), 0, 23, DAYS_BACK_WEATHER_DATA)
-                    log_event("info", "Weather data fetched from website", data={"points": len(w)})
-
-                    if got_weather_flag:
-                        log_event("info", "Weather data ready", data={"points": len(w)})
-                        if SAVE_DATA:
-                            file_name_csv = generate_filename_csv(DAYS_BACK_WEATHER_DATA)
-                            save_weather_to_csv(w, file_name_csv)
-                            log_event("info", "Wether data saved to file", data={"points": len(w)})
-                    else:
-                        print(f"❌ Failed to load weather from website")
-                        log_event("error", "Failed to obtain weather data", code="WEATHER_FETCH_FAIL")
+                    if not read_data_from_website():
                         sleep(60 * SLEEP_MINUTES)
                         break
 
