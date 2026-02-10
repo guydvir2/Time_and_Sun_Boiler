@@ -513,7 +513,7 @@ if __name__ == "__main__":
         current_time = datetime.now().time()
 
         # Daily update check
-        if (current_time >= time(7, 1) or debug_mode_ignore_update_time) and not update_for_today:
+        if (current_time >= time(17, 1) or debug_mode_ignore_update_time) and not update_for_today:
             print("\n" + "=" * 30)
             print("STARTING DAILY UPDATE CYCLE")
             print("=" * 30)
