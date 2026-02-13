@@ -31,7 +31,7 @@ READ_DATA_FROM_FILE = config["parameters"]["READ_DATA_FROM_FILE"].lower() == "tr
 debug_mode_ignore_update_time = config["parameters"]["debug_mode_ignore_update_time"].lower() == "true"
 DAYS_BACK_WEATHER_DATA = int(config["parameters"]["DAYS_BACK_WEATHER_DATA"])
 
-APP_VERSION = "1.0.2"
+APP_VERSION = "1.0.3"
 
 # Build URLs in Python (where f-strings work)
 HA_URL = f"http://{HA_IP}:{HA_PORT}"
@@ -46,7 +46,6 @@ headers = {
     "Content-Type": "application/json",
 }
 
-THRESHOLD_TEMPERATURE = 22  # Celsius. past this temperature, the boiler is less needed.
 MAX_DURATION_MINUTES_BOILER = 120
 
 update_for_today = False
@@ -431,6 +430,7 @@ def get_lut():
         for k, v in json.loads(config["temperature_duration_lut"]["temp_lut"]).items()
     }
 
+
 def calc_daily_mean_T_CC(data, sunrise, sunset, start_offset=2, end_offset=1):
     """
     Computes mean temperature and cloud cover in the window:
@@ -473,6 +473,7 @@ def calc_daily_mean_T_CC(data, sunrise, sunset, start_offset=2, end_offset=1):
     print("✅ Calculation complete")
 
     return mean_T, mean_CC
+
 
 def calc_duration(T: float, CC: float, k: float = 0.6, MAX_ON=180) -> int:
     """
@@ -532,17 +533,19 @@ def calc_duration(T: float, CC: float, k: float = 0.6, MAX_ON=180) -> int:
 
     return result
 
+
 def read_data_from_saved_file(days_back=DAYS_BACK_WEATHER_DATA):
     file_name_csv = generate_filename_csv(days_back)
     w, got_weather_flag = load_weather_from_csv(file_name_csv)
 
     if got_weather_flag:
         log_event("info", "Weather data ready", data={"points": len(w)})
-        return True
+        return w, True
     else:
         print(f"❌ Failed to load weather from file {file_name_csv}")
         log_event("error", "Failed to obtain weather data", code="WEATHER_FETCH_FAIL")
-        return False
+        return [], False
+
 
 def read_data_from_website():
     w, got_weather_flag = get_weather((latitude, longitude), 0, 23, DAYS_BACK_WEATHER_DATA)
@@ -554,11 +557,12 @@ def read_data_from_website():
             file_name_csv = generate_filename_csv(DAYS_BACK_WEATHER_DATA)
             save_weather_to_csv(w, file_name_csv)
             log_event("info", "Wether data saved to file", data={"points": len(w)})
-        return True
+        return w, True
     else:
         print(f"❌ Failed to load weather from website")
         log_event("error", "Failed to obtain weather data", code="WEATHER_FETCH_FAIL")
-        return False
+        return [], False
+
 
 def main_headers():
     print("\n" + "=" * 60)
@@ -571,106 +575,117 @@ def main_headers():
     print(f"⏰ Sleep interval: {SLEEP_MINUTES} minutes")
     print("=" * 60)
 
+
 def main_run():
     global update_for_today
 
     log_event("info", "Main run started", data={"app_version": APP_VERSION})
-    try:
-        while True:
-            current_time = datetime.now().time()
-            sun_time = get_sun_times((latitude, longitude), DAYS_BACK_WEATHER_DATA)
+    # try:
+    while True:
+        current_time = datetime.now().time()
+        sun_time = get_sun_times((latitude, longitude), DAYS_BACK_WEATHER_DATA)
 
-            # Daily update check
-            if (current_time >= time(sun_time["sunset"], 2*SLEEP_MINUTES) or debug_mode_ignore_update_time) and not update_for_today:
-                print("\n" + "=" * 30)
-                print("STARTING DAILY UPDATE CYCLE")
-                log_event("info", "Starting daily update cycle",
-                          data={"date": str(date.today()), "trigger": datetime.now().isoformat()})
+        # Daily update check
+        if (current_time >= time(sun_time["sunset"],
+                                 int(2 * SLEEP_MINUTES)) or debug_mode_ignore_update_time) and not update_for_today:
+            print("\n" + "=" * 30)
+            print("STARTING DAILY UPDATE CYCLE")
+            log_event("info", "Starting daily update cycle",
+                      data={"date": str(date.today()), "trigger": datetime.now().isoformat()})
 
-                print("=" * 30)
-                print(f"⏰ Trigger time: {datetime.now().strftime('%H:%M:%S')}")
-                print(f"📅 Date: {date.today()}")
+            print("=" * 30)
+            print(f"⏰ Trigger time: {datetime.now().strftime('%H:%M:%S')}")
+            print(f"📅 Date: {date.today()}")
 
-                # Load from file
-                if READ_DATA_FROM_FILE:
-                    if not read_data_from_saved_file():
-                        sleep(60 * SLEEP_MINUTES)
-                        break
-                # Fetch from API
-                else:
-                    if not read_data_from_website():
-                        sleep(60 * SLEEP_MINUTES)
-                        break
+            # Load from file
+            if READ_DATA_FROM_FILE:
+                w, success = read_data_from_saved_file()
+                if not success:
+                    sleep(int(60 * SLEEP_MINUTES))
+                    break
+            # Fetch from API
+            else:
+                w, success = read_data_from_website()
+                if not success:
+                    sleep(int(60 * SLEEP_MINUTES))
+                    break
 
-                daily_t, daily_cc = calc_daily_mean_T_CC(w, sun_time["sunrise"], sun_time["sunset"])
-                log_event("info", "Daily means calculated", data={"mean_T": daily_t, "mean_CC": daily_cc})
+            daily_t, daily_cc = calc_daily_mean_T_CC(w, int(sun_time["sunrise"]), int(sun_time["sunset"]))
+            log_event("info", "Daily means calculated", data={"mean_T": daily_t, "mean_CC": daily_cc})
 
-                # Calculate boiler duration and update Home Assistant
-                if daily_t is not None and daily_cc is not None:
-                    duration = calc_duration(daily_t, daily_cc)
-                    log_event("info", "Calculated duration", data={"duration_min": duration})
-                    flg = ha_update_duration_entities(duration, BOILER_1ST_ON_ENTITY_ID,
-                                                      BOILER_2ND_ON_ENTITY_ID)
-                    if flg:
-                        if ha_execute_boiler_start_script(RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID):
-                            log_event("info", "Boiler start script executed successfully",
-                                      data={"script": RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID})
-                            log_event("info", "Home Assistant update OK", data={"duration": duration})
-                            # finalize and persist summary as success
-                            save_summary(status="success")
-                            update_for_today = True
-                            print("\n" + "=" * 40)
-                            print("DAILY UPDATE COMPLETED SUCCESSFULLY")
-                            print("=" * 40)
-                        else:
-                            log_event("error", "Failed to execute boiler start script",
-                                      code="SCRIPT_EXEC_FAIL",
-                                      data={"script": RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID})
-                            save_summary(status="failed", error="Failed to execute boiler start script")
+            # Calculate boiler duration and update Home Assistant
+            if daily_t is not None and daily_cc is not None:
+                duration = calc_duration(daily_t, daily_cc)
+                log_event("info", "Calculated duration", data={"duration_min": duration})
+                flg = ha_update_duration_entities(duration, BOILER_1ST_ON_ENTITY_ID,
+                                                  BOILER_2ND_ON_ENTITY_ID)
+                if flg:
+                    b = False
 
-                            print("\n" + "=" * 40)
-                            print("DAILY UPDATE FAILED - BOILER START SCRIPT ERROR")
-                            print("=" * 40)
-                            sleep(60 * SLEEP_MINUTES)
+                    if debug_mode_ignore_update_time:
+                        b = True
                     else:
-                        log_event("error", "Home Assistant update failed", code="HA_UPDATE_FAIL")
-                        save_summary(status="failed", error="HA update failed")
+                        b = ha_execute_boiler_start_script(RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID)
+
+                    if b:
+                        log_event("info", "Boiler start script executed successfully",
+                                  data={"script": RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID})
+                        log_event("info", "Home Assistant update OK", data={"duration": duration})
+                        # finalize and persist summary as success
+                        save_summary(status="success")
+                        update_for_today = True
+                        print("\n" + "=" * 40)
+                        print("DAILY UPDATE COMPLETED SUCCESSFULLY")
+                        print("=" * 40)
+                    else:
+                        log_event("error", "Failed to execute boiler start script",
+                                  code="SCRIPT_EXEC_FAIL",
+                                  data={"script": RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID})
+                        save_summary(status="failed", error="Failed to execute boiler start script")
 
                         print("\n" + "=" * 40)
-                        print("DAILY UPDATE FAILED - HOME ASSISTANT ERROR")
+                        print("DAILY UPDATE FAILED - BOILER START SCRIPT ERROR")
                         print("=" * 40)
-                        sleep(60 * SLEEP_MINUTES)
+                        sleep(int(60 * SLEEP_MINUTES))
                 else:
-                    log_event("warning", "Data fetch failed", code="API failure")
-                    save_summary(status="failed", error="insufficient data")
+                    log_event("error", "Home Assistant update failed", code="HA_UPDATE_FAIL")
+                    save_summary(status="failed", error="HA update failed")
 
                     print("\n" + "=" * 40)
-                    print("DAILY UPDATE FAILED - COULD NOT CALCULATE DURATION")
+                    print("DAILY UPDATE FAILED - HOME ASSISTANT ERROR")
                     print("=" * 40)
-                    sleep(60 * SLEEP_MINUTES)
-
-            # Reset update flag at start of new day
-            elif (time(7, 0) <= current_time < time(17, 0) and update_for_today) and not debug_mode_ignore_update_time:
-                update_for_today = False
-                log_event("info", "Reset update_for_today flag for new day")
-
-                print("\n" + "=" * 30)
-                print("🌅 NEW DAY - RESETTING UPDATE FLAG")
-                print(f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}")
-                print("=" * 30)
-
-            # Sleep and wait for next check
+                    sleep(int(60 * SLEEP_MINUTES))
             else:
-                print(f"\n⏸️  [{datetime.now().strftime('%H:%M:%S')}] Waiting... (next check in {SLEEP_MINUTES} min)")
-                print(f"   Current time: {current_time.strftime('%H:%M')}")
-                print(f"   Update window: 17:00+")
-                print(f"   Updated today: {update_for_today}")
-                print(f"   Debug mode: {debug_mode_ignore_update_time}")
-                sleep(60 * SLEEP_MINUTES)
-    except Exception as e:
-        log_event("error", "Unhandled exception in main loop", code="UNHANDLED_EXCEPTION", data={"exception": str(e)})
-        save_summary(status="failed", error=str(e))
-        sleep(60 * SLEEP_MINUTES)
+                log_event("warning", "Data fetch failed", code="API failure")
+                save_summary(status="failed", error="insufficient data")
+
+                print("\n" + "=" * 40)
+                print("DAILY UPDATE FAILED - COULD NOT CALCULATE DURATION")
+                print("=" * 40)
+                sleep(int(60 * SLEEP_MINUTES))
+
+        # Reset update flag at start of new day
+        elif (time(7, 0) <= current_time < time(17, 0) and update_for_today) and not debug_mode_ignore_update_time:
+            update_for_today = False
+            log_event("info", "Reset update_for_today flag for new day")
+
+            print("\n" + "=" * 30)
+            print("🌅 NEW DAY - RESETTING UPDATE FLAG")
+            print(f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}")
+            print("=" * 30)
+
+        # Sleep and wait for next check
+        else:
+            print(f"\n⏸️  [{datetime.now().strftime('%H:%M:%S')}] Waiting... (next check in {SLEEP_MINUTES} min)")
+            print(f"   Current time: {current_time.strftime('%H:%M')}")
+            print(f"   Update window: 17:00+")
+            print(f"   Updated today: {update_for_today}")
+            print(f"   Debug mode: {debug_mode_ignore_update_time}")
+            sleep(int(60 * SLEEP_MINUTES))
+    # except Exception as e:
+    #     log_event("error", "Unhandled exception in main loop", code="UNHANDLED_EXCEPTION", data={"exception": str(e)})
+    #     save_summary(status="failed", error=str(e))
+    #     sleep(int(60 * SLEEP_MINUTES))
 
 
 # Main execution
