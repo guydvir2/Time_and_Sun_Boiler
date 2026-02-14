@@ -75,7 +75,7 @@ def get_weather(location, start_hour, end_hour, days_back=0):
                 "hourly": "temperature_2m,cloudcover",
                 "past_days": days_back,
                 "timezone": "auto"
-            }
+            }, timeout=10
         )
 
         r.raise_for_status()
@@ -119,7 +119,7 @@ def get_weather(location, start_hour, end_hour, days_back=0):
         return [], False
 
 
-def get_sun_times(location, days_back=0, default_sunrise=7, default_sunset=17):
+def get_sun_times(location, days_back=0, default_sunrise=6, default_sunset=17):
     """
     Get sunrise and sunset times for a location, rounded to nearest hour.
 
@@ -151,7 +151,7 @@ def get_sun_times(location, days_back=0, default_sunrise=7, default_sunset=17):
                 "daily": "sunrise,sunset",
                 "timezone": "auto",
                 "past_days": days_back
-            }
+            }, timeout=10
         )
 
         r.raise_for_status()
@@ -292,7 +292,7 @@ def ha_get_entity_state(entity_id):
     url = HA_URL_STATES + f"/{entity_id}"
 
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=10)
 
         if response.status_code != 200:
             print(f"❌ Error: {response.status_code} - {response.text}")
@@ -335,7 +335,7 @@ def ha_set_slide_value(entity_id, value=5, min_value=0, max_value=MAX_DURATION_M
     entity_json = {"entity_id": entity_id, "value": value if min_value <= value <= max_value else min_value}
 
     try:
-        response = requests.post(HA_URL_SERVICES + f"/input_number/set_value", headers=headers, json=entity_json)
+        response = requests.post(HA_URL_SERVICES + f"/input_number/set_value", headers=headers, json=entity_json, timeout=10)
 
         # Check response
         if response.ok:
@@ -587,7 +587,7 @@ def main_run():
 
         # Daily update check
         if (current_time >= time(sun_time["sunset"],
-                                 int(2 * SLEEP_MINUTES)) or debug_mode_ignore_update_time) and not update_for_today:
+                                 int(2 * SLEEP_MINUTES)) and not update_for_today) or debug_mode_ignore_update_time:
             print("\n" + "=" * 30)
             print("STARTING DAILY UPDATE CYCLE")
             log_event("info", "Starting daily update cycle",
@@ -602,13 +602,13 @@ def main_run():
                 w, success = read_data_from_saved_file()
                 if not success:
                     sleep(int(60 * SLEEP_MINUTES))
-                    break
+                    continue
             # Fetch from API
             else:
                 w, success = read_data_from_website()
                 if not success:
                     sleep(int(60 * SLEEP_MINUTES))
-                    break
+                    continue
 
             daily_t, daily_cc = calc_daily_mean_T_CC(w, int(sun_time["sunrise"]), int(sun_time["sunset"]))
             log_event("info", "Daily means calculated", data={"mean_T": daily_t, "mean_CC": daily_cc})
@@ -621,12 +621,10 @@ def main_run():
                                                   BOILER_2ND_ON_ENTITY_ID)
                 if flg:
                     b = False
-
                     if debug_mode_ignore_update_time:
                         b = True
                     else:
                         b = ha_execute_boiler_start_script(RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID)
-
                     if b:
                         log_event("info", "Boiler start script executed successfully",
                                   data={"script": RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID})
@@ -664,8 +662,9 @@ def main_run():
                 print("=" * 40)
                 sleep(int(60 * SLEEP_MINUTES))
 
-        # Reset update flag at start of new day
-        elif (time(7, 0) <= current_time < time(17, 0) and update_for_today) and not debug_mode_ignore_update_time:
+
+        ############ Reset update flag at start of new day ########################################
+        elif (time(7, 0) <= current_time < time(14, 0) and update_for_today) and not debug_mode_ignore_update_time:
             update_for_today = False
             log_event("info", "Reset update_for_today flag for new day")
 
@@ -674,18 +673,19 @@ def main_run():
             print(f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}")
             print("=" * 30)
 
-        # Sleep and wait for next check
+        ###################### Sleep and wait for next check ############################
         else:
             print(f"\n⏸️  [{datetime.now().strftime('%H:%M:%S')}] Waiting... (next check in {SLEEP_MINUTES} min)")
             print(f"   Current time: {current_time.strftime('%H:%M')}")
             print(f"   Update window: 17:00+")
             print(f"   Updated today: {update_for_today}")
             print(f"   Debug mode: {debug_mode_ignore_update_time}")
+
             sleep(int(60 * SLEEP_MINUTES))
-    # except Exception as e:
-    #     log_event("error", "Unhandled exception in main loop", code="UNHANDLED_EXCEPTION", data={"exception": str(e)})
-    #     save_summary(status="failed", error=str(e))
-    #     sleep(int(60 * SLEEP_MINUTES))
+            # except Exception as e:
+            #     log_event("error", "Unhandled exception in main loop", code="UNHANDLED_EXCEPTION", data={"exception": str(e)})
+            #     save_summary(status="failed", error=str(e))
+            #     sleep(int(60 * SLEEP_MINUTES))
 
 
 # Main execution
