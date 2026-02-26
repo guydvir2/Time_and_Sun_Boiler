@@ -4,3 +4,4 @@ requests>=2.31.0
 # GUI / standard libs included with Python (no install needed)
 # tkinter
 # csv, json, configparser, time, statistics, datetime, threading
+matplotlib

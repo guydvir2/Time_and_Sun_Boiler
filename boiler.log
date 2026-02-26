@@ -1,0 +1,361 @@
+2026-02-24 22:10:30,133 [INFO] Today's summary already saved (stored_data/2026-02-24.csv). Skipping.
+2026-02-24 22:10:30,365 [WARNING] Skipping daily_summary.csv: missing required columns (found: ['date', 'sunrise', 'sunset', 'avg_temp', 'avg_cloud', 'on_time', 'script_ok'])
+2026-02-24 22:10:30,367 [WARNING] Skipping daily_summary.csv: missing required columns (found: ['date', 'sunrise', 'sunset', 'avg_temp', 'avg_cloud', 'on_time', 'script_ok'])
+2026-02-24 22:10:37,245 [WARNING] Skipping daily_summary.csv: missing required columns (found: ['date', 'sunrise', 'sunset', 'avg_temp', 'avg_cloud', 'on_time', 'script_ok'])
+2026-02-25 18:33:59,711 [INFO] Calculated → effective_temp=15.27°C | duration=101 min | slider1=101 min | slider2=0 min
+2026-02-25 18:33:59,712 [INFO] Sending values to Home Assistant...
+2026-02-25 18:33:59,724 [INFO] HA is reachable.
+2026-02-25 18:33:59,737 [INFO]   ✓ Set input_number.boiler_duration_helper = 101 min
+2026-02-25 18:33:59,749 [INFO]   ✓ Set input_number.boiler_duration_helper_2nd = 0 min
+2026-02-25 18:33:59,761 [INFO]   ✓ Triggered script.start_waterheater_using_ui
+2026-02-25 18:33:59,762 [INFO] HA execution complete.
+2026-02-25 18:33:59,762 [INFO] [18:33:59] CSV saved → HA status: OK
+2026-02-25 18:33:59,971 [WARNING] Skipping daily_summary.csv: missing required columns (found: ['date', 'sunrise', 'sunset', 'avg_temp', 'avg_cloud', 'on_time', 'script_ok'])
+2026-02-25 18:33:59,973 [WARNING] Skipping daily_summary.csv: missing required columns (found: ['date', 'sunrise', 'sunset', 'avg_temp', 'avg_cloud', 'on_time', 'script_ok'])
+2026-02-25 18:43:14,295 [INFO] Today's summary already executed successfully. Skipping.
+2026-02-25 18:43:14,496 [WARNING] Skipping daily_summary.csv: missing required columns (found: ['date', 'sunrise', 'sunset', 'avg_temp', 'avg_cloud', 'on_time', 'script_ok'])
+2026-02-25 18:43:14,498 [WARNING] Skipping daily_summary.csv: missing required columns (found: ['date', 'sunrise', 'sunset', 'avg_temp', 'avg_cloud', 'on_time', 'script_ok'])
+2026-02-25 18:48:05,521 [INFO] Today's summary already executed successfully. Skipping.
+2026-02-25 18:48:05,714 [WARNING] Skipping daily_summary.csv: missing required columns (found: ['date', 'sunrise', 'sunset', 'avg_temp', 'avg_cloud', 'on_time', 'script_ok'])
+2026-02-25 18:48:05,716 [WARNING] Skipping daily_summary.csv: missing required columns (found: ['date', 'sunrise', 'sunset', 'avg_temp', 'avg_cloud', 'on_time', 'script_ok'])
+2026-02-25 18:52:40,232 [INFO] Today's summary already executed successfully. Skipping.
+2026-02-25 18:52:40,479 [WARNING] Skipping daily_summary.csv: missing required columns (found: ['date', 'sunrise', 'sunset', 'avg_temp', 'avg_cloud', 'on_time', 'script_ok'])
+2026-02-25 18:52:40,481 [WARNING] Skipping daily_summary.csv: missing required columns (found: ['date', 'sunrise', 'sunset', 'avg_temp', 'avg_cloud', 'on_time', 'script_ok'])
+2026-02-25 18:52:51,427 [INFO] Calculated → effective_temp=15.27°C | duration=101 min | slider1=101 min | slider2=0 min
+2026-02-25 18:52:51,428 [INFO] Sending values to Home Assistant...
+2026-02-25 18:52:51,442 [INFO] Boiler current state: on
+2026-02-25 18:52:51,442 [WARNING] Boiler already ON → skipping execution.
+2026-02-25 18:52:51,442 [ERROR] Could not complete today's summary: name 'ha_ok' is not defined
+2026-02-25 18:52:51,642 [WARNING] Skipping daily_summary.csv: missing required columns (found: ['date', 'sunrise', 'sunset', 'avg_temp', 'avg_cloud', 'on_time', 'script_ok'])
+2026-02-25 18:52:51,645 [WARNING] Skipping daily_summary.csv: missing required columns (found: ['date', 'sunrise', 'sunset', 'avg_temp', 'avg_cloud', 'on_time', 'script_ok'])
+2026-02-25 20:06:54,347 [INFO] Calculated → effective_temp=15.32°C | duration=100 min | slider1=100 min | slider2=0 min
+2026-02-25 20:06:54,348 [INFO] Sending values to Home Assistant...
+2026-02-25 20:06:54,357 [INFO] HA is reachable.
+2026-02-25 20:06:54,372 [INFO]   ✓ Set input_number.boiler_duration_helper = 100 min
+2026-02-25 20:06:54,386 [INFO]   ✓ Set input_number.boiler_duration_helper_2nd = 0 min
+2026-02-25 20:06:54,402 [INFO]   ✓ Triggered script.start_waterheater_using_ui
+2026-02-25 20:06:54,403 [INFO] HA execution complete.
+2026-02-25 20:06:54,404 [INFO] [20:06:54] CSV saved → HA status: OK
+2026-02-25 20:08:06,924 [INFO] Today's summary already saved (stored_data/2026-02-25.csv). Skipping.
+2026-02-25 20:32:02,518 [INFO] Today's summary already saved (stored_data/2026-02-25.csv). Skipping.
+2026-02-25 20:32:02,765 [WARNING] Skipping 2025-11-15.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,765 [WARNING] Skipping 2025-11-16.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,765 [WARNING] Skipping 2025-11-17.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,765 [WARNING] Skipping 2025-11-18.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,766 [WARNING] Skipping 2025-11-19.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,766 [WARNING] Skipping 2025-11-20.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,766 [WARNING] Skipping 2025-11-21.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,766 [WARNING] Skipping 2025-11-22.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,766 [WARNING] Skipping 2025-11-23.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,766 [WARNING] Skipping 2025-11-24.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,766 [WARNING] Skipping 2025-11-25.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,766 [WARNING] Skipping 2025-11-26.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,766 [WARNING] Skipping 2025-11-27.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,766 [WARNING] Skipping 2025-11-28.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,766 [WARNING] Skipping 2025-11-29.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,766 [WARNING] Skipping 2025-11-30.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,767 [WARNING] Skipping 2025-12-01.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,767 [WARNING] Skipping 2025-12-02.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,767 [WARNING] Skipping 2025-12-03.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,767 [WARNING] Skipping 2025-12-04.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,767 [WARNING] Skipping 2025-12-05.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,767 [WARNING] Skipping 2025-12-06.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,767 [WARNING] Skipping 2025-12-07.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,767 [WARNING] Skipping 2025-12-08.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,767 [WARNING] Skipping 2025-12-09.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,767 [WARNING] Skipping 2025-12-10.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,767 [WARNING] Skipping 2025-12-11.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,767 [WARNING] Skipping 2025-12-12.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,768 [WARNING] Skipping 2025-12-13.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,768 [WARNING] Skipping 2025-12-14.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,768 [WARNING] Skipping 2025-12-15.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,768 [WARNING] Skipping 2025-12-16.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,768 [WARNING] Skipping 2025-12-17.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,768 [WARNING] Skipping 2025-12-18.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,768 [WARNING] Skipping 2025-12-19.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,768 [WARNING] Skipping 2025-12-20.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,768 [WARNING] Skipping 2025-12-21.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,768 [WARNING] Skipping 2025-12-22.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,768 [WARNING] Skipping 2025-12-23.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,768 [WARNING] Skipping 2025-12-24.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,769 [WARNING] Skipping 2025-12-25.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,769 [WARNING] Skipping 2025-12-26.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,769 [WARNING] Skipping 2025-12-27.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,769 [WARNING] Skipping 2025-12-28.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,769 [WARNING] Skipping 2025-12-29.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,769 [WARNING] Skipping 2025-12-30.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,769 [WARNING] Skipping 2025-12-31.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,769 [WARNING] Skipping 2026-01-01.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,769 [WARNING] Skipping 2026-01-02.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,769 [WARNING] Skipping 2026-01-03.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,769 [WARNING] Skipping 2026-01-04.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,769 [WARNING] Skipping 2026-01-05.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,769 [WARNING] Skipping 2026-01-06.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,770 [WARNING] Skipping 2026-01-07.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,770 [WARNING] Skipping 2026-01-08.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,770 [WARNING] Skipping 2026-01-09.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,770 [WARNING] Skipping 2026-01-10.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,770 [WARNING] Skipping 2026-01-11.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,770 [WARNING] Skipping 2026-01-12.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,770 [WARNING] Skipping 2026-01-14.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,770 [WARNING] Skipping 2026-01-15.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,770 [WARNING] Skipping 2026-01-19.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,770 [WARNING] Skipping 2026-01-22.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,770 [WARNING] Skipping 2026-01-27.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,770 [WARNING] Skipping 2026-01-28.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,771 [WARNING] Skipping 2026-01-29.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,771 [WARNING] Skipping 2026-01-30.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,771 [WARNING] Skipping 2026-01-31.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,771 [WARNING] Skipping 2026-02-01.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,771 [WARNING] Skipping 2026-02-02.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,771 [WARNING] Skipping 2026-02-03.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,771 [WARNING] Skipping 2026-02-08.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,771 [WARNING] Skipping 2026-02-11.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,771 [WARNING] Skipping 2026-02-12.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,771 [WARNING] Skipping 2026-02-13.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,771 [WARNING] Skipping 2026-02-14.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,771 [WARNING] Skipping 2026-02-15.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,772 [WARNING] Skipping 2026-02-16.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,772 [WARNING] Skipping 2026-02-17.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,772 [WARNING] Skipping 2026-02-18.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,772 [WARNING] Skipping 2026-02-19.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,772 [WARNING] Skipping 2026-02-20.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,772 [WARNING] Skipping 2026-02-21.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,772 [WARNING] Skipping 2026-02-22.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,772 [WARNING] Skipping 2026-02-23.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,772 [WARNING] Skipping 2026-02-24.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:32:02,772 [WARNING] Skipping 2026-02-25.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,241 [INFO] Today's summary already saved (stored_data/2026-02-25.csv). Skipping.
+2026-02-25 20:33:01,480 [WARNING] Skipping 2025-11-15.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,480 [WARNING] Skipping 2025-11-16.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,480 [WARNING] Skipping 2025-11-17.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,480 [WARNING] Skipping 2025-11-18.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,480 [WARNING] Skipping 2025-11-19.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,480 [WARNING] Skipping 2025-11-20.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,480 [WARNING] Skipping 2025-11-21.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,480 [WARNING] Skipping 2025-11-22.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,481 [WARNING] Skipping 2025-11-23.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,481 [WARNING] Skipping 2025-11-24.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,481 [WARNING] Skipping 2025-11-25.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,481 [WARNING] Skipping 2025-11-26.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,481 [WARNING] Skipping 2025-11-27.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,481 [WARNING] Skipping 2025-11-28.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,481 [WARNING] Skipping 2025-11-29.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,481 [WARNING] Skipping 2025-11-30.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,481 [WARNING] Skipping 2025-12-01.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,481 [WARNING] Skipping 2025-12-02.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,481 [WARNING] Skipping 2025-12-03.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,481 [WARNING] Skipping 2025-12-04.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,482 [WARNING] Skipping 2025-12-05.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,482 [WARNING] Skipping 2025-12-06.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,482 [WARNING] Skipping 2025-12-07.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,482 [WARNING] Skipping 2025-12-08.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,482 [WARNING] Skipping 2025-12-09.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,482 [WARNING] Skipping 2025-12-10.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,482 [WARNING] Skipping 2025-12-11.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,482 [WARNING] Skipping 2025-12-12.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,482 [WARNING] Skipping 2025-12-13.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,482 [WARNING] Skipping 2025-12-14.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,482 [WARNING] Skipping 2025-12-15.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,482 [WARNING] Skipping 2025-12-16.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,482 [WARNING] Skipping 2025-12-17.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,483 [WARNING] Skipping 2025-12-18.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,483 [WARNING] Skipping 2025-12-19.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,483 [WARNING] Skipping 2025-12-20.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,483 [WARNING] Skipping 2025-12-21.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,483 [WARNING] Skipping 2025-12-22.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,483 [WARNING] Skipping 2025-12-23.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,483 [WARNING] Skipping 2025-12-24.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,483 [WARNING] Skipping 2025-12-25.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,483 [WARNING] Skipping 2025-12-26.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,483 [WARNING] Skipping 2025-12-27.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,483 [WARNING] Skipping 2025-12-28.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,483 [WARNING] Skipping 2025-12-29.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,484 [WARNING] Skipping 2025-12-30.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,484 [WARNING] Skipping 2025-12-31.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,484 [WARNING] Skipping 2026-01-01.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,484 [WARNING] Skipping 2026-01-02.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,484 [WARNING] Skipping 2026-01-03.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,484 [WARNING] Skipping 2026-01-04.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,484 [WARNING] Skipping 2026-01-05.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,484 [WARNING] Skipping 2026-01-06.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,484 [WARNING] Skipping 2026-01-07.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,484 [WARNING] Skipping 2026-01-08.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,484 [WARNING] Skipping 2026-01-09.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,484 [WARNING] Skipping 2026-01-10.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,485 [WARNING] Skipping 2026-01-11.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,485 [WARNING] Skipping 2026-01-12.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,485 [WARNING] Skipping 2026-01-14.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,485 [WARNING] Skipping 2026-01-15.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,485 [WARNING] Skipping 2026-01-19.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,485 [WARNING] Skipping 2026-01-22.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,485 [WARNING] Skipping 2026-01-27.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,485 [WARNING] Skipping 2026-01-28.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,485 [WARNING] Skipping 2026-01-29.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,485 [WARNING] Skipping 2026-01-30.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,485 [WARNING] Skipping 2026-01-31.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,485 [WARNING] Skipping 2026-02-01.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,485 [WARNING] Skipping 2026-02-02.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,486 [WARNING] Skipping 2026-02-03.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,486 [WARNING] Skipping 2026-02-08.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,486 [WARNING] Skipping 2026-02-11.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,486 [WARNING] Skipping 2026-02-12.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,486 [WARNING] Skipping 2026-02-13.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,486 [WARNING] Skipping 2026-02-14.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,486 [WARNING] Skipping 2026-02-15.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,486 [WARNING] Skipping 2026-02-16.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,486 [WARNING] Skipping 2026-02-17.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,486 [WARNING] Skipping 2026-02-18.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,486 [WARNING] Skipping 2026-02-19.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,486 [WARNING] Skipping 2026-02-20.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,486 [WARNING] Skipping 2026-02-21.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,487 [WARNING] Skipping 2026-02-22.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,487 [WARNING] Skipping 2026-02-23.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,487 [WARNING] Skipping 2026-02-24.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:33:01,487 [WARNING] Skipping 2026-02-25.csv: unrecognised columns ['clouds', 'temp', 'time']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:52,970 [INFO] Today's summary already saved (stored_data/2026-02-25.csv). Skipping.
+2026-02-25 20:41:53,206 [WARNING] Skipping 2025-11-15.csv: unrecognised columns ['18.42', '2025-11-15_mean', '73.58']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,206 [WARNING] Skipping 2025-11-16.csv: unrecognised columns ['19.18', '2025-11-16_mean', '51.75']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,207 [WARNING] Skipping 2025-11-17.csv: unrecognised columns ['20.28', '2025-11-17_mean', '44.67']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,207 [WARNING] Skipping 2025-11-18.csv: unrecognised columns ['2025-11-18_mean', '21.92', '7.08']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,207 [WARNING] Skipping 2025-11-19.csv: unrecognised columns ['2025-11-19_mean', '23.07', '3.58']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,207 [WARNING] Skipping 2025-11-20.csv: unrecognised columns ['0.5', '2025-11-20_mean', '24.8']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,207 [WARNING] Skipping 2025-11-21.csv: unrecognised columns ['0.0', '2025-11-21_mean', '26.71']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,207 [WARNING] Skipping 2025-11-22.csv: unrecognised columns ['0.0', '2025-11-22_mean', '27.25']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,207 [WARNING] Skipping 2025-11-23.csv: unrecognised columns ['13.92', '2025-11-23_mean', '25.88']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,207 [WARNING] Skipping 2025-11-24.csv: unrecognised columns ['2025-11-24_mean', '24.12', '83.42']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,207 [WARNING] Skipping 2025-11-25.csv: unrecognised columns ['18.91', '2025-11-25_mean', '83.75']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,207 [WARNING] Skipping 2025-11-26.csv: unrecognised columns ['14.83', '19.22', '2025-11-26_mean']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,208 [WARNING] Skipping 2025-11-27.csv: unrecognised columns ['20.84', '2025-11-27_mean', '8.08']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,208 [WARNING] Skipping 2025-11-28.csv: unrecognised columns ['2025-11-28_mean', '22.38', '34.67']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,208 [WARNING] Skipping 2025-11-29.csv: unrecognised columns ['100.0', '2025-11-29_mean', '21.78']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,208 [WARNING] Skipping 2025-11-30.csv: unrecognised columns ['19.43', '2025-11-30_mean', '62.5']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,208 [WARNING] Skipping 2025-12-01.csv: unrecognised columns ['18.1', '2025-12-01_mean', '55.25']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,208 [WARNING] Skipping 2025-12-02.csv: unrecognised columns ['18.03', '2025-12-02_mean', '67.08']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,208 [WARNING] Skipping 2025-12-03.csv: unrecognised columns ['18.78', '2025-12-03_mean', '63.08']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,208 [WARNING] Skipping 2025-12-04.csv: unrecognised columns ['2025-12-04_mean', '21.04', '38.17']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,208 [WARNING] Skipping 2025-12-05.csv: unrecognised columns ['2025-12-05_mean', '21.0', '64.67']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,208 [WARNING] Skipping 2025-12-06.csv: unrecognised columns ['2025-12-06_mean', '21.18', '94.08']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,208 [WARNING] Skipping 2025-12-07.csv: unrecognised columns ['17.95', '2025-12-07_mean', '40.5']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,208 [WARNING] Skipping 2025-12-08.csv: unrecognised columns ['17.37', '2025-12-08_mean', '85.5']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,209 [WARNING] Skipping 2025-12-09.csv: unrecognised columns ['15.57', '2025-12-09_mean', '99.92']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,209 [WARNING] Skipping 2025-12-10.csv: unrecognised columns ['100.0', '15.11', '2025-12-10_mean']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,209 [WARNING] Skipping 2025-12-11.csv: unrecognised columns ['14.8', '2025-12-11_mean', '99.73']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,209 [WARNING] Skipping 2025-12-12.csv: unrecognised columns ['15.85', '2025-12-12_mean', '40.18']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,209 [WARNING] Skipping 2025-12-13.csv: unrecognised columns ['16.27', '2025-12-13_mean', '56.45']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,209 [WARNING] Skipping 2025-12-14.csv: unrecognised columns ['16.38', '2025-12-14_mean', '3.18']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,209 [WARNING] Skipping 2025-12-15.csv: unrecognised columns ['15.46', '2025-12-15_mean', '55.64']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,209 [WARNING] Skipping 2025-12-16.csv: unrecognised columns ['14.45', '2025-12-16_mean', '30.73']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,209 [WARNING] Skipping 2025-12-17.csv: unrecognised columns ['12.64', '13.1', '2025-12-17_mean']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,209 [WARNING] Skipping 2025-12-18.csv: unrecognised columns ['12.64', '14.77', '2025-12-18_mean']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,209 [WARNING] Skipping 2025-12-19.csv: unrecognised columns ['16.18', '2025-12-19_mean', '49.36']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,209 [WARNING] Skipping 2025-12-20.csv: unrecognised columns ['17.35', '2025-12-20_mean', '79.18']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,210 [WARNING] Skipping 2025-12-21.csv: unrecognised columns ['16.3', '2025-12-21_mean', '81.55']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,210 [WARNING] Skipping 2025-12-22.csv: unrecognised columns ['17.13', '2025-12-22_mean', '59.82']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,210 [WARNING] Skipping 2025-12-23.csv: unrecognised columns ['15.85', '2025-12-23_mean', '48.0']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,210 [WARNING] Skipping 2025-12-24.csv: unrecognised columns ['13.0', '17.25', '2025-12-24_mean']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,210 [WARNING] Skipping 2025-12-25.csv: unrecognised columns ['16.25', '2025-12-25_mean', '6.91']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,210 [WARNING] Skipping 2025-12-26.csv: unrecognised columns ['15.57', '2025-12-26_mean', '21.45']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,210 [WARNING] Skipping 2025-12-27.csv: unrecognised columns ['15.25', '2025-12-27_mean', '83.73']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,210 [WARNING] Skipping 2025-12-28.csv: unrecognised columns ['12.75', '2025-12-28_mean', '76.36']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,210 [WARNING] Skipping 2025-12-29.csv: unrecognised columns ['14.94', '2025-12-29_mean', '82.18']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,210 [WARNING] Skipping 2025-12-30.csv: unrecognised columns ['14.63', '2025-12-30_mean', '69.27']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,210 [WARNING] Skipping 2025-12-31.csv: unrecognised columns ['15.51', '2025-12-31_mean', '84.73']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,210 [WARNING] Skipping 2026-01-01.csv: unrecognised columns ['14.27', '2026-01-01_mean', '98.27']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,211 [WARNING] Skipping 2026-01-02.csv: unrecognised columns ['13.71', '2026-01-02_mean', '59.91']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,211 [WARNING] Skipping 2026-01-03.csv: unrecognised columns ['10.36', '12.82', '2026-01-03_mean']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,211 [WARNING] Skipping 2026-01-04.csv: unrecognised columns ['13.78', '2026-01-04_mean', '41.36']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,211 [WARNING] Skipping 2026-01-05.csv: unrecognised columns ['15.83', '16.27', '2026-01-05_mean']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,211 [WARNING] Skipping 2026-01-06.csv: unrecognised columns ['17.17', '2026-01-06_mean', '45.64']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,211 [WARNING] Skipping 2026-01-07.csv: unrecognised columns ['18.12', '2026-01-07_mean', '46.45']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,211 [WARNING] Skipping 2026-01-08.csv: unrecognised columns ['19.82', '2026-01-08_mean', '60.91']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,211 [WARNING] Skipping 2026-01-09.csv: unrecognised columns ['14.68', '2026-01-09_mean', '85.09']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,211 [WARNING] Skipping 2026-01-10.csv: unrecognised columns ['16.39', '2026-01-10_mean', '65.0']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,211 [WARNING] Skipping 2026-01-11.csv: unrecognised columns ['16.29', '2026-01-11_mean', '9.64']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,211 [WARNING] Skipping 2026-01-12.csv: unrecognised columns ['12.25', '2026-01-12_mean', '68.5']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,212 [WARNING] Skipping 2026-01-14.csv: unrecognised columns ['13.48', '2026-01-14_mean', '65.45']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,212 [WARNING] Skipping 2026-01-15.csv: unrecognised columns ['12.82', '18.45', '2026-01-15_mean']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,212 [WARNING] Skipping 2026-01-19.csv: unrecognised columns ['11.54', '2026-01-19_mean', '56.55']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,212 [WARNING] Skipping 2026-01-22.csv: unrecognised columns ['10.65', '100.0', '2026-01-22_mean']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,212 [WARNING] Skipping 2026-01-27.csv: unrecognised columns ['16.18', '2026-01-27_mean', '72.91']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,212 [WARNING] Skipping 2026-01-28.csv: unrecognised columns ['13.47', '2026-01-28_mean', '87.64']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,212 [WARNING] Skipping 2026-01-29.csv: unrecognised columns ['14.71', '2026-01-29_mean', '83.82']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,212 [WARNING] Skipping 2026-01-30.csv: unrecognised columns ['16.86', '2026-01-30_mean', '87.09']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,212 [WARNING] Skipping 2026-01-31.csv: unrecognised columns ['18.4', '2026-01-31_mean', '37.45']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,212 [WARNING] Skipping 2026-02-01.csv: unrecognised columns ['20.86', '2026-02-01_mean', '40.36']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,212 [WARNING] Skipping 2026-02-02.csv: unrecognised columns ['20.47', '2026-02-02_mean', '22.18']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,213 [WARNING] Skipping 2026-02-03.csv: unrecognised columns ['16.04', '2026-02-03_mean', '64.36']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,213 [WARNING] Skipping 2026-02-08.csv: unrecognised columns ['18.76', '2026-02-08_mean', '58.9']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,213 [WARNING] Skipping 2026-02-11.csv: unrecognised columns ['16.53', '2026-02-11_mean', '61.83']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,213 [WARNING] Skipping 2026-02-12.csv: unrecognised columns ['18.82', '2026-02-12_mean', '90.67']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,213 [WARNING] Skipping 2026-02-13.csv: unrecognised columns ['2026-02-13_mean', '21.36', '81.33']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,213 [WARNING] Skipping 2026-02-14.csv: unrecognised columns ['16.73', '2026-02-14_mean', '52.67']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,213 [WARNING] Skipping 2026-02-15.csv: unrecognised columns ['15.82', '2026-02-15_mean', '21.06']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,213 [WARNING] Skipping 2026-02-16.csv: unrecognised columns ['20.29', '2026-02-16_mean', '28.72']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,213 [WARNING] Skipping 2026-02-17.csv: unrecognised columns ['17.86', '2026-02-17_mean', '87.17']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,213 [WARNING] Skipping 2026-02-18.csv: unrecognised columns ['15.37', '2026-02-18_mean', '26.39']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,213 [WARNING] Skipping 2026-02-19.csv: unrecognised columns ['15.67', '2026-02-19_mean', '62.17']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,213 [WARNING] Skipping 2026-02-20.csv: unrecognised columns ['0.0', '14.63', '2026-02-20_mean']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,214 [WARNING] Skipping 2026-02-21.csv: unrecognised columns ['10.28', '18.91', '2026-02-21_mean']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,214 [WARNING] Skipping 2026-02-22.csv: unrecognised columns ['15.41', '2026-02-22_mean', '56.53']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,214 [WARNING] Skipping 2026-02-23.csv: unrecognised columns ['13.16', '2026-02-23_mean', '69.65']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,214 [WARNING] Skipping 2026-02-24.csv: unrecognised columns ['13.21', '2026-02-24_mean', '59.57']. Move or delete this file if it is no longer needed.
+2026-02-25 20:41:53,214 [WARNING] Skipping 2026-02-25.csv: unrecognised columns ['14.18', '2026-02-25_mean', '50.7']. Move or delete this file if it is no longer needed.
+2026-02-25 20:45:43,943 [INFO] Today's summary already saved (stored_data/2026-02-25.csv). Skipping.
+2026-02-25 20:46:43,605 [INFO] Calculated → effective_temp=15.32°C | duration=100 min | slider1=100 min | slider2=0 min
+2026-02-25 20:46:43,606 [INFO] Sending values to Home Assistant...
+2026-02-25 20:46:43,615 [INFO] HA is reachable.
+2026-02-25 20:46:43,623 [INFO]   ✓ Set input_number.boiler_duration_helper = 100 min
+2026-02-25 20:46:43,655 [INFO]   ✓ Set input_number.boiler_duration_helper_2nd = 0 min
+2026-02-25 20:46:43,668 [INFO]   ✓ Triggered script.start_waterheater_using_ui
+2026-02-25 20:46:43,668 [INFO] HA execution complete.
+2026-02-25 20:46:43,669 [INFO] [20:46:43] CSV saved → HA status: OK
+2026-02-25 21:05:49,292 [INFO] Today's summary already saved (stored_data/2026-02-25.csv). Skipping.
+2026-02-25 21:07:03,715 [INFO] Today's summary already saved (stored_data/2026-02-25.csv). Skipping.
+2026-02-25 21:10:03,573 [INFO] Today's summary already saved (stored_data/2026-02-25.csv). Skipping.
+2026-02-25 21:31:44,312 [INFO] Today's summary already saved (stored_data/2026-02-25.csv). Skipping.
+2026-02-26 18:49:34,827 [INFO] [Scheduler] Startup: past init hour, fetching sun times...
+2026-02-26 18:49:35,244 [INFO] Sun times → sunrise=06:10  sunset=17:33
+2026-02-26 18:49:35,245 [INFO] [Scheduler] Startup: past trigger time, no CSV → EXECUTE
+2026-02-26 18:49:35,246 [INFO] [Scheduler] → EXECUTE
+2026-02-26 18:49:35,247 [ERROR] [Scheduler] EXECUTE failed: 'DataManager' object has no attribute 'execute_today' → WAIT_INIT
+2026-02-26 18:49:35,248 [INFO] [Scheduler] → WAIT_INIT
+2026-02-26 18:49:35,250 [INFO] [Scheduler] WAIT_INIT: next init at 2026-02-27 05:00 (10.2h away)
+2026-02-26 18:50:18,353 [INFO] [Scheduler] Startup: past init hour, fetching sun times...
+2026-02-26 18:50:18,655 [INFO] Sun times → sunrise=06:10  sunset=17:33
+2026-02-26 18:50:18,655 [INFO] [Scheduler] Startup: past trigger time, no CSV → EXECUTE
+2026-02-26 18:50:18,655 [INFO] [Scheduler] → EXECUTE
+2026-02-26 18:50:18,656 [ERROR] [Scheduler] EXECUTE failed: 'DataManager' object has no attribute 'execute_today' → WAIT_INIT
+2026-02-26 18:50:18,656 [INFO] [Scheduler] → WAIT_INIT
+2026-02-26 18:50:18,657 [INFO] [Scheduler] WAIT_INIT: next init at 2026-02-27 05:00 (10.2h away)
+2026-02-26 18:53:12,301 [INFO] [Scheduler] Startup: past init hour, fetching sun times...
+2026-02-26 18:53:12,586 [INFO] Sun times → sunrise=06:10  sunset=17:33
+2026-02-26 18:53:12,586 [INFO] [Scheduler] Startup: past trigger time, no CSV → EXECUTE
+2026-02-26 18:53:12,587 [INFO] [Scheduler] → EXECUTE
+2026-02-26 18:53:12,881 [INFO] Collected 12 measured hour(s) between 06:10 and 18:53
+2026-02-26 18:53:12,882 [INFO] Calculated → effective_temp=14.38°C | duration=114 min | slider1=114 | slider2=0
+2026-02-26 18:53:12,882 [INFO] Sending values to Home Assistant...
+2026-02-26 18:53:12,890 [INFO] HA is reachable.
+2026-02-26 18:53:12,900 [INFO]   ✓ Set input_number.boiler_duration_helper = 114 min
+2026-02-26 18:53:12,909 [INFO]   ✓ Set input_number.boiler_duration_helper_2nd = 0 min
+2026-02-26 18:53:12,921 [INFO]   ✓ Triggered script.start_waterheater_using_ui
+2026-02-26 18:53:12,921 [INFO] HA execution complete.
+2026-02-26 18:53:12,921 [ERROR] [Scheduler] EXECUTE failed: name 'filename' is not defined → WAIT_INIT
+2026-02-26 18:53:12,921 [INFO] [Scheduler] → WAIT_INIT
+2026-02-26 18:53:12,922 [INFO] [Scheduler] WAIT_INIT: next init at 2026-02-27 05:00 (10.1h away)
+2026-02-26 18:55:27,626 [INFO] [Scheduler] Startup: past init hour, fetching sun times...
+2026-02-26 18:55:27,926 [INFO] Sun times → sunrise=06:10  sunset=17:33
+2026-02-26 18:55:27,926 [INFO] [Scheduler] Startup: past trigger time, no CSV → EXECUTE
+2026-02-26 18:55:27,926 [INFO] [Scheduler] → EXECUTE
+2026-02-26 18:55:28,217 [INFO] Collected 12 measured hour(s) between 06:10 and 18:55
+2026-02-26 18:55:28,218 [INFO] Calculated → effective_temp=14.38°C | duration=114 min | slider1=114 | slider2=0
+2026-02-26 18:55:28,218 [INFO] Sending values to Home Assistant...
+2026-02-26 18:55:28,226 [INFO] HA is reachable.
+2026-02-26 18:55:28,234 [INFO]   ✓ Set input_number.boiler_duration_helper = 114 min
+2026-02-26 18:55:28,242 [INFO]   ✓ Set input_number.boiler_duration_helper_2nd = 0 min
+2026-02-26 18:55:28,255 [INFO]   ✓ Triggered script.start_waterheater_using_ui
+2026-02-26 18:55:28,255 [INFO] HA execution complete.
+2026-02-26 18:55:28,256 [INFO] [18:55:28] CSV saved → HA status: OK
+2026-02-26 18:55:28,256 [INFO] [Scheduler] EXECUTE: done for today → WAIT_INIT
+2026-02-26 18:55:28,256 [INFO] [Scheduler] → WAIT_INIT
+2026-02-26 18:55:28,257 [INFO] [Scheduler] WAIT_INIT: next init at 2026-02-27 05:00 (10.1h away)
