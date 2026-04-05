@@ -731,3 +731,53 @@
 2026-04-05 05:41:25,420 [INFO] === System Ready ===
 2026-04-05 05:41:34,056 [INFO] Scheduler stopped
 2026-04-05 05:41:34,056 [INFO] === System Shutdown ===
+2026-04-05 05:56:37,094 [INFO] === Boiler Control System Starting ===
+2026-04-05 05:57:11,244 [INFO] === Boiler Control System Starting ===
+2026-04-05 05:57:11,245 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 05:57:11,245 [INFO] Runtime overrides: target=18:45, cloud_penalty=4.0
+2026-04-05 05:57:11,245 [INFO] Configuration loaded successfully
+2026-04-05 05:57:11,245 [INFO] Scheduler: target=18:45, check=16:45
+2026-04-05 05:57:11,791 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 05:57:11,791 [INFO] Runtime settings loaded: target=18:45, cloud_penalty=4.0
+2026-04-05 05:57:12,273 [INFO] Scheduler started
+2026-04-05 05:57:12,273 [INFO] === System Ready ===
+2026-04-05 05:57:22,966 [INFO] Scheduler stopped
+2026-04-05 05:57:22,967 [INFO] === System Shutdown ===
+2026-04-05 06:02:31,740 [INFO] === Boiler Control System Starting ===
+2026-04-05 06:02:31,742 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 06:02:31,742 [INFO] Runtime overrides: target=18:45, cloud_penalty=4.0
+2026-04-05 06:02:31,743 [INFO] Configuration loaded successfully
+2026-04-05 06:02:31,743 [INFO] Scheduler: target=18:45, check=16:45
+2026-04-05 06:02:32,221 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 06:02:32,221 [INFO] Runtime settings loaded: target=18:45, cloud_penalty=4.0
+2026-04-05 06:02:32,684 [INFO] Scheduler started
+2026-04-05 06:02:32,684 [INFO] === System Ready ===
+2026-04-05 09:21:10,265 [INFO] Scheduler stopped
+2026-04-05 09:21:10,265 [INFO] === System Shutdown ===
+2026-04-05 09:26:11,380 [INFO] === Boiler Control System Starting ===
+2026-04-05 09:26:11,381 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 09:26:11,381 [INFO] Runtime overrides: target=18:45, cloud_penalty=4.0, LUT points=8
+2026-04-05 09:26:11,381 [INFO] Configuration loaded successfully
+2026-04-05 09:26:11,382 [INFO] Scheduler: target=18:45, check=16:45
+2026-04-05 09:28:51,295 [INFO] === Boiler Control System Starting ===
+2026-04-05 09:28:51,297 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 09:28:51,297 [INFO] Runtime overrides: target=18:45, cloud_penalty=4.0, LUT points=8
+2026-04-05 09:28:51,297 [INFO] Configuration loaded successfully
+2026-04-05 09:28:51,297 [INFO] Scheduler: target=18:45, check=16:45
+2026-04-05 09:29:15,127 [INFO] === Boiler Control System Starting ===
+2026-04-05 09:29:15,128 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 09:29:15,129 [INFO] Runtime overrides: target=18:45, cloud_penalty=4.0, LUT points=8
+2026-04-05 09:29:15,129 [INFO] Configuration loaded successfully
+2026-04-05 09:29:15,129 [INFO] Scheduler: target=18:45, check=16:45
+2026-04-05 10:10:36,677 [INFO] === Boiler Control System Starting ===
+2026-04-05 10:10:36,679 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 10:10:36,679 [INFO] Runtime overrides: target=18:45, cloud_penalty=4.0, LUT points=8
+2026-04-05 10:10:36,679 [INFO] Configuration loaded successfully
+2026-04-05 10:10:36,679 [INFO] Scheduler: target=18:45, check=16:45
+2026-04-05 10:14:52,850 [INFO] === Boiler Control System Starting ===
+2026-04-05 10:14:52,855 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 10:14:52,856 [INFO] Runtime overrides: target=18:45, cloud_penalty=4.0, LUT points=8
+2026-04-05 10:14:52,856 [INFO] Configuration loaded successfully
+2026-04-05 10:14:52,856 [INFO] Scheduler: target=18:45, check=16:45
+2026-04-05 10:14:53,981 [INFO] Scheduler started
+2026-04-05 10:14:53,981 [INFO] === System Ready ===

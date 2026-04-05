@@ -14,16 +14,12 @@ from ha_service import HAService
 from data_manager import DataManager
 from scheduler import Scheduler
 
-# ==========================================================
-# Files names
-# ==========================================================
-BOILER_LOG="boiler.log"
-
 
 # ==========================================================
 # LOGGING - Minimal verbosity
 # ==========================================================
-_file_handler = logging.handlers.RotatingFileHandler(BOILER_LOG, maxBytes=2_000_000, backupCount=5
+_file_handler = logging.handlers.RotatingFileHandler(
+    "boiler.log", maxBytes=2_000_000, backupCount=5
 )
 _file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
 
@@ -71,19 +67,18 @@ if __name__ == "__main__":
         target_time_str=config.first_run_target_time
     )
     
-    # Import GUI (from main_new - will be refactored to gui/ folder later)
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("gui_module", "main_new.py")
-    gui_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(gui_module)
+    # Import and create GUI
+    from gui.main_window import BoilerApp
     
     root = tk.Tk()
-    
-    # Inject services into GUI
-    app = gui_module.BoilerApp(root, data_manager, scheduler)
-    app.weather_service = weather_service
-    app.ha_service = ha_service
-    app.config = config
+    app = BoilerApp(
+        root=root,
+        config=config,
+        weather_service=weather_service,
+        ha_service=ha_service,
+        data_manager=data_manager,
+        scheduler=scheduler
+    )
     
     scheduler.on_state_change = app.on_scheduler_state
     scheduler.start()
