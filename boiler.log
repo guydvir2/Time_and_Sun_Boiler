@@ -359,3 +359,375 @@
 2026-02-26 18:55:28,256 [INFO] [Scheduler] EXECUTE: done for today → WAIT_INIT
 2026-02-26 18:55:28,256 [INFO] [Scheduler] → WAIT_INIT
 2026-02-26 18:55:28,257 [INFO] [Scheduler] WAIT_INIT: next init at 2026-02-27 05:00 (10.1h away)
+2026-02-26 19:09:24,895 [INFO] [Scheduler] Startup: today already done → WAIT_INIT
+2026-02-26 19:09:24,896 [INFO] [Scheduler] → WAIT_INIT
+2026-02-26 19:09:25,000 [INFO] [Scheduler] WAIT_INIT: next init at 2026-02-27 05:00 (9.8h away)
+2026-02-26 19:16:29,201 [INFO] [Scheduler] Startup: today already done → WAIT_INIT
+2026-02-26 19:16:29,201 [INFO] [Scheduler] → WAIT_INIT
+2026-02-26 19:16:29,206 [INFO] [Scheduler] WAIT_INIT: next init at 2026-02-27 05:00 (9.7h away)
+2026-04-03 19:59:45,063 [INFO] Executing...
+2026-04-03 20:00:17,886 [INFO] Executing...
+2026-04-03 20:04:35,367 [INFO] Executing...
+2026-04-04 06:59:19,984 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-04 06:59:19,985 [INFO] Runtime settings loaded: target=18:45, cloud_penalty=3.0
+2026-04-04 06:59:19,986 [INFO] Created daily_log.csv
+2026-04-04 06:59:20,244 [INFO] Scheduler initialized: target=18:45, first_check=16:45
+2026-04-04 06:59:20,287 [INFO] Scheduler started.
+2026-04-04 06:59:20,396 [INFO] Waiting until first check at 16:45 (9.8h)
+2026-04-04 07:00:23,761 [WARNING] No record found for today — cannot retry HA.
+2026-04-04 07:04:20,397 [INFO] Waiting until first check at 16:45 (9.7h)
+2026-04-04 07:09:20,397 [INFO] Waiting until first check at 16:45 (9.6h)
+2026-04-04 07:21:00,887 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-04 07:21:00,887 [INFO] Runtime settings loaded: target=18:45, cloud_penalty=3.0
+2026-04-04 07:21:01,107 [INFO] Scheduler initialized: target=18:45, first_check=16:45
+2026-04-04 07:21:01,146 [INFO] Scheduler started.
+2026-04-04 07:21:01,277 [INFO] Waiting until first check at 16:45 (9.4h)
+2026-04-04 07:21:15,793 [INFO] Scheduler stopped.
+2026-04-04 07:21:19,254 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-04 07:21:19,255 [INFO] Runtime settings loaded: target=18:45, cloud_penalty=3.0
+2026-04-04 07:21:19,494 [INFO] Scheduler initialized: target=18:45, first_check=16:45
+2026-04-04 07:21:19,545 [INFO] Scheduler started.
+2026-04-04 07:21:19,670 [INFO] Waiting until first check at 16:45 (9.4h)
+2026-04-04 07:26:19,671 [INFO] Waiting until first check at 16:45 (9.3h)
+2026-04-04 07:31:19,671 [INFO] Waiting until first check at 16:45 (9.2h)
+2026-04-04 07:36:19,673 [INFO] Waiting until first check at 16:45 (9.1h)
+2026-04-04 07:41:19,674 [INFO] Waiting until first check at 16:45 (9.1h)
+2026-04-04 07:46:19,676 [INFO] Waiting until first check at 16:45 (9.0h)
+2026-04-04 07:51:19,677 [INFO] Waiting until first check at 16:45 (8.9h)
+2026-04-04 07:56:19,678 [INFO] Waiting until first check at 16:45 (8.8h)
+2026-04-04 08:01:19,679 [INFO] Waiting until first check at 16:45 (8.7h)
+2026-04-04 08:06:19,680 [INFO] Waiting until first check at 16:45 (8.6h)
+2026-04-04 08:11:19,681 [INFO] Waiting until first check at 16:45 (8.6h)
+2026-04-04 08:16:19,682 [INFO] Waiting until first check at 16:45 (8.5h)
+2026-04-04 08:21:19,683 [INFO] Waiting until first check at 16:45 (8.4h)
+2026-04-04 08:26:19,685 [INFO] Waiting until first check at 16:45 (8.3h)
+2026-04-04 08:31:19,686 [INFO] Waiting until first check at 16:45 (8.2h)
+2026-04-04 08:36:19,687 [INFO] Waiting until first check at 16:45 (8.1h)
+2026-04-04 08:41:19,688 [INFO] Waiting until first check at 16:45 (8.1h)
+2026-04-04 08:46:19,689 [INFO] Waiting until first check at 16:45 (8.0h)
+2026-04-04 08:51:19,690 [INFO] Waiting until first check at 16:45 (7.9h)
+2026-04-04 08:56:19,691 [INFO] Waiting until first check at 16:45 (7.8h)
+2026-04-04 09:01:19,692 [INFO] Waiting until first check at 16:45 (7.7h)
+2026-04-04 09:06:19,693 [INFO] Waiting until first check at 16:45 (7.6h)
+2026-04-04 09:11:19,695 [INFO] Waiting until first check at 16:45 (7.6h)
+2026-04-04 09:16:19,695 [INFO] Waiting until first check at 16:45 (7.5h)
+2026-04-04 09:21:19,696 [INFO] Waiting until first check at 16:45 (7.4h)
+2026-04-04 09:26:19,697 [INFO] Waiting until first check at 16:45 (7.3h)
+2026-04-04 09:31:19,699 [INFO] Waiting until first check at 16:45 (7.2h)
+2026-04-04 09:36:19,700 [INFO] Waiting until first check at 16:45 (7.1h)
+2026-04-04 09:41:19,701 [INFO] Waiting until first check at 16:45 (7.1h)
+2026-04-04 09:46:19,703 [INFO] Waiting until first check at 16:45 (7.0h)
+2026-04-04 09:51:19,704 [INFO] Waiting until first check at 16:45 (6.9h)
+2026-04-04 09:56:19,705 [INFO] Waiting until first check at 16:45 (6.8h)
+2026-04-04 10:01:19,706 [INFO] Waiting until first check at 16:45 (6.7h)
+2026-04-04 10:06:19,707 [INFO] Waiting until first check at 16:45 (6.6h)
+2026-04-04 10:11:19,708 [INFO] Waiting until first check at 16:45 (6.6h)
+2026-04-04 10:16:19,709 [INFO] Waiting until first check at 16:45 (6.5h)
+2026-04-04 10:21:19,710 [INFO] Waiting until first check at 16:45 (6.4h)
+2026-04-04 10:26:19,711 [INFO] Waiting until first check at 16:45 (6.3h)
+2026-04-04 10:31:19,713 [INFO] Waiting until first check at 16:45 (6.2h)
+2026-04-04 10:36:19,714 [INFO] Waiting until first check at 16:45 (6.1h)
+2026-04-04 10:41:19,715 [INFO] Waiting until first check at 16:45 (6.1h)
+2026-04-04 10:46:19,716 [INFO] Waiting until first check at 16:45 (6.0h)
+2026-04-04 10:51:19,717 [INFO] Waiting until first check at 16:45 (5.9h)
+2026-04-04 10:56:19,718 [INFO] Waiting until first check at 16:45 (5.8h)
+2026-04-04 11:01:19,719 [INFO] Waiting until first check at 16:45 (5.7h)
+2026-04-04 11:06:19,720 [INFO] Waiting until first check at 16:45 (5.6h)
+2026-04-04 11:11:19,721 [INFO] Waiting until first check at 16:45 (5.6h)
+2026-04-04 11:16:19,722 [INFO] Waiting until first check at 16:45 (5.5h)
+2026-04-04 11:21:19,725 [INFO] Waiting until first check at 16:45 (5.4h)
+2026-04-04 11:26:19,727 [INFO] Waiting until first check at 16:45 (5.3h)
+2026-04-04 11:31:19,728 [INFO] Waiting until first check at 16:45 (5.2h)
+2026-04-04 11:36:19,729 [INFO] Waiting until first check at 16:45 (5.1h)
+2026-04-04 11:41:19,730 [INFO] Waiting until first check at 16:45 (5.1h)
+2026-04-04 11:46:19,732 [INFO] Waiting until first check at 16:45 (5.0h)
+2026-04-04 11:51:19,733 [INFO] Waiting until first check at 16:45 (4.9h)
+2026-04-04 11:56:19,734 [INFO] Waiting until first check at 16:45 (4.8h)
+2026-04-04 12:01:19,735 [INFO] Waiting until first check at 16:45 (4.7h)
+2026-04-04 12:06:19,736 [INFO] Waiting until first check at 16:45 (4.6h)
+2026-04-04 12:11:19,737 [INFO] Waiting until first check at 16:45 (4.6h)
+2026-04-04 12:16:19,738 [INFO] Waiting until first check at 16:45 (4.5h)
+2026-04-04 12:21:19,738 [INFO] Waiting until first check at 16:45 (4.4h)
+2026-04-04 12:26:19,739 [INFO] Waiting until first check at 16:45 (4.3h)
+2026-04-04 12:31:19,741 [INFO] Waiting until first check at 16:45 (4.2h)
+2026-04-04 12:36:19,742 [INFO] Waiting until first check at 16:45 (4.1h)
+2026-04-04 12:41:19,744 [INFO] Waiting until first check at 16:45 (4.1h)
+2026-04-04 12:46:19,745 [INFO] Waiting until first check at 16:45 (4.0h)
+2026-04-04 12:51:19,746 [INFO] Waiting until first check at 16:45 (3.9h)
+2026-04-04 12:56:19,748 [INFO] Waiting until first check at 16:45 (3.8h)
+2026-04-04 13:01:19,749 [INFO] Waiting until first check at 16:45 (3.7h)
+2026-04-04 13:06:19,750 [INFO] Waiting until first check at 16:45 (3.6h)
+2026-04-04 13:11:19,751 [INFO] Waiting until first check at 16:45 (3.6h)
+2026-04-04 13:16:19,751 [INFO] Waiting until first check at 16:45 (3.5h)
+2026-04-04 13:21:19,752 [INFO] Waiting until first check at 16:45 (3.4h)
+2026-04-04 13:26:19,753 [INFO] Waiting until first check at 16:45 (3.3h)
+2026-04-04 13:31:19,755 [INFO] Waiting until first check at 16:45 (3.2h)
+2026-04-04 13:36:19,756 [INFO] Waiting until first check at 16:45 (3.1h)
+2026-04-04 13:41:19,758 [INFO] Waiting until first check at 16:45 (3.1h)
+2026-04-04 13:46:19,759 [INFO] Waiting until first check at 16:45 (3.0h)
+2026-04-04 13:51:19,760 [INFO] Waiting until first check at 16:45 (2.9h)
+2026-04-04 13:56:19,762 [INFO] Waiting until first check at 16:45 (2.8h)
+2026-04-04 14:01:19,763 [INFO] Waiting until first check at 16:45 (2.7h)
+2026-04-04 14:06:19,764 [INFO] Waiting until first check at 16:45 (2.6h)
+2026-04-04 14:11:19,766 [INFO] Waiting until first check at 16:45 (2.6h)
+2026-04-04 14:16:19,767 [INFO] Waiting until first check at 16:45 (2.5h)
+2026-04-04 14:21:19,768 [INFO] Waiting until first check at 16:45 (2.4h)
+2026-04-04 14:26:19,771 [INFO] Waiting until first check at 16:45 (2.3h)
+2026-04-04 14:31:19,771 [INFO] Waiting until first check at 16:45 (2.2h)
+2026-04-04 14:36:19,773 [INFO] Waiting until first check at 16:45 (2.1h)
+2026-04-04 14:41:19,774 [INFO] Waiting until first check at 16:45 (2.1h)
+2026-04-04 14:46:19,777 [INFO] Waiting until first check at 16:45 (2.0h)
+2026-04-04 14:51:19,778 [INFO] Waiting until first check at 16:45 (1.9h)
+2026-04-04 14:56:19,781 [INFO] Waiting until first check at 16:45 (1.8h)
+2026-04-04 15:01:19,796 [INFO] Waiting until first check at 16:45 (1.7h)
+2026-04-04 15:06:19,797 [INFO] Waiting until first check at 16:45 (1.6h)
+2026-04-04 15:11:19,798 [INFO] Waiting until first check at 16:45 (1.6h)
+2026-04-04 15:16:19,799 [INFO] Waiting until first check at 16:45 (1.5h)
+2026-04-04 15:21:19,800 [INFO] Waiting until first check at 16:45 (1.4h)
+2026-04-04 15:26:19,800 [INFO] Waiting until first check at 16:45 (1.3h)
+2026-04-04 15:31:19,801 [INFO] Waiting until first check at 16:45 (1.2h)
+2026-04-04 15:36:19,803 [INFO] Waiting until first check at 16:45 (1.1h)
+2026-04-04 15:41:19,804 [INFO] Waiting until first check at 16:45 (1.1h)
+2026-04-04 15:46:19,805 [INFO] Waiting until first check at 16:45 (1.0h)
+2026-04-04 15:51:19,807 [INFO] Waiting until first check at 16:45 (0.9h)
+2026-04-04 15:56:19,808 [INFO] Waiting until first check at 16:45 (0.8h)
+2026-04-04 16:01:19,809 [INFO] Waiting until first check at 16:45 (0.7h)
+2026-04-04 16:06:19,811 [INFO] Waiting until first check at 16:45 (0.6h)
+2026-04-04 16:11:19,811 [INFO] Waiting until first check at 16:45 (0.6h)
+2026-04-04 16:16:19,812 [INFO] Waiting until first check at 16:45 (0.5h)
+2026-04-04 16:21:19,813 [INFO] Waiting until first check at 16:45 (0.4h)
+2026-04-04 16:26:19,815 [INFO] Waiting until first check at 16:45 (0.3h)
+2026-04-04 16:31:19,816 [INFO] Waiting until first check at 16:45 (0.2h)
+2026-04-04 16:36:19,818 [INFO] Waiting until first check at 16:45 (0.1h)
+2026-04-04 16:41:19,819 [INFO] Waiting until first check at 16:45 (0.1h)
+2026-04-04 16:45:00,000 [INFO] === Starting daily calculation ===
+2026-04-04 16:45:00,377 [INFO] Sun times → sunrise=06:23  sunset=19:01
+2026-04-04 16:45:00,740 [INFO] Collected 10 measured hour(s) between 06:23 and 16:45
+2026-04-04 16:45:00,741 [ERROR] Calculation failed: list index out of range. Retrying in 10 min.
+2026-04-04 16:55:00,741 [INFO] === Starting daily calculation ===
+2026-04-04 16:55:01,047 [INFO] Sun times → sunrise=06:23  sunset=19:01
+2026-04-04 16:55:01,346 [INFO] Collected 10 measured hour(s) between 06:23 and 16:55
+2026-04-04 16:55:01,347 [ERROR] Calculation failed: list index out of range. Retrying in 10 min.
+2026-04-04 17:05:01,347 [INFO] === Starting daily calculation ===
+2026-04-04 17:05:01,670 [INFO] Sun times → sunrise=06:23  sunset=19:01
+2026-04-04 17:05:01,984 [INFO] Collected 11 measured hour(s) between 06:23 and 17:05
+2026-04-04 17:05:01,985 [ERROR] Calculation failed: list index out of range. Retrying in 10 min.
+2026-04-04 17:15:01,985 [INFO] === Starting daily calculation ===
+2026-04-04 17:15:02,313 [INFO] Sun times → sunrise=06:23  sunset=19:01
+2026-04-04 17:15:02,627 [INFO] Collected 11 measured hour(s) between 06:23 and 17:15
+2026-04-04 17:15:02,627 [ERROR] Calculation failed: list index out of range. Retrying in 10 min.
+2026-04-04 17:25:02,628 [INFO] === Starting daily calculation ===
+2026-04-04 17:25:02,950 [INFO] Sun times → sunrise=06:23  sunset=19:01
+2026-04-04 17:25:03,261 [INFO] Collected 11 measured hour(s) between 06:23 and 17:25
+2026-04-04 17:25:03,261 [ERROR] Calculation failed: list index out of range. Retrying in 10 min.
+2026-04-04 17:35:03,262 [INFO] === Starting daily calculation ===
+2026-04-04 17:35:03,585 [INFO] Sun times → sunrise=06:23  sunset=19:01
+2026-04-04 17:35:03,900 [INFO] Collected 11 measured hour(s) between 06:23 and 17:35
+2026-04-04 17:35:03,901 [ERROR] Calculation failed: list index out of range. Retrying in 10 min.
+2026-04-04 17:45:03,901 [INFO] === Starting daily calculation ===
+2026-04-04 17:45:04,222 [INFO] Sun times → sunrise=06:23  sunset=19:01
+2026-04-04 17:45:04,546 [INFO] Collected 11 measured hour(s) between 06:23 and 17:45
+2026-04-04 17:45:04,546 [ERROR] Calculation failed: list index out of range. Retrying in 10 min.
+2026-04-04 17:55:04,546 [INFO] === Starting daily calculation ===
+2026-04-04 17:55:04,860 [INFO] Sun times → sunrise=06:23  sunset=19:01
+2026-04-04 17:55:05,166 [INFO] Collected 11 measured hour(s) between 06:23 and 17:55
+2026-04-04 17:55:05,166 [ERROR] Calculation failed: list index out of range. Retrying in 10 min.
+2026-04-04 18:05:05,167 [INFO] === Starting daily calculation ===
+2026-04-04 18:05:05,463 [INFO] Sun times → sunrise=06:23  sunset=19:01
+2026-04-04 18:05:05,790 [INFO] Collected 12 measured hour(s) between 06:23 and 18:05
+2026-04-04 18:05:05,791 [ERROR] Calculation failed: list index out of range. Retrying in 10 min.
+2026-04-04 18:15:05,791 [INFO] === Starting daily calculation ===
+2026-04-04 18:15:06,119 [INFO] Sun times → sunrise=06:23  sunset=19:01
+2026-04-04 18:15:06,436 [INFO] Collected 12 measured hour(s) between 06:23 and 18:15
+2026-04-04 18:15:06,436 [ERROR] Calculation failed: list index out of range. Retrying in 10 min.
+2026-04-04 18:25:06,437 [INFO] === Starting daily calculation ===
+2026-04-04 18:25:06,769 [INFO] Sun times → sunrise=06:23  sunset=19:01
+2026-04-04 18:25:07,069 [INFO] Collected 12 measured hour(s) between 06:23 and 18:25
+2026-04-04 18:25:07,069 [ERROR] Calculation failed: list index out of range. Retrying in 10 min.
+2026-04-04 18:29:49,039 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-04 18:29:49,039 [INFO] Runtime settings loaded: target=18:45, cloud_penalty=3.0
+2026-04-04 18:29:49,289 [INFO] Scheduler initialized: target=18:45, first_check=16:45
+2026-04-04 18:29:49,326 [INFO] === Starting daily calculation ===
+2026-04-04 18:29:49,326 [INFO] Scheduler started.
+2026-04-04 18:29:49,788 [INFO] Sun times → sunrise=06:23  sunset=19:01
+2026-04-04 18:29:50,108 [INFO] Collected 12 measured hour(s) between 06:23 and 18:29
+2026-04-04 18:29:50,109 [ERROR] Calculation failed: list index out of range. Retrying in 10 min.
+2026-04-04 18:33:36,624 [INFO] Scheduler stopped.
+2026-04-04 18:39:48,939 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-04 18:39:48,939 [INFO] Runtime settings loaded: target=18:45, cloud_penalty=3.0
+2026-04-04 18:39:49,223 [INFO] Scheduler initialized: target=18:45, first_check=16:45
+2026-04-04 18:39:49,410 [INFO] === Starting daily calculation ===
+2026-04-04 18:39:49,411 [INFO] Scheduler started.
+2026-04-04 18:39:49,912 [INFO] Sun times → sunrise=06:23  sunset=19:01
+2026-04-04 18:39:50,205 [INFO] Collected 12 measured hour(s) between 06:23 and 18:39
+2026-04-04 18:39:50,205 [ERROR] Calculation failed: list index out of range. Retrying in 10 min.
+2026-04-04 18:42:01,785 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 18:42:01,785 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 18:42:01,785 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 18:42:01,786 [INFO] Settings updated: target=18:45, cloud_penalty=3.0, check_time=16:45
+2026-04-04 18:42:12,252 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-04 18:42:12,252 [INFO] Runtime settings loaded: target=18:45, cloud_penalty=3.0
+2026-04-04 18:42:12,463 [INFO] Scheduler initialized: target=18:45, first_check=16:45
+2026-04-04 18:42:12,751 [INFO] === Starting daily calculation ===
+2026-04-04 18:42:12,751 [INFO] Scheduler started.
+2026-04-04 18:42:13,280 [INFO] Sun times → sunrise=06:23  sunset=19:01
+2026-04-04 18:42:13,566 [INFO] Collected 12 measured hour(s) between 06:23 and 18:42
+2026-04-04 18:42:13,566 [INFO] Calculated: duration=78min, first_run=78min
+2026-04-04 18:42:13,566 [INFO] Target ready time: 18:45
+2026-04-04 18:42:13,566 [INFO] Calculated trigger time: 17:27
+2026-04-04 18:42:13,566 [WARNING] Trigger time is in the past! Executing immediately.
+2026-04-04 18:42:13,567 [INFO] === EXECUTING BOILER CONTROL ===
+2026-04-04 18:42:13,854 [INFO] Collected 12 measured hour(s) between 06:23 and 18:42
+2026-04-04 18:42:13,854 [INFO] Calculated → effective_temp=18.58°C | duration=78 min | slider1=78 | slider2=0
+2026-04-04 18:42:13,854 [INFO] Sending values to Home Assistant...
+2026-04-04 18:42:13,861 [INFO] HA is reachable.
+2026-04-04 18:42:13,870 [INFO]   ✓ Set input_number.boiler_duration_helper = 78 min
+2026-04-04 18:42:13,878 [INFO]   ✓ Set input_number.boiler_duration_helper_2nd = 0 min
+2026-04-04 18:42:13,886 [INFO]   ✓ Triggered script.start_waterheater_using_ui
+2026-04-04 18:42:13,887 [INFO] HA execution complete.
+2026-04-04 18:42:13,889 [INFO] Saved record for 2026-04-04 to daily_log.csv
+2026-04-04 18:42:13,889 [INFO] [18:42:13] CSV saved → HA status: OK
+2026-04-04 18:42:13,889 [INFO] === EXECUTION COMPLETE ===
+2026-04-04 18:42:13,892 [INFO] Already executed today. Sleeping until tomorrow (5.3h)
+2026-04-04 18:47:13,893 [INFO] Already executed today. Sleeping until tomorrow (5.2h)
+2026-04-04 18:48:01,467 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 18:48:01,467 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 18:48:01,468 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 18:48:01,468 [INFO] Settings updated: target=18:45, cloud_penalty=3.0, check_time=16:45
+2026-04-04 18:48:23,608 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-04 18:48:23,609 [INFO] Runtime settings loaded: target=18:45, cloud_penalty=3.0
+2026-04-04 18:48:23,893 [INFO] Scheduler initialized: target=18:45, first_check=16:45
+2026-04-04 18:48:24,459 [INFO] Scheduler started.
+2026-04-04 18:48:24,812 [INFO] Already executed today. Sleeping until tomorrow (5.2h)
+2026-04-04 18:49:47,595 [INFO] Sending values to Home Assistant...
+2026-04-04 18:49:47,604 [INFO] HA is reachable.
+2026-04-04 18:49:47,612 [INFO]   ✓ Set input_number.boiler_duration_helper = 78 min
+2026-04-04 18:49:47,620 [INFO]   ✓ Set input_number.boiler_duration_helper_2nd = 0 min
+2026-04-04 18:49:47,629 [INFO]   ✓ Triggered script.start_waterheater_using_ui
+2026-04-04 18:49:47,629 [INFO] HA execution complete.
+2026-04-04 18:49:47,632 [INFO] Retry HA complete → OK
+2026-04-04 18:53:24,813 [INFO] Already executed today. Sleeping until tomorrow (5.1h)
+2026-04-04 18:53:29,815 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 18:53:29,816 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 18:53:29,818 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 18:53:29,818 [INFO] Settings updated: target=18:45, cloud_penalty=5.0, check_time=16:45
+2026-04-04 18:58:24,814 [INFO] Already executed today. Sleeping until tomorrow (5.0h)
+2026-04-04 19:01:53,024 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 19:01:53,024 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 19:01:53,025 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 19:01:53,025 [INFO] Settings updated: target=18:45, cloud_penalty=4.0, check_time=16:45
+2026-04-04 19:02:05,430 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 19:02:05,431 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 19:02:05,432 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 19:02:05,432 [INFO] Settings updated: target=18:45, cloud_penalty=4.0, check_time=16:45
+2026-04-04 19:03:24,815 [INFO] Already executed today. Sleeping until tomorrow (4.9h)
+2026-04-04 19:03:31,097 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 19:03:31,097 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 19:03:31,098 [INFO] Saved runtime settings to runtime_settings.json
+2026-04-04 19:03:31,098 [INFO] Settings updated: target=18:45, cloud_penalty=4.0, check_time=16:45
+2026-04-04 19:08:24,817 [INFO] Already executed today. Sleeping until tomorrow (4.9h)
+2026-04-04 19:13:24,818 [INFO] Already executed today. Sleeping until tomorrow (4.8h)
+2026-04-04 19:18:24,819 [INFO] Already executed today. Sleeping until tomorrow (4.7h)
+2026-04-04 19:23:24,822 [INFO] Already executed today. Sleeping until tomorrow (4.6h)
+2026-04-04 19:28:24,823 [INFO] Already executed today. Sleeping until tomorrow (4.5h)
+2026-04-04 19:33:24,824 [INFO] Already executed today. Sleeping until tomorrow (4.4h)
+2026-04-04 19:38:24,828 [INFO] Already executed today. Sleeping until tomorrow (4.4h)
+2026-04-04 19:43:24,830 [INFO] Already executed today. Sleeping until tomorrow (4.3h)
+2026-04-04 19:48:24,830 [INFO] Already executed today. Sleeping until tomorrow (4.2h)
+2026-04-04 19:53:24,831 [INFO] Already executed today. Sleeping until tomorrow (4.1h)
+2026-04-04 19:58:24,832 [INFO] Already executed today. Sleeping until tomorrow (4.0h)
+2026-04-04 20:03:24,833 [INFO] Already executed today. Sleeping until tomorrow (3.9h)
+2026-04-04 20:08:24,833 [INFO] Already executed today. Sleeping until tomorrow (3.9h)
+2026-04-04 20:13:24,835 [INFO] Already executed today. Sleeping until tomorrow (3.8h)
+2026-04-04 20:18:24,835 [INFO] Already executed today. Sleeping until tomorrow (3.7h)
+2026-04-04 20:23:24,836 [INFO] Already executed today. Sleeping until tomorrow (3.6h)
+2026-04-04 20:28:24,837 [INFO] Already executed today. Sleeping until tomorrow (3.5h)
+2026-04-04 20:33:24,838 [INFO] Already executed today. Sleeping until tomorrow (3.4h)
+2026-04-04 20:38:24,839 [INFO] Already executed today. Sleeping until tomorrow (3.4h)
+2026-04-04 20:43:24,840 [INFO] Already executed today. Sleeping until tomorrow (3.3h)
+2026-04-04 20:48:24,841 [INFO] Already executed today. Sleeping until tomorrow (3.2h)
+2026-04-04 20:53:24,844 [INFO] Already executed today. Sleeping until tomorrow (3.1h)
+2026-04-04 20:58:24,844 [INFO] Already executed today. Sleeping until tomorrow (3.0h)
+2026-04-04 21:03:24,845 [INFO] Already executed today. Sleeping until tomorrow (2.9h)
+2026-04-04 21:08:24,846 [INFO] Already executed today. Sleeping until tomorrow (2.9h)
+2026-04-04 21:13:24,848 [INFO] Already executed today. Sleeping until tomorrow (2.8h)
+2026-04-04 21:18:24,848 [INFO] Already executed today. Sleeping until tomorrow (2.7h)
+2026-04-04 21:23:24,849 [INFO] Already executed today. Sleeping until tomorrow (2.6h)
+2026-04-04 21:28:24,850 [INFO] Already executed today. Sleeping until tomorrow (2.5h)
+2026-04-04 21:33:24,851 [INFO] Already executed today. Sleeping until tomorrow (2.4h)
+2026-04-04 21:38:24,852 [INFO] Already executed today. Sleeping until tomorrow (2.4h)
+2026-04-04 21:43:24,854 [INFO] Already executed today. Sleeping until tomorrow (2.3h)
+2026-04-04 21:48:24,855 [INFO] Already executed today. Sleeping until tomorrow (2.2h)
+2026-04-04 21:53:24,856 [INFO] Already executed today. Sleeping until tomorrow (2.1h)
+2026-04-04 21:58:24,856 [INFO] Already executed today. Sleeping until tomorrow (2.0h)
+2026-04-04 22:03:24,857 [INFO] Already executed today. Sleeping until tomorrow (1.9h)
+2026-04-04 22:08:24,858 [INFO] Already executed today. Sleeping until tomorrow (1.9h)
+2026-04-04 22:13:24,859 [INFO] Already executed today. Sleeping until tomorrow (1.8h)
+2026-04-04 22:18:24,859 [INFO] Already executed today. Sleeping until tomorrow (1.7h)
+2026-04-04 22:23:24,861 [INFO] Already executed today. Sleeping until tomorrow (1.6h)
+2026-04-04 22:28:24,862 [INFO] Already executed today. Sleeping until tomorrow (1.5h)
+2026-04-04 22:33:24,863 [INFO] Already executed today. Sleeping until tomorrow (1.4h)
+2026-04-04 22:38:24,863 [INFO] Already executed today. Sleeping until tomorrow (1.4h)
+2026-04-04 22:43:24,864 [INFO] Already executed today. Sleeping until tomorrow (1.3h)
+2026-04-04 22:48:24,865 [INFO] Already executed today. Sleeping until tomorrow (1.2h)
+2026-04-04 22:53:24,866 [INFO] Already executed today. Sleeping until tomorrow (1.1h)
+2026-04-04 22:58:24,867 [INFO] Already executed today. Sleeping until tomorrow (1.0h)
+2026-04-04 23:03:24,873 [INFO] Already executed today. Sleeping until tomorrow (0.9h)
+2026-04-04 23:08:24,874 [INFO] Already executed today. Sleeping until tomorrow (0.9h)
+2026-04-04 23:11:34,686 [INFO] Scheduler stopped.
+2026-04-04 23:12:33,086 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-04 23:12:33,086 [INFO] Runtime settings loaded: target=18:45, cloud_penalty=4.0
+2026-04-04 23:12:33,367 [INFO] Scheduler initialized: target=18:45, first_check=16:45
+2026-04-04 23:12:34,128 [INFO] Scheduler started.
+2026-04-04 23:12:34,234 [INFO] Already executed today. Sleeping until tomorrow (0.8h)
+2026-04-04 23:13:35,761 [INFO] Scheduler stopped.
+2026-04-05 04:59:46,221 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 04:59:46,221 [INFO] Runtime settings loaded: target=18:45, cloud_penalty=4.0
+2026-04-05 04:59:46,449 [INFO] Scheduler initialized: target=18:45, first_check=16:45
+2026-04-05 04:59:46,958 [INFO] Scheduler started.
+2026-04-05 04:59:47,120 [INFO] Waiting until first check at 16:45 (11.8h)
+2026-04-05 05:01:44,518 [INFO] Scheduler stopped.
+2026-04-05 05:01:51,321 [INFO] === Boiler Control System Starting ===
+2026-04-05 05:01:51,322 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 05:01:51,322 [INFO] Runtime overrides: target=18:45, cloud_penalty=4.0
+2026-04-05 05:01:51,322 [INFO] Configuration loaded successfully
+2026-04-05 05:01:51,323 [INFO] Scheduler: target=18:45, check=16:45
+2026-04-05 05:01:51,937 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 05:01:51,938 [INFO] Runtime settings loaded: target=18:45, cloud_penalty=4.0
+2026-04-05 05:01:52,402 [INFO] Scheduler started
+2026-04-05 05:01:52,402 [INFO] === System Ready ===
+2026-04-05 05:02:03,580 [INFO] Scheduler stopped
+2026-04-05 05:02:03,581 [INFO] === System Shutdown ===
+2026-04-05 05:03:23,810 [INFO] === Boiler Control System Starting ===
+2026-04-05 05:03:23,812 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 05:03:23,812 [INFO] Runtime overrides: target=18:45, cloud_penalty=4.0
+2026-04-05 05:03:23,812 [INFO] Configuration loaded successfully
+2026-04-05 05:03:23,812 [INFO] Scheduler: target=18:45, check=16:45
+2026-04-05 05:03:24,305 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 05:03:24,305 [INFO] Runtime settings loaded: target=18:45, cloud_penalty=4.0
+2026-04-05 05:03:24,865 [INFO] Scheduler started
+2026-04-05 05:03:24,865 [INFO] === System Ready ===
+2026-04-05 05:03:35,680 [INFO] Scheduler stopped
+2026-04-05 05:03:35,681 [INFO] === System Shutdown ===
+2026-04-05 05:13:47,147 [INFO] === Boiler Control System Starting ===
+2026-04-05 05:13:47,148 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 05:13:47,148 [INFO] Runtime overrides: target=18:45, cloud_penalty=4.0
+2026-04-05 05:13:47,148 [INFO] Configuration loaded successfully
+2026-04-05 05:13:47,148 [INFO] Scheduler: target=18:45, check=16:45
+2026-04-05 05:13:47,619 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 05:13:47,620 [INFO] Runtime settings loaded: target=18:45, cloud_penalty=4.0
+2026-04-05 05:13:48,068 [INFO] Scheduler started
+2026-04-05 05:13:48,068 [INFO] === System Ready ===
+2026-04-05 05:14:57,339 [INFO] Scheduler stopped
+2026-04-05 05:14:57,339 [INFO] === System Shutdown ===
+2026-04-05 05:41:24,443 [INFO] === Boiler Control System Starting ===
+2026-04-05 05:41:24,444 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 05:41:24,444 [INFO] Runtime overrides: target=18:45, cloud_penalty=4.0
+2026-04-05 05:41:24,444 [INFO] Configuration loaded successfully
+2026-04-05 05:41:24,444 [INFO] Scheduler: target=18:45, check=16:45
+2026-04-05 05:41:24,969 [INFO] Loaded runtime settings from runtime_settings.json
+2026-04-05 05:41:24,969 [INFO] Runtime settings loaded: target=18:45, cloud_penalty=4.0
+2026-04-05 05:41:25,420 [INFO] Scheduler started
+2026-04-05 05:41:25,420 [INFO] === System Ready ===
+2026-04-05 05:41:34,056 [INFO] Scheduler stopped
+2026-04-05 05:41:34,056 [INFO] === System Shutdown ===
