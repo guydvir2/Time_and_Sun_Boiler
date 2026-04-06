@@ -8,6 +8,7 @@ import logging
 import logging.handlers
 import tkinter as tk
 
+from data_directory import DataDirectoryManager
 from config_loader import ConfigLoader
 from weather_service import WeatherService
 from ha_service import HAService
@@ -16,10 +17,20 @@ from scheduler import Scheduler
 
 
 # ==========================================================
-# LOGGING - Minimal verbosity
+# DATA DIRECTORY SETUP
+# ==========================================================
+# Create data/ directory structure
+DataDirectoryManager.setup()
+DataDirectoryManager.migrate_old_files()
+
+
+# ==========================================================
+# LOGGING - Using data/logs/ directory
 # ==========================================================
 _file_handler = logging.handlers.RotatingFileHandler(
-    "boiler.log", maxBytes=2_000_000, backupCount=5
+    DataDirectoryManager.get_log_path(),
+    maxBytes=2_000_000,
+    backupCount=5
 )
 _file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
 

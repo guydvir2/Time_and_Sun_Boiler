@@ -10,7 +10,6 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-SETTING_FILE_JSON = "runtime_settings.json"
 log = logging.getLogger(__name__)
 
 
@@ -22,15 +21,25 @@ class RuntimeSettings:
     - temp_lut (temperature → duration lookup table)
     """
     
-    SETTINGS_FILE = SETTING_FILE_JSON
+    SETTINGS_FILE = "runtime_settings.json"
     
-    def __init__(self, config_defaults: Dict[str, Any]):
+    def __init__(self, config_defaults: Dict[str, Any], settings_file: Optional[str] = None):
         """
         Args:
             config_defaults: Default values from config.ini containing:
                 - temp_lut: dict[int, int]
                 - cloud_penalty_factor: float
+            settings_file: Path to settings file (optional, defaults to data/config/)
         """
+        if settings_file is None:
+            # Try to use data directory
+            try:
+                from data_directory import DataDirectoryManager
+                settings_file = DataDirectoryManager.get_runtime_settings_path()
+            except ImportError:
+                settings_file = "runtime_settings.json"  # Fallback
+        
+        self.SETTINGS_FILE = settings_file
         self.config_defaults = config_defaults
         self.settings = self._load_or_create()
     

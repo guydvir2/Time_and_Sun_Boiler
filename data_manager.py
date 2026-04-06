@@ -10,11 +10,6 @@ import threading
 from datetime import datetime, date
 from typing import Dict, List, Any
 
-# ==========================================================
-# Files names
-# ==========================================================
-DAILY_LOG_CSV = "daily_log.csv"
-
 log = logging.getLogger(__name__)
 
 # CSV write lock
@@ -35,15 +30,23 @@ class DataManager:
     One row per day - METADATA ONLY (no hourly columns)
     """
     
-    DAILY_LOG_FILE = DAILY_LOG_CSV
-    
-    # All columns (daily averages only)
-    COLUMNS = [
-        "date", "dawn", "dusk", "avg_temp", "avg_cloud", "effective_temp",
-        "duration", "first_run", "second_run", "trigger_time", "ha_status"
-    ]
-    
-    def __init__(self):
+    def __init__(self, csv_file=None):
+        if csv_file is None:
+            # Use data directory
+            try:
+                from data_directory import DataDirectoryManager
+                csv_file = DataDirectoryManager.get_csv_path()
+            except ImportError:
+                csv_file = "daily_log.csv"  # Fallback
+        
+        self.DAILY_LOG_FILE = csv_file
+        
+        # All columns (daily averages only)
+        self.COLUMNS = [
+            "date", "dawn", "dusk", "avg_temp", "avg_cloud", "effective_temp",
+            "duration", "first_run", "second_run", "trigger_time", "ha_status"
+        ]
+        
         self._cache = None
         self._ensure_file_exists()
     

@@ -32,7 +32,12 @@ class ConfigLoader:
         # NOTE: LUT removed from config.ini - now ONLY in runtime_settings.json
     }
     
-    def __init__(self, config_file="config.ini"):
+    def __init__(self, config_file=None):
+        if config_file is None:
+            # Use data directory
+            from data_directory import DataDirectoryManager
+            config_file = DataDirectoryManager.get_config_path()
+        
         self.config_file = config_file
         self.config = None
         self.runtime_settings = None

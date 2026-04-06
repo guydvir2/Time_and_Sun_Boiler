@@ -11,9 +11,18 @@ import os
 class LogTab:
     """Log file viewer tab"""
     
-    def __init__(self, parent, colors, log_file="boiler.log"):
+    def __init__(self, parent, colors, log_file=None):
         self.parent = parent
         self.clr = colors
+        
+        if log_file is None:
+            # Use data directory
+            try:
+                from data_directory import DataDirectoryManager
+                log_file = DataDirectoryManager.get_log_path()
+            except ImportError:
+                log_file = "boiler.log"  # Fallback
+        
         self.log_file = log_file
         
         self.text_widget = None

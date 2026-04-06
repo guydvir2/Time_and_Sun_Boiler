@@ -38,8 +38,8 @@ class BoilerApp:
             "ACCENT": "#007acc"
         }
         
-        self.root.title("Boiler Control System")
-        self.root.geometry("1200x700")
+        self.root.title("Boiler Control System v2.1")
+        self.root.geometry("1400x800")  # Larger window for better visibility
         self.root.configure(bg=self._clr["BG"])
         
         self._setup_themed_notebook()
@@ -170,6 +170,13 @@ class BoilerApp:
             bar, text="⟳  Refresh",
             command=self._refresh_data, **btn_style
         ).pack(side="right", padx=4, pady=4)
+        
+        # Designer credit
+        tk.Label(
+            bar, text="Designed by Guy Dvir",
+            bg=c["BG2"], fg=c["FG_DIM"],
+            font=("Segoe UI", 8, "italic"), padx=15
+        ).pack(side="right")
     
     def _retry_ha(self):
         """Retry HA button handler"""
