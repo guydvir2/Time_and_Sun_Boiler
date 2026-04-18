@@ -8,12 +8,15 @@ import logging
 import logging.handlers
 import tkinter as tk
 
+from utils import init_timezone
+from utils import now_local
 from data_directory import DataDirectoryManager
 from config_loader import ConfigLoader
 from weather_service import WeatherService
 from ha_service import HAService
 from data_manager import DataManager
 from scheduler import Scheduler
+
 
 
 # ==========================================================
@@ -40,7 +43,6 @@ _console_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(m
 logging.basicConfig(level=logging.INFO, handlers=[_file_handler, _console_handler])
 log = logging.getLogger(__name__)
 
-
 # ==========================================================
 # ENTRY POINT
 # ==========================================================
@@ -50,7 +52,10 @@ if __name__ == "__main__":
     # Load configuration
     config = ConfigLoader()
     config.load()
-    
+
+    init_timezone(config.timezone)  # "Asia/Jerusalem"
+    t = now_local()
+
     # Initialize services
     weather_service = WeatherService(
         weather_url=config.weather_url,

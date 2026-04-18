@@ -28,8 +28,8 @@ class ConfigLoader:
             "max_first_run", "sunset_offset_minutes",
             "init_hour", "poll_interval_minutes",
             "cloud_penalty_factor"
-        ]
-        # NOTE: LUT removed from config.ini - now ONLY in runtime_settings.json
+        ],
+        "location": ["latitude", "longitude", "timezone"]
     }
     
     def __init__(self, config_file=None):
@@ -52,6 +52,7 @@ class ConfigLoader:
         
         self.lat = None
         self.lon = None
+        self.timezone = None
         self.weather_url = None
         
         self.max_first_run = None
@@ -106,6 +107,7 @@ class ConfigLoader:
         # Load location
         self.lat = float(self.config["location"]["latitude"])
         self.lon = float(self.config["location"]["longitude"])
+        self.timezone = self.config["location"]["timezone"]
         
         # Load weather
         self.weather_url = self.config["weather"]["weather_url"]

@@ -933,3 +933,187 @@
 2026-04-06 17:25:00,040 [INFO] HA execution complete
 2026-04-06 17:25:00,043 [INFO] Saved record for 2026-04-06
 2026-04-06 17:25:00,044 [INFO] === COMPLETE: HA status=OK ===
+2026-04-07 16:40:00,000 [INFO] === Daily execution starting ===
+2026-04-07 16:40:03,918 [INFO] Sun times: sunrise=06:19, sunset=19:03
+2026-04-07 16:40:05,629 [INFO] Collected 10 hourly measurements (sunrise→16:40)
+2026-04-07 16:40:05,629 [INFO] Calculation: avg_temp=16.4°C, avg_cloud=73%, effective=13.52°C, duration=102min, sliders=(102,0)
+2026-04-07 16:40:05,629 [INFO] Target: 18:40, Trigger: 16:58
+2026-04-07 16:58:00,001 [INFO] === EXECUTING ===
+2026-04-07 16:58:00,002 [INFO] Sending to HA: first_run=102min, second_run=0min
+2026-04-07 16:58:00,012 [INFO] HA is reachable
+2026-04-07 16:58:00,021 [INFO] Set input_number.boiler_duration_helper = 102 min
+2026-04-07 16:58:00,031 [INFO] Set input_number.boiler_duration_helper_2nd = 0 min
+2026-04-07 16:58:00,042 [INFO] Triggered script.start_waterheater_using_ui
+2026-04-07 16:58:00,043 [INFO] HA execution complete
+2026-04-07 16:58:00,049 [INFO] Saved record for 2026-04-07
+2026-04-07 16:58:00,049 [INFO] === COMPLETE: HA status=OK ===
+2026-04-07 20:55:37,088 [INFO] === Boiler Control System Starting ===
+2026-04-07 20:55:37,089 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-04-07 20:55:37,090 [INFO] Runtime overrides: target=18:40, cloud_penalty=4.0, LUT points=10
+2026-04-07 20:55:37,090 [INFO] Configuration loaded successfully
+2026-04-07 20:57:30,963 [INFO] === Boiler Control System Starting ===
+2026-04-07 20:57:30,964 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-04-07 20:57:30,964 [INFO] Runtime overrides: target=18:40, cloud_penalty=4.0, LUT points=10
+2026-04-07 20:57:30,964 [INFO] Configuration loaded successfully
+2026-04-07 21:05:37,381 [INFO] === Boiler Control System Starting ===
+2026-04-07 21:05:37,382 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-04-07 21:05:37,382 [INFO] Runtime overrides: target=18:40, cloud_penalty=4.0, LUT points=10
+2026-04-07 21:05:37,382 [INFO] Configuration loaded successfully
+2026-04-07 21:05:37,383 [INFO] Scheduler: target=18:40, check=16:40
+2026-04-07 21:05:38,342 [INFO] Scheduler started
+2026-04-07 21:05:38,342 [INFO] === System Ready ===
+2026-04-07 21:05:49,522 [INFO] Scheduler stopped
+2026-04-07 21:05:49,523 [INFO] === System Shutdown ===
+2026-04-07 21:06:14,140 [INFO] === Boiler Control System Starting ===
+2026-04-07 21:06:14,142 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-04-07 21:06:14,143 [INFO] Runtime overrides: target=18:40, cloud_penalty=4.0, LUT points=10
+2026-04-07 21:06:14,143 [INFO] Configuration loaded successfully
+2026-04-07 21:06:14,143 [INFO] Scheduler: target=18:40, check=16:40
+2026-04-07 21:06:15,165 [INFO] Scheduler started
+2026-04-07 21:06:15,165 [INFO] === System Ready ===
+2026-04-07 21:06:23,059 [INFO] Scheduler stopped
+2026-04-07 21:06:23,060 [INFO] === System Shutdown ===
+2026-04-07 21:07:22,640 [INFO] === Boiler Control System Starting ===
+2026-04-07 21:07:22,641 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-04-07 21:07:22,641 [INFO] Runtime overrides: target=18:40, cloud_penalty=4.0, LUT points=10
+2026-04-07 21:07:22,641 [INFO] Configuration loaded successfully
+2026-04-07 21:07:22,641 [INFO] Scheduler: target=18:40, check=16:40
+2026-04-07 21:07:23,588 [INFO] Scheduler started
+2026-04-07 21:07:23,588 [INFO] === System Ready ===
+2026-04-07 21:07:31,929 [INFO] Scheduler stopped
+2026-04-07 21:07:31,929 [INFO] === System Shutdown ===
+2026-04-08 17:36:53,981 [INFO] === Boiler Control System Starting ===
+2026-04-08 17:36:53,982 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-04-08 17:36:53,982 [INFO] Runtime overrides: target=18:40, cloud_penalty=4.0, LUT points=10
+2026-04-08 17:36:53,982 [INFO] Configuration loaded successfully
+2026-04-08 17:36:53,983 [INFO] Scheduler: target=18:40, check=16:40
+2026-04-08 17:36:55,338 [INFO] === Daily execution starting ===
+2026-04-08 17:36:55,338 [INFO] Scheduler started
+2026-04-08 17:36:55,338 [INFO] === System Ready ===
+2026-04-08 17:36:55,807 [INFO] Sun times: sunrise=06:18, sunset=19:04
+2026-04-08 17:36:56,118 [INFO] Collected 11 hourly measurements (sunrise→17:36)
+2026-04-08 17:36:56,118 [INFO] Calculation: avg_temp=18.1°C, avg_cloud=58%, effective=15.79°C, duration=63min, sliders=(63,0)
+2026-04-08 17:36:56,118 [INFO] Target: 18:40, Trigger: 17:37
+2026-04-08 17:37:00,000 [INFO] === EXECUTING ===
+2026-04-08 17:37:00,000 [INFO] Sending to HA: first_run=63min, second_run=0min
+2026-04-08 17:37:00,011 [INFO] HA is reachable
+2026-04-08 17:37:00,022 [INFO] Set input_number.boiler_duration_helper = 63 min
+2026-04-08 17:37:00,032 [INFO] Set input_number.boiler_duration_helper_2nd = 0 min
+2026-04-08 17:37:00,045 [INFO] Triggered script.start_waterheater_using_ui
+2026-04-08 17:37:00,045 [INFO] HA execution complete
+2026-04-08 17:37:00,047 [INFO] Saved record for 2026-04-08
+2026-04-08 17:37:00,047 [INFO] === COMPLETE: HA status=OK ===
+2026-04-08 17:37:16,606 [INFO] Sending to HA: first_run=63min, second_run=0min
+2026-04-08 17:37:16,614 [INFO] HA is reachable
+2026-04-08 17:37:16,622 [INFO] Set input_number.boiler_duration_helper = 63 min
+2026-04-08 17:37:16,630 [INFO] Set input_number.boiler_duration_helper_2nd = 0 min
+2026-04-08 17:37:16,639 [INFO] Triggered script.start_waterheater_using_ui
+2026-04-08 17:37:16,640 [INFO] HA execution complete
+2026-04-08 17:37:16,642 [INFO] Retry HA complete: OK
+2026-04-09 16:40:00,000 [INFO] === Daily execution starting ===
+2026-04-09 16:40:03,617 [INFO] Sun times: sunrise=06:17, sunset=19:04
+2026-04-09 16:40:05,350 [INFO] Collected 10 hourly measurements (sunrise→16:40)
+2026-04-09 16:40:05,351 [INFO] Calculation: avg_temp=18.8°C, avg_cloud=51%, effective=16.74°C, duration=54min, sliders=(54,0)
+2026-04-09 16:40:05,351 [INFO] Target: 18:40, Trigger: 17:46
+2026-04-09 17:46:00,000 [INFO] === EXECUTING ===
+2026-04-09 17:46:00,000 [INFO] Sending to HA: first_run=54min, second_run=0min
+2026-04-09 17:46:00,010 [INFO] HA is reachable
+2026-04-09 17:46:00,020 [INFO] Set input_number.boiler_duration_helper = 54 min
+2026-04-09 17:46:00,027 [INFO] Set input_number.boiler_duration_helper_2nd = 0 min
+2026-04-09 17:46:00,036 [INFO] Triggered script.start_waterheater_using_ui
+2026-04-09 17:46:00,036 [INFO] HA execution complete
+2026-04-09 17:46:00,038 [INFO] Saved record for 2026-04-09
+2026-04-09 17:46:00,038 [INFO] === COMPLETE: HA status=OK ===
+2026-04-10 16:40:00,001 [INFO] === Daily execution starting ===
+2026-04-10 16:40:03,543 [INFO] Sun times: sunrise=06:15, sunset=19:05
+2026-04-10 16:40:05,214 [INFO] Collected 10 hourly measurements (sunrise→16:40)
+2026-04-10 16:40:05,214 [INFO] Calculation: avg_temp=18.9°C, avg_cloud=53%, effective=16.79°C, duration=54min, sliders=(54,0)
+2026-04-10 16:40:05,214 [INFO] Target: 18:40, Trigger: 17:46
+2026-04-10 17:46:00,000 [INFO] === EXECUTING ===
+2026-04-10 17:46:00,000 [INFO] Sending to HA: first_run=54min, second_run=0min
+2026-04-10 17:46:00,008 [INFO] HA is reachable
+2026-04-10 17:46:00,017 [INFO] Set input_number.boiler_duration_helper = 54 min
+2026-04-10 17:46:00,025 [INFO] Set input_number.boiler_duration_helper_2nd = 0 min
+2026-04-10 17:46:00,037 [INFO] Triggered script.start_waterheater_using_ui
+2026-04-10 17:46:00,039 [INFO] HA execution complete
+2026-04-10 17:46:00,041 [INFO] Saved record for 2026-04-10
+2026-04-10 17:46:00,041 [INFO] === COMPLETE: HA status=OK ===
+2026-04-11 16:40:00,007 [INFO] === Daily execution starting ===
+2026-04-11 16:40:03,648 [INFO] Sun times: sunrise=06:14, sunset=19:06
+2026-04-11 16:40:05,344 [INFO] Collected 10 hourly measurements (sunrise→16:40)
+2026-04-11 16:40:05,346 [INFO] Calculation: avg_temp=18.4°C, avg_cloud=65%, effective=15.81°C, duration=63min, sliders=(63,0)
+2026-04-11 16:40:05,348 [INFO] Target: 18:40, Trigger: 17:37
+2026-04-11 17:37:00,000 [INFO] === EXECUTING ===
+2026-04-11 17:37:00,001 [INFO] Sending to HA: first_run=63min, second_run=0min
+2026-04-11 17:37:00,012 [INFO] HA is reachable
+2026-04-11 17:37:00,026 [INFO] Set input_number.boiler_duration_helper = 63 min
+2026-04-11 17:37:00,036 [INFO] Set input_number.boiler_duration_helper_2nd = 0 min
+2026-04-11 17:37:00,050 [INFO] Triggered script.start_waterheater_using_ui
+2026-04-11 17:37:00,051 [INFO] HA execution complete
+2026-04-11 17:37:00,055 [INFO] Saved record for 2026-04-11
+2026-04-11 17:37:00,056 [INFO] === COMPLETE: HA status=OK ===
+2026-04-12 16:40:00,000 [INFO] === Daily execution starting ===
+2026-04-12 16:40:03,530 [INFO] Sun times: sunrise=06:13, sunset=19:07
+2026-04-12 16:40:05,079 [INFO] Collected 10 hourly measurements (sunrise→16:40)
+2026-04-12 16:40:05,079 [INFO] Calculation: avg_temp=18.6°C, avg_cloud=52%, effective=16.47°C, duration=56min, sliders=(56,0)
+2026-04-12 16:40:05,080 [INFO] Target: 18:40, Trigger: 17:44
+2026-04-12 17:44:00,000 [INFO] === EXECUTING ===
+2026-04-12 17:44:00,001 [INFO] Sending to HA: first_run=56min, second_run=0min
+2026-04-12 17:44:00,012 [INFO] HA is reachable
+2026-04-12 17:44:00,024 [INFO] Set input_number.boiler_duration_helper = 56 min
+2026-04-12 17:44:00,034 [INFO] Set input_number.boiler_duration_helper_2nd = 0 min
+2026-04-12 17:44:00,050 [INFO] Triggered script.start_waterheater_using_ui
+2026-04-12 17:44:00,051 [INFO] HA execution complete
+2026-04-12 17:44:00,058 [INFO] Saved record for 2026-04-12
+2026-04-12 17:44:00,058 [INFO] === COMPLETE: HA status=OK ===
+2026-04-13 16:40:00,000 [INFO] === Daily execution starting ===
+2026-04-13 16:40:03,711 [INFO] Sun times: sunrise=06:12, sunset=19:07
+2026-04-13 16:40:05,642 [INFO] Collected 10 hourly measurements (sunrise→16:40)
+2026-04-13 16:40:05,642 [INFO] Calculation: avg_temp=19.7°C, avg_cloud=43%, effective=17.99°C, duration=45min, sliders=(45,0)
+2026-04-13 16:40:05,642 [INFO] Target: 18:40, Trigger: 17:55
+2026-04-13 17:55:00,000 [INFO] === EXECUTING ===
+2026-04-13 17:55:00,001 [INFO] Sending to HA: first_run=45min, second_run=0min
+2026-04-13 17:55:00,012 [INFO] HA is reachable
+2026-04-13 17:55:00,026 [INFO] Set input_number.boiler_duration_helper = 45 min
+2026-04-13 17:55:00,040 [INFO] Set input_number.boiler_duration_helper_2nd = 0 min
+2026-04-13 17:55:00,056 [INFO] Triggered script.start_waterheater_using_ui
+2026-04-13 17:55:00,057 [INFO] HA execution complete
+2026-04-13 17:55:00,063 [INFO] Saved record for 2026-04-13
+2026-04-13 17:55:00,063 [INFO] === COMPLETE: HA status=OK ===
+2026-04-14 16:40:00,001 [INFO] === Daily execution starting ===
+2026-04-14 16:40:03,540 [INFO] Sun times: sunrise=06:11, sunset=19:08
+2026-04-14 16:40:05,350 [INFO] Collected 10 hourly measurements (sunrise→16:40)
+2026-04-14 16:40:05,351 [INFO] Calculation: avg_temp=23.0°C, avg_cloud=1%, effective=22.97°C, duration=6min, sliders=(6,0)
+2026-04-14 16:40:05,351 [INFO] Target: 18:40, Trigger: 18:34
+2026-04-14 18:34:00,000 [INFO] === EXECUTING ===
+2026-04-14 18:34:00,000 [INFO] Sending to HA: first_run=6min, second_run=0min
+2026-04-14 18:34:00,011 [INFO] HA is reachable
+2026-04-14 18:34:00,024 [INFO] Set input_number.boiler_duration_helper = 6 min
+2026-04-14 18:34:00,036 [INFO] Set input_number.boiler_duration_helper_2nd = 0 min
+2026-04-14 18:34:00,045 [INFO] Triggered script.start_waterheater_using_ui
+2026-04-14 18:34:00,046 [INFO] HA execution complete
+2026-04-14 18:34:00,047 [INFO] Saved record for 2026-04-14
+2026-04-14 18:34:00,047 [INFO] === COMPLETE: HA status=OK ===
+2026-04-15 16:40:00,001 [INFO] === Daily execution starting ===
+2026-04-15 16:40:03,685 [INFO] Sun times: sunrise=06:09, sunset=19:09
+2026-04-15 16:40:05,446 [INFO] Collected 10 hourly measurements (sunrise→16:40)
+2026-04-15 16:40:05,447 [INFO] Calculation: avg_temp=26.7°C, avg_cloud=95%, effective=22.85°C, duration=7min, sliders=(7,0)
+2026-04-15 16:40:05,448 [INFO] Target: 18:40, Trigger: 18:33
+2026-04-15 18:33:00,000 [INFO] === EXECUTING ===
+2026-04-15 18:33:00,001 [INFO] Sending to HA: first_run=7min, second_run=0min
+2026-04-15 18:33:00,011 [INFO] HA is reachable
+2026-04-15 18:33:00,023 [INFO] Set input_number.boiler_duration_helper = 7 min
+2026-04-15 18:33:00,035 [INFO] Set input_number.boiler_duration_helper_2nd = 0 min
+2026-04-15 18:33:00,050 [INFO] Triggered script.start_waterheater_using_ui
+2026-04-15 18:33:00,050 [INFO] HA execution complete
+2026-04-15 18:33:00,054 [INFO] Saved record for 2026-04-15
+2026-04-15 18:33:00,054 [INFO] === COMPLETE: HA status=OK ===
+2026-04-18 07:42:35,227 [INFO] === Boiler Control System Starting ===
+2026-04-18 07:42:35,228 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-04-18 07:42:35,228 [INFO] Runtime overrides: target=18:40, cloud_penalty=4.0, LUT points=10
+2026-04-18 07:42:35,229 [INFO] Configuration loaded successfully
+2026-04-18 07:42:35,229 [INFO] Scheduler: target=18:40, check=16:40
+2026-04-18 07:42:36,612 [INFO] Scheduler started
+2026-04-18 07:42:36,612 [INFO] === System Ready ===
+2026-04-18 07:48:14,969 [INFO] Scheduler stopped
+2026-04-18 07:48:14,970 [INFO] === System Shutdown ===
