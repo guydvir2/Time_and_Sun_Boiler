@@ -12,18 +12,48 @@
     "24": 0
   },
   "first_run_target_time": "18:40",
-  "last_updated": "2026-04-06 08:38:31",
+  "second_run_target_time": "20:00",
+  "last_updated": "2026-04-20 20:32:08",
   "cloud_penalty_factor": 4.0,
   "temp_lut": {
     "10": 180,
+    "11": 170,
     "12": 140,
     "14": 90,
-    "16": 60,
-    "18": 45,
+    "16": 45,
+    "18": 30,
     "20": 15,
-    "22": 10,
-    "24": 2,
-    "11": 170,
-    "26": 1
-  }
+    "22": 5,
+    "24": 0
+  },
+  "execution_mode": "HA",
+  "solar_active": true,
+  "weekly_presets": [
+    {
+      "id": 1,
+      "active": false,
+      "start_time": "07:00",
+      "duration": 45,
+      "days": []
+    },
+    {
+      "id": 2,
+      "active": false,
+      "start_time": "14:00",
+      "duration": 30,
+      "days": []
+    },
+    {
+      "id": 3,
+      "active": false,
+      "start_time": "20:00",
+      "duration": 60,
+      "days": []
+    }
+  ],
+  "one_shot": {
+    "start_time": "08:00",
+    "duration": 30
+  },
+  "mqtt_active": true
 }

@@ -1,166 +1,112 @@
 """
-Runtime Settings Manager
-Handles user customizations that override config.ini defaults.
-Saves to runtime_settings.json without modifying config.ini.
+Runtime Settings — user-editable overrides persisted to runtime_settings.json.
+Never modifies config.ini.
 """
-
 import json
-import os
 import logging
+import os
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 log = logging.getLogger(__name__)
 
 
 class RuntimeSettings:
-    """
-    Manages runtime overrides for:
-    - first_run_target_time (when first run should complete)
-    - cloud_penalty_factor
-    - temp_lut (temperature → duration lookup table)
-    """
-    
-    SETTINGS_FILE = "runtime_settings.json"
-    
     def __init__(self, config_defaults: Dict[str, Any], settings_file: Optional[str] = None):
-        """
-        Args:
-            config_defaults: Default values from config.ini containing:
-                - temp_lut: dict[int, int]
-                - cloud_penalty_factor: float
-            settings_file: Path to settings file (optional, defaults to data/config/)
-        """
         if settings_file is None:
-            # Try to use data directory
             try:
                 from data_directory import DataDirectoryManager
                 settings_file = DataDirectoryManager.get_runtime_settings_path()
             except ImportError:
-                settings_file = "runtime_settings.json"  # Fallback
-        
+                settings_file = "runtime_settings.json"
         self.SETTINGS_FILE = settings_file
-        self.config_defaults = config_defaults
-        self.settings = self._load_or_create()
-    
-    def _load_or_create(self) -> Dict[str, Any]:
-        """Load from JSON file, or create with defaults if doesn't exist."""
+        self._defaults = config_defaults
+        self.settings  = self._load()
+
+    # ── Persistence ──────────────────────────────────────────
+
+    def _load(self) -> Dict[str, Any]:
         if os.path.exists(self.SETTINGS_FILE):
             try:
-                with open(self.SETTINGS_FILE, 'r') as f:
+                with open(self.SETTINGS_FILE) as f:
                     data = json.load(f)
-                    log.info(f"Loaded runtime settings from {self.SETTINGS_FILE}")
-                    return data
-            except (json.JSONDecodeError, IOError) as e:
-                log.warning(f"Could not load {self.SETTINGS_FILE}: {e}. Using defaults.")
-        
-        # Create defaults
-        defaults = {
-            "first_run_target_time": "18:45",  # Default target ready time
-            "cloud_penalty_factor": self.config_defaults["cloud_penalty_factor"],
-            "temp_lut": self.config_defaults["temp_lut"],
-            "last_updated": None
+                log.info(f"Loaded runtime settings from {self.SETTINGS_FILE}")
+                return data
+            except Exception as e:
+                log.warning(f"Could not load {self.SETTINGS_FILE}: {e} — using defaults")
+        return {
+            "first_run_target_time": "18:45",
+            "cloud_penalty_factor":  self._defaults["cloud_penalty_factor"],
+            "temp_lut":              self._defaults["temp_lut"],
         }
-        return defaults
-    
+
     def save(self) -> bool:
-        """Save current settings to JSON file."""
         self.settings["last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         try:
-            with open(self.SETTINGS_FILE, 'w') as f:
+            with open(self.SETTINGS_FILE, "w") as f:
                 json.dump(self.settings, f, indent=2)
-            log.info(f"Saved runtime settings to {self.SETTINGS_FILE}")
             return True
         except IOError as e:
             log.error(f"Failed to save runtime settings: {e}")
             return False
-    
-    def get_target_time(self) -> str:
-        """Get first run target ready time (HH:MM format)."""
-        return self.settings.get("first_run_target_time", "18:45")
-    
-    def set_target_time(self, time_str: str) -> bool:
-        """
-        Set first run target ready time.
-        Args:
-            time_str: Time in HH:MM format (e.g., "18:45")
-        Returns:
-            True if valid and saved, False otherwise
-        """
-        if not self._validate_time_format(time_str):
-            log.error(f"Invalid time format: {time_str}. Expected HH:MM")
-            return False
-        
-        self.settings["first_run_target_time"] = time_str
+
+    # ── Accessors ────────────────────────────────────────────
+
+    def _get(self, key, default):
+        return self.settings.get(key, default)
+
+    def _set(self, key, value) -> bool:
+        self.settings[key] = value
         return self.save()
-    
-    def get_cloud_penalty(self) -> float:
-        """Get cloud penalty factor."""
-        return float(self.settings.get("cloud_penalty_factor", 3.0))
-    
-    def set_cloud_penalty(self, factor: float) -> bool:
-        """
-        Set cloud penalty factor.
-        Args:
-            factor: Positive float value
-        Returns:
-            True if valid and saved, False otherwise
-        """
-        if factor <= 0:
-            log.error(f"Cloud penalty must be positive, got: {factor}")
-            return False
-        
-        self.settings["cloud_penalty_factor"] = factor
-        return self.save()
-    
+
+    # Solar
+    def get_target_time(self) -> str:          return self._get("first_run_target_time", "18:45")
+    def get_second_run_time(self) -> str:      return self._get("second_run_target_time", "20:00")
+    def get_solar_active(self) -> bool:        return self._get("solar_active", True)
+    def get_cloud_penalty(self) -> float:      return float(self._get("cloud_penalty_factor", 3.0))
     def get_temp_lut(self) -> Dict[int, int]:
-        """Get temperature LUT. Returns dict with int keys and values."""
-        lut = self.settings.get("temp_lut", {})
-        # Ensure keys are integers (JSON serializes dict keys as strings)
-        return {int(k): int(v) for k, v in lut.items()}
-    
+        return {int(k): int(v) for k, v in self._get("temp_lut", {}).items()}
+
+    def set_target_time(self, t: str) -> bool:
+        return self._set("first_run_target_time", t) if self._valid_time(t) else False
+    def set_second_run_time(self, t: str) -> bool:
+        return self._set("second_run_target_time", t) if self._valid_time(t) else False
+    def set_solar_active(self, v: bool) -> bool:  return self._set("solar_active", v)
+    def set_cloud_penalty(self, v: float) -> bool:
+        return self._set("cloud_penalty_factor", v) if v > 0 else False
     def set_temp_lut(self, lut: Dict[int, int]) -> bool:
-        """
-        Set temperature LUT.
-        Args:
-            lut: Dict mapping temperature (int) to duration (int)
-        Returns:
-            True if valid and saved, False otherwise
-        """
-        if not self._validate_lut(lut):
+        if not lut or len(lut) < 2:
             return False
-        
-        self.settings["temp_lut"] = lut
-        return self.save()
-    
+        return self._set("temp_lut", lut)
+
+    # Execution
+    def get_execution_mode(self) -> str:   return self._get("execution_mode", "HA")
+    def get_mqtt_active(self) -> bool:     return self._get("mqtt_active", False)
+    def set_execution_mode(self, m: str) -> bool:
+        return self._set("execution_mode", m) if m in ("HA", "MQTT") else False
+    def set_mqtt_active(self, v: bool) -> bool: return self._set("mqtt_active", v)
+
+    # Weekly
+    def get_weekly_presets(self) -> list:
+        return self._get("weekly_presets", [
+            {"id": i, "active": False, "start_time": "08:00", "duration": 30, "days": []}
+            for i in range(1, 4)
+        ])
+    def set_weekly_presets(self, presets: list) -> bool:
+        return self._set("weekly_presets", presets)
+
+    # One-shot
+    def get_one_shot(self) -> dict:
+        return self._get("one_shot", {"start_time": "08:00", "duration": 30, "armed": False})
+    def set_one_shot(self, start_time: str, duration: int, armed: bool = False) -> bool:
+        return self._set("one_shot", {"start_time": start_time, "duration": duration, "armed": armed})
+
+    # ── Validation ───────────────────────────────────────────
+
     @staticmethod
-    def _validate_time_format(time_str: str) -> bool:
-        """Validate HH:MM format (00:00 to 23:59)."""
+    def _valid_time(t: str) -> bool:
         try:
-            parts = time_str.split(":")
-            if len(parts) != 2:
-                return False
-            hour, minute = int(parts[0]), int(parts[1])
-            return 0 <= hour <= 23 and 0 <= minute <= 59
-        except (ValueError, AttributeError):
-            return False
-    
-    @staticmethod
-    def _validate_lut(lut: Dict[int, int]) -> bool:
-        """Validate LUT: keys and values must be positive integers."""
-        if not lut:
-            log.error("LUT cannot be empty")
-            return False
-        
-        try:
-            for temp, duration in lut.items():
-                if not isinstance(temp, int) or not isinstance(duration, int):
-                    log.error(f"LUT entries must be integers: {temp} -> {duration}")
-                    return False
-                if duration <= 0:
-                    log.error(f"Duration must be positive: {temp} -> {duration}")
-                    return False
-            return True
-        except (TypeError, AttributeError) as e:
-            log.error(f"Invalid LUT structure: {e}")
+            h, m = t.split(":")
+            return 0 <= int(h) <= 23 and 0 <= int(m) <= 59
+        except Exception:
             return False

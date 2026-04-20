@@ -1,106 +1,84 @@
 """
-Boiler Control System - Main Entry Point
-Modular architecture with separate services
+Boiler Control System — entry point
 """
-
-import sys
 import logging
 import logging.handlers
+import sys
 import tkinter as tk
 
-from utils import init_timezone
-from utils import now_local
 from data_directory import DataDirectoryManager
-from config_loader import ConfigLoader
-from weather_service import WeatherService
-from ha_service import HAService
-from data_manager import DataManager
-from scheduler import Scheduler
+from utils import init_timezone
 
-
-
-# ==========================================================
-# DATA DIRECTORY SETUP
-# ==========================================================
-# Create data/ directory structure
 DataDirectoryManager.setup()
 DataDirectoryManager.migrate_old_files()
 
-
-# ==========================================================
-# LOGGING - Using data/logs/ directory
-# ==========================================================
-_file_handler = logging.handlers.RotatingFileHandler(
-    DataDirectoryManager.get_log_path(),
-    maxBytes=2_000_000,
-    backupCount=5
-)
-_file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
-
-_console_handler = logging.StreamHandler(sys.stdout)
-_console_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
-
-logging.basicConfig(level=logging.INFO, handlers=[_file_handler, _console_handler])
+_fh = logging.handlers.RotatingFileHandler(
+    DataDirectoryManager.get_log_path(), maxBytes=2_000_000, backupCount=5)
+_fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+_ch = logging.StreamHandler(sys.stdout)
+_ch.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+logging.basicConfig(level=logging.INFO, handlers=[_fh, _ch])
 log = logging.getLogger(__name__)
 
-# ==========================================================
-# ENTRY POINT
-# ==========================================================
 if __name__ == "__main__":
     log.info("=== Boiler Control System Starting ===")
-    
-    # Load configuration
-    config = ConfigLoader()
-    config.load()
 
-    init_timezone(config.timezone)  # "Asia/Jerusalem"
-    t = now_local()
+    from config_loader import ConfigLoader
+    cfg = ConfigLoader()
+    cfg.load()
+    init_timezone(cfg.timezone)
 
-    # Initialize services
-    weather_service = WeatherService(
-        weather_url=config.weather_url,
-        lat=config.lat,
-        lon=config.lon,
-        temp_lut=config.temp_lut,
-        cloud_penalty_factor=config.cloud_penalty_factor,
-        max_first_run=config.max_first_run
+    from weather_service import WeatherService
+    from ha_service import HAService
+    from mqtt_service import MQTTService
+    from data_manager import DataManager
+    from scheduler import Scheduler
+
+    weather = WeatherService(
+        weather_url=cfg.weather_url, lat=cfg.lat, lon=cfg.lon,
+        temp_lut=cfg.temp_lut,
+        cloud_penalty_factor=cfg.cloud_penalty_factor,
+        max_first_run=cfg.max_first_run,
     )
-    
-    ha_service = HAService(
-        ha_url=config.ha_url,
-        headers=config.ha_headers,
-        boiler_1st_entity=config.boiler_1st_on_entity_id,
-        boiler_2nd_entity=config.boiler_2nd_on_entity_id,
-        script_entity=config.run_script_1st_start_entity_id
+    ha = HAService(
+        ha_url=cfg.ha_url, headers=cfg.ha_headers,
+        boiler_1st_entity=cfg.boiler_1st_on_entity_id,
+        script_1st_entity=cfg.run_script_1st_entity_id,
+        script_2nd_entity=cfg.run_script_2nd_entity_id,
     )
-    
-    data_manager = DataManager()
-    
-    scheduler = Scheduler(
-        weather_service=weather_service,
-        ha_service=ha_service,
-        data_manager=data_manager,
-        target_time_str=config.first_run_target_time
-    )
-    
-    # Import and create GUI
+    mqtt = MQTTService(
+        broker_ip=cfg.mqtt_broker_ip or "localhost",
+        broker_port=cfg.mqtt_broker_port,
+        tasmota_topic=cfg.mqtt_tasmota_topic,
+        username=cfg.mqtt_username,
+        password=cfg.mqtt_password,
+        topic_format=cfg.mqtt_topic_format,
+    ) if cfg.mqtt_broker_ip else None
+
+    rs  = cfg.runtime_settings
+    dm  = DataManager()
+    sch = Scheduler(weather_service=weather, ha_service=ha,
+                    data_manager=dm, runtime_settings=rs, mqtt_service=mqtt)
+
     from gui.main_window import BoilerApp
-    
     root = tk.Tk()
-    app = BoilerApp(
-        root=root,
-        config=config,
-        weather_service=weather_service,
-        ha_service=ha_service,
-        data_manager=data_manager,
-        scheduler=scheduler
-    )
-    
-    scheduler.on_state_change = app.on_scheduler_state
-    scheduler.start()
-    
+    app  = BoilerApp(root=root, config=cfg, weather_service=weather,
+                     ha_service=ha, data_manager=dm,
+                     scheduler=sch, mqtt_service=mqtt)
+
+    # Wire callbacks → status bar
+    ha.on_reachability_change = lambda ok: root.after(0, lambda: app.notify_ha_state(ok))
+    if mqtt:
+        mqtt.on_connect_change = lambda ok: root.after(0, lambda: app.notify_mqtt_state(ok))
+        mqtt.active = rs.get_mqtt_active()
+        if rs.get_execution_mode() == "MQTT":
+            mqtt.active = True
+            rs.set_mqtt_active(True)
+
+    sch.on_state_change = app.on_scheduler_state
+    sch.start()
+
     log.info("=== System Ready ===")
     root.mainloop()
-    
-    scheduler.stop()
+    sch.stop()
     log.info("=== System Shutdown ===")

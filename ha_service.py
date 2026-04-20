@@ -1,8 +1,6 @@
 """
 Home Assistant Service
-Handles all interactions with Home Assistant API
 """
-
 import logging
 import time
 import requests
@@ -11,7 +9,6 @@ log = logging.getLogger(__name__)
 
 
 def with_retries(fn, retries=3, delay=5, label="operation"):
-    """Retry helper for network operations"""
     for attempt in range(1, retries + 1):
         try:
             return fn()
@@ -24,57 +21,77 @@ def with_retries(fn, retries=3, delay=5, label="operation"):
 
 
 class HAService:
-    """Home Assistant API client"""
-    
-    def __init__(self, ha_url, headers, boiler_1st_entity, boiler_2nd_entity, script_entity):
+    def __init__(self, ha_url, headers, boiler_1st_entity, script_1st_entity, script_2nd_entity):
         self.ha_url = ha_url
         self.headers = headers
         self.boiler_1st_on_entity_id = boiler_1st_entity
-        self.boiler_2nd_on_entity_id = boiler_2nd_entity
-        self.run_script_entity_id = script_entity
-    
+        self.run_script_1st_entity_id = script_1st_entity
+        self.run_script_2nd_entity_id = script_2nd_entity
+
+        # Fired after every HA operation: callback(ok: bool)
+        self.on_reachability_change = None
+
     def check_reachable(self):
-        """Test HA connectivity"""
         r = requests.get(f"{self.ha_url}/api/", headers=self.headers, timeout=5)
         r.raise_for_status()
-        log.info("HA is reachable")
-    
-    def set_slider(self, entity_id, value):
-        """Set input_number value"""
-        url = f"{self.ha_url}/api/services/input_number/set_value"
-        payload = {"entity_id": entity_id, "value": value}
-        r = requests.post(url, headers=self.headers, json=payload, timeout=10)
+
+    def _set_slider(self, entity_id, value):
+        r = requests.post(
+            f"{self.ha_url}/api/services/input_number/set_value",
+            headers=self.headers,
+            json={"entity_id": entity_id, "value": value},
+            timeout=10
+        )
         r.raise_for_status()
         log.info(f"Set {entity_id} = {value} min")
-    
-    def run_script(self, script_name):
-        """Trigger a script"""
-        entity_id = f"script.{script_name}"
-        url = f"{self.ha_url}/api/services/script/turn_on"
-        payload = {"entity_id": entity_id}
-        r = requests.post(url, headers=self.headers, json=payload, timeout=10)
+
+    def _run_script(self, script_name):
+        r = requests.post(
+            f"{self.ha_url}/api/services/script/turn_on",
+            headers=self.headers,
+            json={"entity_id": f"script.{script_name}"},
+            timeout=10
+        )
         r.raise_for_status()
-        log.info(f"Triggered {entity_id}")
-    
-    def send_boiler_commands(self, first_run, second_run):
-        """Send all boiler control commands to HA"""
-        log.info(f"Sending to HA: first_run={first_run}min, second_run={second_run}min")
-        
+        log.info(f"Triggered script.{script_name}")
+
+    def _notify(self, ok: bool):
+        if self.on_reachability_change:
+            self.on_reachability_change(ok)
+
+    def send_first_run(self, duration: int) -> bool:
+        log.info(f"HA 1st run: {duration}min")
         try:
-            with_retries(lambda: self.check_reachable(), label="HA health-check")
-            with_retries(lambda: self.set_slider(self.boiler_1st_on_entity_id, first_run), label="set slider1")
-            with_retries(lambda: self.set_slider(self.boiler_2nd_on_entity_id, second_run), label="set slider2")
-            with_retries(lambda: self.run_script(self.run_script_entity_id), label="run script")
-            log.info("HA execution complete")
+            with_retries(self.check_reachable, label="HA ping")
+            with_retries(lambda: self._set_slider(self.boiler_1st_on_entity_id, duration), label="slider1")
+            with_retries(lambda: self._run_script(self.run_script_1st_entity_id), label="script1")
+            log.info("HA 1st run complete")
+            self._notify(True)
             return True
-            
-        except requests.exceptions.Timeout:
-            log.error("HA request timed out")
-        except requests.exceptions.ConnectionError:
-            log.error(f"Could not connect to HA at {self.ha_url}")
-        except requests.exceptions.HTTPError as e:
-            log.error(f"HA returned HTTP {e.response.status_code}: {e.response.text}")
-        except requests.exceptions.RequestException as e:
-            log.error(f"Unexpected HA error: {e}")
-        
-        return False
+        except Exception as e:
+            log.error(f"HA 1st run failed: {e}")
+            self._notify(False)
+            return False
+
+    def send_second_run(self, duration: int) -> bool:
+        log.info(f"HA 2nd run: {duration}min")
+        try:
+            with_retries(self.check_reachable, label="HA ping")
+            with_retries(lambda: self._run_script(self.run_script_2nd_entity_id), label="script2")
+            log.info("HA 2nd run complete")
+            return True
+        except Exception as e:
+            log.error(f"HA 2nd run failed: {e}")
+            return False
+
+    def get_boiler_state(self, entity_id: str) -> str:
+        try:
+            r = requests.get(
+                f"{self.ha_url}/api/states/{entity_id}",
+                headers=self.headers, timeout=5
+            )
+            r.raise_for_status()
+            return r.json().get("state", "unknown")
+        except Exception as e:
+            log.error(f"Failed to get boiler state: {e}")
+            return "unknown"

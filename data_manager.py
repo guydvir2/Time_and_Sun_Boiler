@@ -162,7 +162,7 @@ class DataManager:
         first_run = _safe_num(today_row.get("first_run"), cast=int, fallback=0)
         second_run = _safe_num(today_row.get("second_run"), cast=int, fallback=0)
         
-        ha_ok = ha_service.send_boiler_commands(first_run, second_run)
+        ha_ok = ha_service.send_first_run(first_run)
         ha_status = "OK" if ha_ok else "FAILED"
         
         # Update status and time

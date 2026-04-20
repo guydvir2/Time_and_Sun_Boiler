@@ -1,154 +1,131 @@
 """
-Config Loader
-Reads and validates config.ini, loads runtime settings
+Config Loader — reads config.ini and runtime_settings.json.
+Static config (config.ini) and user settings (runtime_settings.json) are
+kept separate; runtime_settings is the single source of truth for
+everything the user can change in the GUI.
 """
-
-import os
-import json
 import logging
+import os
 import configparser
 from runtime_settings import RuntimeSettings
 
 log = logging.getLogger(__name__)
 
+_REQUIRED = {
+    "homeassistant": ["HA_IP", "HA_PORT", "token",
+                      "BOILER_1ST_ON_ENTITY_ID",
+                      "RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID",
+                      "RUN_SCRIPT_2ND_START_BOILER_ENTITY_ID"],
+    "location":      ["latitude", "longitude", "timezone"],
+    "weather":       ["weather_url"],
+    "parameters":    ["max_first_run", "sunset_offset_minutes",
+                      "init_hour", "poll_interval_minutes",
+                      "cloud_penalty_factor"],
+}
+
 
 class ConfigLoader:
-    """Loads and validates configuration from config.ini and runtime_settings.json"""
-    
-    REQUIRED_CONFIG = {
-        "homeassistant": [
-            "HA_IP", "HA_PORT", "token",
-            "BOILER_1ST_ON_ENTITY_ID",
-            "BOILER_2ND_ON_ENTITY_ID",
-            "RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID"
-        ],
-        "location": ["latitude", "longitude"],
-        "weather": ["weather_url"],
-        "parameters": [
-            "max_first_run", "sunset_offset_minutes",
-            "init_hour", "poll_interval_minutes",
-            "cloud_penalty_factor"
-        ],
-        "location": ["latitude", "longitude", "timezone"]
-    }
-    
     def __init__(self, config_file=None):
         if config_file is None:
-            # Use data directory
             from data_directory import DataDirectoryManager
             config_file = DataDirectoryManager.get_config_path()
-        
         self.config_file = config_file
-        self.config = None
-        self.runtime_settings = None
-        
-        # Loaded values
-        self.ha_ip = None
-        self.ha_port = None
-        self.ha_token = None
+        self.config: configparser.ConfigParser = None
+
+        # HA
+        self.ha_ip = self.ha_port = self.ha_token = None
         self.boiler_1st_on_entity_id = None
-        self.boiler_2nd_on_entity_id = None
-        self.run_script_1st_start_entity_id = None
-        
-        self.lat = None
-        self.lon = None
-        self.timezone = None
-        self.weather_url = None
-        
-        self.max_first_run = None
-        self.sunset_offset_minutes = None
-        self.init_hour = None
-        self.poll_interval_minutes = None
-        
-        # These can be overridden by runtime_settings
+        self.run_script_1st_entity_id = self.run_script_2nd_entity_id = None
+        self.ha_url = self.ha_headers = None
+
+        # Location / weather
+        self.lat = self.lon = self.timezone = self.weather_url = None
+
+        # Parameters
+        self.max_first_run = self.sunset_offset_minutes = None
+        self.init_hour = self.poll_interval_minutes = None
         self.cloud_penalty_factor = None
-        self.temp_lut = None
+
+        # MQTT (optional section)
+        self.mqtt_broker_ip    = None
+        self.mqtt_broker_port  = 1883
+        self.mqtt_username     = ""
+        self.mqtt_password     = ""
+        self.mqtt_tasmota_topic = "boiler"
+        self.mqtt_topic_format  = "device_first"
+
+        # Populated from RuntimeSettings after load()
+        self.temp_lut              = None
         self.first_run_target_time = None
-        
-        self.ha_url = None
-        self.ha_headers = None
-    
+        self.runtime_settings: RuntimeSettings = None
+
     def load(self):
-        """Load configuration from config.ini and runtime_settings.json"""
-        self._load_config_ini()
-        self._load_runtime_settings()
-        self._build_ha_connection()
-        log.info("Configuration loaded successfully")
-    
-    def _load_config_ini(self):
-        """Load and validate config.ini"""
+        self._load_ini()
+        self._load_runtime()
+        self._build_ha()
+        log.info("Configuration loaded")
+
+    def _load_ini(self):
         self.config = configparser.ConfigParser()
         self.config.read(self.config_file)
-        
-        # Validate required fields
-        missing = []
-        for section, keys in self.REQUIRED_CONFIG.items():
-            for key in keys:
-                if not self.config.has_option(section, key):
-                    missing.append(f"[{section}] → {key}")
-        
+
+        missing = [f"[{s}] {k}" for s, keys in _REQUIRED.items()
+                   for k in keys if not self.config.has_option(s, k)]
         if missing:
-            raise SystemExit(
-                f"config.ini is missing required entries:\n  " + "\n  ".join(missing)
-            )
-        
-        # Load Home Assistant config
-        self.ha_ip = self.config["homeassistant"]["HA_IP"]
-        self.ha_port = self.config["homeassistant"]["HA_PORT"]
-        self.ha_token = os.environ.get("HA_TOKEN") or self.config["homeassistant"]["token"]
-        
+            raise SystemExit("config.ini missing: " + ", ".join(missing))
+
+        ha = self.config["homeassistant"]
+        self.ha_ip    = ha["HA_IP"]
+        self.ha_port  = ha["HA_PORT"]
+        self.ha_token = os.environ.get("HA_TOKEN") or ha["token"]
         if not self.ha_token:
-            raise SystemExit("HA token not found. Set HA_TOKEN env var or add to config.ini.")
-        
-        self.boiler_1st_on_entity_id = self.config["homeassistant"]["BOILER_1ST_ON_ENTITY_ID"]
-        self.boiler_2nd_on_entity_id = self.config["homeassistant"]["BOILER_2ND_ON_ENTITY_ID"]
-        self.run_script_1st_start_entity_id = self.config["homeassistant"]["RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID"]
-        
-        # Load location
-        self.lat = float(self.config["location"]["latitude"])
-        self.lon = float(self.config["location"]["longitude"])
-        self.timezone = self.config["location"]["timezone"]
-        
-        # Load weather
+            raise SystemExit("HA token not found")
+
+        self.boiler_1st_on_entity_id    = ha["BOILER_1ST_ON_ENTITY_ID"]
+        self.run_script_1st_entity_id   = ha["RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID"]
+        self.run_script_2nd_entity_id   = ha["RUN_SCRIPT_2ND_START_BOILER_ENTITY_ID"]
+
+        loc = self.config["location"]
+        self.lat      = float(loc["latitude"])
+        self.lon      = float(loc["longitude"])
+        self.timezone = loc["timezone"]
+
         self.weather_url = self.config["weather"]["weather_url"]
-        
-        # Load parameters
-        self.max_first_run = int(self.config["parameters"]["max_first_run"])
-        self.sunset_offset_minutes = int(self.config["parameters"]["sunset_offset_minutes"])
-        self.init_hour = int(self.config["parameters"]["init_hour"])
-        self.poll_interval_minutes = int(self.config["parameters"]["poll_interval_minutes"])
-        self.cloud_penalty_factor = float(self.config["parameters"]["cloud_penalty_factor"])
-        
-        # LUT removed from config.ini - will be loaded from runtime_settings.json
-        self.temp_lut = None
-    
-    def _load_runtime_settings(self):
-        """Load runtime settings (overrides config.ini defaults)"""
-        # Provide default LUT if not in runtime_settings
-        default_lut = {
-            5: 120, 8: 100, 10: 85, 12: 70, 15: 55, 18: 40
-        }
-        
+
+        p = self.config["parameters"]
+        self.max_first_run          = int(p["max_first_run"])
+        self.sunset_offset_minutes  = int(p["sunset_offset_minutes"])
+        self.init_hour              = int(p["init_hour"])
+        self.poll_interval_minutes  = int(p["poll_interval_minutes"])
+        self.cloud_penalty_factor   = float(p["cloud_penalty_factor"])
+
+        if self.config.has_section("mqtt"):
+            m = self.config["mqtt"]
+            self.mqtt_broker_ip     = m.get("broker_ip", "")
+            self.mqtt_broker_port   = int(m.get("broker_port", 1883))
+            self.mqtt_username      = m.get("username", "")
+            self.mqtt_password      = m.get("password", "")
+            self.mqtt_tasmota_topic = m.get("tasmota_topic", "boiler")
+            self.mqtt_topic_format  = m.get("topic_format", "device_first")
+
+    def _load_runtime(self):
+        default_lut = {10: 180, 12: 140, 14: 90, 16: 45, 18: 30, 20: 15, 22: 5, 24: 0}
         self.runtime_settings = RuntimeSettings({
-            "temp_lut": default_lut,  # Default LUT (will be overridden if exists in JSON)
-            "cloud_penalty_factor": self.cloud_penalty_factor
+            "temp_lut": default_lut,
+            "cloud_penalty_factor": self.cloud_penalty_factor,
         })
-        
-        # Override with runtime settings
-        self.temp_lut = self.runtime_settings.get_temp_lut()
-        self.cloud_penalty_factor = self.runtime_settings.get_cloud_penalty()
+        self.temp_lut              = self.runtime_settings.get_temp_lut()
+        self.cloud_penalty_factor  = self.runtime_settings.get_cloud_penalty()
         self.first_run_target_time = self.runtime_settings.get_target_time()
-        
-        if not self.temp_lut or len(self.temp_lut) < 2:
-            raise SystemExit("TEMP_LUT is empty or invalid in runtime_settings.json")
-        
-        log.info(f"Runtime overrides: target={self.first_run_target_time}, "
-                f"cloud_penalty={self.cloud_penalty_factor}, LUT points={len(self.temp_lut)}")
-    
-    def _build_ha_connection(self):
-        """Build HA URL and headers"""
+        if len(self.temp_lut) < 2:
+            raise SystemExit("TEMP_LUT must have at least 2 points")
+        log.info(f"Runtime: target={self.first_run_target_time}, "
+                 f"mode={self.runtime_settings.get_execution_mode()}, "
+                 f"lut={len(self.temp_lut)}pts")
+
+    def _build_ha(self):
         self.ha_url = f"http://{self.ha_ip}:{self.ha_port}"
         self.ha_headers = {
             "Authorization": f"Bearer {self.ha_token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }

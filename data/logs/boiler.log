@@ -1117,3 +1117,79 @@
 2026-04-18 07:42:36,612 [INFO] === System Ready ===
 2026-04-18 07:48:14,969 [INFO] Scheduler stopped
 2026-04-18 07:48:14,970 [INFO] === System Shutdown ===
+2026-04-20 20:20:02,536 [INFO] === Boiler Control System Starting ===
+2026-04-20 20:20:02,537 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-04-20 20:20:02,537 [INFO] Runtime overrides: target=18:40, cloud_penalty=4.0, LUT points=10
+2026-04-20 20:20:02,537 [INFO] Configuration loaded successfully
+2026-04-20 20:20:02,537 [INFO] Scheduler: target=18:40, check=16:40
+2026-04-20 20:20:03,399 [INFO] === Daily execution starting ===
+2026-04-20 20:20:03,399 [INFO] Scheduler started
+2026-04-20 20:20:03,400 [INFO] === System Ready ===
+2026-04-20 20:20:04,628 [INFO] Sun times: sunrise=06:04, sunset=19:12
+2026-04-20 20:20:06,202 [INFO] Collected 13 hourly measurements (sunrise→19:12)
+2026-04-20 20:20:06,202 [INFO] Calculation: avg_temp=19.5°C, avg_cloud=40%, effective=17.91°C, duration=46min, sliders=(46,0)
+2026-04-20 20:20:06,203 [INFO] Target: 18:40, Trigger: 17:54
+2026-04-20 20:20:06,203 [WARNING] Trigger time is in past - executing immediately
+2026-04-20 20:20:06,203 [INFO] === EXECUTING ===
+2026-04-20 20:20:06,204 [INFO] Sending to HA: first_run=46min, second_run=0min
+2026-04-20 20:20:06,218 [INFO] HA is reachable
+2026-04-20 20:20:06,229 [INFO] Set input_number.boiler_duration_helper = 46 min
+2026-04-20 20:20:06,240 [INFO] Set input_number.boiler_duration_helper_2nd = 0 min
+2026-04-20 20:20:06,252 [INFO] Triggered script.start_waterheater_using_ui
+2026-04-20 20:20:06,253 [INFO] HA execution complete
+2026-04-20 20:20:06,259 [INFO] Saved record for 2026-04-20
+2026-04-20 20:20:06,260 [INFO] === COMPLETE: HA status=OK ===
+2026-04-20 20:20:31,160 [INFO] Scheduler stopped
+2026-04-20 20:20:31,160 [INFO] === System Shutdown ===
+2026-04-20 20:22:10,373 [INFO] === Boiler Control System Starting ===
+2026-04-20 20:22:10,388 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-04-20 20:22:10,388 [INFO] Runtime: target=18:40, mode=HA, lut=9pts
+2026-04-20 20:22:10,388 [INFO] Configuration loaded
+2026-04-20 20:22:10,494 [INFO] Scheduler ready — target 18:40, check 16:40
+2026-04-20 20:22:11,514 [INFO] Scheduler started
+2026-04-20 20:22:11,514 [INFO] === System Ready ===
+2026-04-20 20:22:28,509 [INFO] Scheduler stopped
+2026-04-20 20:22:28,509 [INFO] === System Shutdown ===
+2026-04-20 20:23:04,637 [INFO] === Boiler Control System Starting ===
+2026-04-20 20:23:04,647 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-04-20 20:23:04,647 [INFO] Runtime: target=18:40, mode=HA, lut=9pts
+2026-04-20 20:23:04,647 [INFO] Configuration loaded
+2026-04-20 20:23:04,748 [INFO] Scheduler ready — target 18:40, check 16:40
+2026-04-20 20:23:05,714 [INFO] Scheduler started
+2026-04-20 20:23:05,715 [INFO] === System Ready ===
+2026-04-20 20:23:21,646 [INFO] Scheduler stopped
+2026-04-20 20:23:21,647 [INFO] === System Shutdown ===
+2026-04-20 20:23:46,022 [INFO] === Boiler Control System Starting ===
+2026-04-20 20:23:46,031 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-04-20 20:23:46,031 [INFO] Runtime: target=18:40, mode=HA, lut=9pts
+2026-04-20 20:23:46,031 [INFO] Configuration loaded
+2026-04-20 20:23:46,122 [INFO] Scheduler ready — target 18:40, check 16:40
+2026-04-20 20:23:47,073 [INFO] Scheduler started
+2026-04-20 20:23:47,073 [INFO] === System Ready ===
+2026-04-20 20:23:59,989 [INFO] Scheduler stopped
+2026-04-20 20:23:59,990 [INFO] === System Shutdown ===
+2026-04-20 20:24:17,996 [INFO] === Boiler Control System Starting ===
+2026-04-20 20:24:18,004 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-04-20 20:24:18,005 [INFO] Runtime: target=18:40, mode=HA, lut=9pts
+2026-04-20 20:24:18,005 [INFO] Configuration loaded
+2026-04-20 20:24:18,097 [INFO] Scheduler ready — target 18:40, check 16:40
+2026-04-20 20:24:19,064 [INFO] Scheduler started
+2026-04-20 20:24:19,064 [INFO] === System Ready ===
+2026-04-20 20:24:36,998 [INFO] Scheduler stopped
+2026-04-20 20:24:36,998 [INFO] === System Shutdown ===
+2026-04-20 20:24:55,443 [INFO] === Boiler Control System Starting ===
+2026-04-20 20:24:55,455 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-04-20 20:24:55,455 [INFO] Runtime: target=18:40, mode=HA, lut=9pts
+2026-04-20 20:24:55,455 [INFO] Configuration loaded
+2026-04-20 20:24:55,556 [INFO] Scheduler ready — target 18:40, check 16:40
+2026-04-20 20:24:56,557 [INFO] Scheduler started
+2026-04-20 20:24:56,558 [INFO] === System Ready ===
+2026-04-20 20:31:56,785 [INFO] === Boiler Control System Starting ===
+2026-04-20 20:31:56,795 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-04-20 20:31:56,795 [INFO] Runtime: target=18:40, mode=HA, lut=9pts
+2026-04-20 20:31:56,795 [INFO] Configuration loaded
+2026-04-20 20:31:56,900 [INFO] MQTT topics — cmd:DvirHome/WaterHeater/cmnd/POWER stat:DvirHome/WaterHeater/stat/POWER tele:DvirHome/WaterHeater/tele/#
+2026-04-20 20:31:56,900 [INFO] Scheduler ready — target 18:40, check 16:40
+2026-04-20 20:31:57,925 [INFO] Scheduler started
+2026-04-20 20:31:57,926 [INFO] === System Ready ===
+2026-04-20 20:32:08,332 [INFO] MQTT connected → subscribed stat+tele

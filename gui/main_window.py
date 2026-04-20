@@ -16,13 +16,14 @@ from gui.settings_tab import SettingsTab
 class BoilerApp:
     """Main application window"""
     
-    def __init__(self, root, config, weather_service, ha_service, data_manager, scheduler):
+    def __init__(self, root, config, weather_service, ha_service, data_manager, scheduler, mqtt_service=None):
         self.root = root
         self.config = config
         self.weather_service = weather_service
         self.ha_service = ha_service
         self.dm = data_manager
         self.scheduler = scheduler
+        self.mqtt_service = mqtt_service
         
         self.startup_time = datetime.now()
         self._state_var = tk.StringVar(value="💤 INITIALIZING")
@@ -38,7 +39,7 @@ class BoilerApp:
             "ACCENT": "#007acc"
         }
         
-        self.root.title("Boiler Control System v2.1")
+        self.root.title("Boiler Control System v2.2")
         self.root.geometry("1400x800")  # Larger window for better visibility
         self.root.configure(bg=self._clr["BG"])
         
@@ -51,6 +52,8 @@ class BoilerApp:
         
         # Start clock
         self._tick()
+        # One-shot connection check on startup
+        self.root.after(2000, self._poll_connections)
     
     def _setup_themed_notebook(self):
         """Configure notebook style to match app theme"""
@@ -107,7 +110,9 @@ class BoilerApp:
             self.config.runtime_settings,
             self.scheduler,
             self.weather_service,
-            self._clr
+            self._clr,
+            mqtt_service=self.mqtt_service,
+            ha_service=self.ha_service
         )
         
         # Tab 3: Log viewer
@@ -122,7 +127,7 @@ class BoilerApp:
     def _create_status_bar(self):
         """Create bottom status bar"""
         c = self._clr
-        bar = tk.Frame(self.root, bg=c["BG2"], height=36)
+        bar = tk.Frame(self.root, bg=c["BG2"], height=54)
         bar.pack(side="bottom", fill="x")
         bar.pack_propagate(False)
         
@@ -153,6 +158,28 @@ class BoilerApp:
         )
         self.lbl_state.pack(side="left", pady=4)
         
+        tk.Label(bar, text="│", bg=c["BG2"], fg=c["SEP"],
+                 font=("Segoe UI", 11)).pack(side="left")
+
+        # ── HA connection indicator ──
+        self._ha_dot = tk.Label(bar, text="●", bg=c["BG2"], fg="#555555",
+                                font=("Segoe UI", 13), padx=4)
+        self._ha_dot.pack(side="left", pady=4)
+        self._ha_lbl = tk.Label(bar, text="HA", bg=c["BG2"], fg=c["FG_DIM"],
+                                font=("Segoe UI", 9), padx=2)
+        self._ha_lbl.pack(side="left", pady=4)
+
+        tk.Label(bar, text="│", bg=c["BG2"], fg=c["SEP"],
+                 font=("Segoe UI", 11)).pack(side="left")
+
+        # ── MQTT connection indicator ──
+        self._mqtt_dot = tk.Label(bar, text="●", bg=c["BG2"], fg="#555555",
+                                  font=("Segoe UI", 13), padx=4)
+        self._mqtt_dot.pack(side="left", pady=4)
+        self._mqtt_lbl = tk.Label(bar, text="MQTT", bg=c["BG2"], fg=c["FG_DIM"],
+                                  font=("Segoe UI", 9), padx=2)
+        self._mqtt_lbl.pack(side="left", pady=4)
+
         btn_style = {
             "bg": c["BG3"], "fg": c["FG"],
             "activebackground": "#4e5254", "activeforeground": "#ffffff",
@@ -225,3 +252,46 @@ class BoilerApp:
         self.lbl_clock.config(text=f"🕐  {now.strftime('%H:%M:%S')}")
         self.lbl_uptime.config(text=f"Uptime: {h:02d}:{m:02d}:{s:02d}")
         self.root.after(1000, self._tick)
+
+    def _poll_connections(self):
+        """Startup check: ping HA, connect MQTT if active, update all indicators."""
+        import threading
+        def _check():
+            # HA reachability
+            try:
+                self.ha_service.check_reachable()
+                ha_ok = True
+            except Exception:
+                ha_ok = False
+            self.root.after(0, lambda: self.notify_ha_state(ha_ok))
+
+            # MQTT — connect if active flag is set
+            if self.mqtt_service:
+                mqtt_active = getattr(self.mqtt_service, 'active', False)
+                if mqtt_active and not self.mqtt_service.is_connected():
+                    self.mqtt_service.connect()   # callback fires notify_mqtt_state
+                else:
+                    # Just reflect current state
+                    self.root.after(0, lambda: self.notify_mqtt_state(
+                        self.mqtt_service.is_connected()))
+
+        threading.Thread(target=_check, daemon=True).start()
+
+    def notify_ha_state(self, ok: bool):
+        """Call this whenever an HA operation succeeds or fails."""
+        GREEN, RED = "#22c55e", "#ef4444"
+        self._ha_dot.config(fg=GREEN if ok else RED)
+        self._ha_lbl.config(fg="#e2e8f0" if ok else "#94a3b8")
+
+    def notify_mqtt_state(self, connected: bool):
+        """Call this when MQTT connects or disconnects."""
+        GREEN, RED, DIM = "#22c55e", "#ef4444", "#555555"
+        self._mqtt_dot.config(fg=GREEN if connected else (RED if self.mqtt_service else DIM))
+        self._mqtt_lbl.config(fg="#e2e8f0" if connected else "#94a3b8")
+
+    def _update_conn_indicators(self, ha_ok: bool, mqtt_ok: bool):
+        GREEN, RED, DIM = "#22c55e", "#ef4444", "#555555"
+        self._ha_dot.config(fg=GREEN if ha_ok else RED)
+        self._ha_lbl.config(fg="#e2e8f0" if ha_ok else "#94a3b8")
+        self._mqtt_dot.config(fg=GREEN if mqtt_ok else (RED if self.mqtt_service else DIM))
+        self._mqtt_lbl.config(fg="#e2e8f0" if mqtt_ok else "#94a3b8")

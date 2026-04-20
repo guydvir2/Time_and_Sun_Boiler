@@ -114,9 +114,9 @@ class WeatherService:
             t = w["hour"]
             if sunrise <= t < sunrise + timedelta(hours=3):
                 weight = 0.5
-            elif sunrise + timedelta(hours=3) <= t <= sunset - timedelta(hours=2):
+            elif sunrise + timedelta(hours=3) <= t <= sunset - timedelta(hours=3):
                 weight = 1.0
-            elif sunset - timedelta(hours=2) < t <= sunset:
+            elif sunset - timedelta(hours=3) < t <= sunset:
                 weight = 0.5
             else:
                 weight = 0
