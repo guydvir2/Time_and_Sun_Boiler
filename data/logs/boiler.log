@@ -1193,3 +1193,12 @@
 2026-04-20 20:31:57,925 [INFO] Scheduler started
 2026-04-20 20:31:57,926 [INFO] === System Ready ===
 2026-04-20 20:32:08,332 [INFO] MQTT connected → subscribed stat+tele
+2026-04-20 20:44:31,743 [INFO] === Boiler Control System Starting ===
+2026-04-20 20:44:31,753 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-04-20 20:44:31,753 [INFO] Runtime: target=18:40, mode=HA, lut=9pts
+2026-04-20 20:44:31,753 [INFO] Configuration loaded
+2026-04-20 20:44:31,856 [INFO] MQTT topics — cmd:DvirHome/WaterHeater/cmnd/POWER stat:DvirHome/WaterHeater/stat/POWER tele:DvirHome/WaterHeater/tele/#
+2026-04-20 20:44:31,856 [INFO] Scheduler ready — target 18:40, check 16:40
+2026-04-20 20:44:32,973 [INFO] Scheduler started
+2026-04-20 20:44:32,973 [INFO] === System Ready ===
+2026-04-20 20:45:00,037 [INFO] MQTT connected → subscribed stat+tele
