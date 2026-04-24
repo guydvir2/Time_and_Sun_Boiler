@@ -101,6 +101,8 @@ class BoilerApp:
             self.scheduler,
             self.ha_service,
             self._clr,
+            weather_service=self.weather_service,
+            data_manager=self.dm,
             mqtt_service=self.mqtt_service,
             on_boiler_state=self._on_boiler_state
         )
@@ -136,9 +138,8 @@ class BoilerApp:
     def _create_status_bar(self):
         """Create bottom status bar"""
         c = self._clr
-        bar = tk.Frame(self.root, bg=c["BG2"], height=54)
+        bar = tk.Frame(self.root, bg=c["BG2"])
         bar.pack(side="bottom", fill="x")
-        bar.pack_propagate(False)
         
         tk.Frame(bar, bg=c["SEP"], height=1).place(relx=0, rely=0, relwidth=1)
         
@@ -367,12 +368,16 @@ class BoilerApp:
         GREEN, RED = "#22c55e", "#ef4444"
         self._ha_dot.config(fg=GREEN if ok else RED)
         self._ha_lbl.config(fg="#e2e8f0" if ok else "#94a3b8")
+        if hasattr(self, 'control_tab_widget') and            self.control_tab_widget.dashboard:
+            self.control_tab_widget.dashboard.set_ha_status(ok)
 
     def notify_mqtt_state(self, connected: bool):
         """Call this when MQTT connects or disconnects."""
         GREEN, RED, DIM = "#22c55e", "#ef4444", "#555555"
         self._mqtt_dot.config(fg=GREEN if connected else (RED if self.mqtt_service else DIM))
         self._mqtt_lbl.config(fg="#e2e8f0" if connected else "#94a3b8")
+        if hasattr(self, 'control_tab_widget') and            self.control_tab_widget.dashboard:
+            self.control_tab_widget.dashboard.set_mqtt_status(connected)
 
     def _update_conn_indicators(self, ha_ok: bool, mqtt_ok: bool):
         GREEN, RED, DIM = "#22c55e", "#ef4444", "#555555"

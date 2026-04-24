@@ -90,29 +90,13 @@ class SettingsTab:
         # Vertical separator
         tk.Frame(right, bg=CARD_BDR, width=1).pack(side="left", fill="y", padx=(4, 0))
 
-        # MQTT side panel — fixed width, scrollable
+        # MQTT side panel — fixed width, plain (no scrollbar)
         mqtt_outer = tk.Frame(right, bg=self.clr["BG"], width=280)
         mqtt_outer.pack(side="left", fill="y")
         mqtt_outer.pack_propagate(False)
 
-        _sb = ttk.Scrollbar(mqtt_outer, orient="vertical",
-                            style="Thin.Vertical.TScrollbar")
-        _sb.pack(side="right", fill="y")
-        _cv = tk.Canvas(mqtt_outer, bg=self.clr["BG"],
-                        highlightthickness=0, yscrollcommand=_sb.set)
-        _cv.pack(side="left", fill="both", expand=True)
-        _sb.config(command=_cv.yview)
-        _inner = tk.Frame(_cv, bg=self.clr["BG"])
-        _win = _cv.create_window((0, 0), window=_inner, anchor="nw")
-        _inner.bind("<Configure>",
-                    lambda e: _cv.configure(scrollregion=_cv.bbox("all")))
-        _cv.bind("<Configure>",
-                 lambda e: _cv.itemconfig(_win, width=e.width))
-        _cv.bind_all("<MouseWheel>",
-                     lambda e: _cv.yview_scroll(int(-1*(e.delta/120)), "units"))
-
         self.graph_container = graph_area
-        self._build_solar_panel(_inner)
+        self._build_solar_panel(mqtt_outer)
         self._update_lut_graph()
 
     # ─────────────────────────────────────────────────────────
@@ -402,7 +386,7 @@ class SettingsTab:
         """MQTT Direct Control + Telemetry below the graph in the right column."""
         # MQTT card
         mqtt_card = self._card(parent, "MQTT Direct Control")
-        mqtt_card.pack(fill="x", padx=0, pady=(0, 6))
+        mqtt_card.pack(fill="x", padx=4, pady=(6, 6))
 
         broker = getattr(self.config, "mqtt_broker_ip", None) or "not configured"
         topic  = getattr(self.config, "mqtt_tasmota_topic", "") or "?"
@@ -495,7 +479,7 @@ class SettingsTab:
 
         # Telemetry
         tele_card = self._card(parent, "Telemetry")
-        tele_card.pack(fill="x", padx=0, pady=(0, 8))
+        tele_card.pack(fill="x", padx=4, pady=(0, 8))
 
         self._tele_text = tk.Text(
             tele_card, height=7, bg="#0f1520", fg="#00e5a0",

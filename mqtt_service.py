@@ -172,6 +172,9 @@ class MQTTService:
             client.subscribe(self.tele_sub)
             log.info(f"MQTT connected → subscribed stat+tele")
             self._fire(self.on_connect_change, True)
+            # Query current POWER state — Tasmota replies to stat/POWER
+            # which triggers on_status_change and updates all boiler dots.
+            client.publish(self.cmd_topic, "")
         else:
             log.error(f"MQTT connect error rc={rc}")
             self._fire(self.on_connect_change, False)

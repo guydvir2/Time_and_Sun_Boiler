@@ -66,10 +66,11 @@ if __name__ == "__main__":
                      ha_service=ha, data_manager=dm,
                      scheduler=sch, mqtt_service=mqtt)
 
-    # Wire callbacks → status bar
+    # Wire HA reachability → status bar
+    # NOTE: mqtt callbacks (on_connect_change, on_status_change, on_tele) are
+    # owned by app._wire_mqtt_callbacks() — do NOT reassign here.
     ha.on_reachability_change = lambda ok: root.after(0, lambda: app.notify_ha_state(ok))
     if mqtt:
-        mqtt.on_connect_change = lambda ok: root.after(0, lambda: app.notify_mqtt_state(ok))
         mqtt.active = rs.get_mqtt_active()
         if rs.get_execution_mode() == "MQTT":
             mqtt.active = True

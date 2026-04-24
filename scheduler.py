@@ -11,11 +11,14 @@ from typing import Optional
 
 log = logging.getLogger(__name__)
 
-_WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+# Day order matches the GUI day pills: Sun=0, Mon=1 ... Sat=6
+# Python isoweekday(): Mon=1 ... Sun=7
+_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 
 def _weekday() -> str:
-    return _WEEKDAYS[datetime.now().weekday()]
+    iso = datetime.now().isoweekday()  # Mon=1 ... Sun=7
+    return _WEEKDAYS[iso % 7]          # Sun=7%7=0, Mon=1%7=1 ... Sat=6%7=6
 
 
 class Scheduler:
@@ -39,6 +42,10 @@ class Scheduler:
         self._solar_done_date     = None
         self._second_run_duration = 0
         self._second_run_fired    = False
+        self._trigger_time        = None   # computed by _solar_calc, cleared after fire
+        self._calc_result         = None
+        self._calc_sunrise        = None
+        self._calc_sunset         = None
 
         # Weekly state
         self._weekly_fired: set   = set()
@@ -47,6 +54,12 @@ class Scheduler:
         # One-shot state
         self._oneshot_fired       = False
         self._oneshot_date        = None
+
+        # UI state mirror
+        self._current_state       = "INITIALIZING"
+        # Manual run accumulator for total-ON-today tracking
+        self._manual_minutes_today = 0
+        self._manual_date          = None
 
         self._parse_target(self.rs.get_target_time())
         log.info(f"Scheduler ready — target {self.rs.get_target_time()}, "
@@ -68,6 +81,15 @@ class Scheduler:
             self._thread.join(timeout=5)
         log.info("Scheduler stopped")
 
+    def manual_run(self, duration: int) -> bool:
+        """Fire an immediate run via the active execution path.
+        Accumulates into _manual_minutes_today for the dashboard total."""
+        ok = self._execute(duration, "MANUAL")
+        if ok:
+            self._manual_date = date.today()
+            self._manual_minutes_today += duration
+        return ok
+
     def update_target_time(self, t: str):
         self._parse_target(t)
 
@@ -81,6 +103,7 @@ class Scheduler:
         self._check_h, self._check_m = chk.hour, chk.minute
 
     def _state(self, s: str):
+        self._current_state = s
         if self.on_state_change:
             self.on_state_change(s)
 
@@ -137,9 +160,14 @@ class Scheduler:
             self._solar_done_today    = False
             self._second_run_duration = 0
             self._second_run_fired    = False
+            self._trigger_time        = None
+            self._calc_result         = None
             self._solar_done_date     = today
         if self._oneshot_date != today:
             self._oneshot_fired = False
+        if self._manual_date != today:
+            self._manual_minutes_today = 0
+            self._manual_date          = today
 
         self._tick_solar(now, today)
         self._tick_weekly(now)
@@ -156,14 +184,28 @@ class Scheduler:
             already = any(r["date"] == str(today) for r in self.dm.all_records())
             if already:
                 self._solar_done_today = True
+                self._trigger_time     = None
                 self._state("WAIT_NEXT_DAY")
-            else:
-                check_time = now.replace(hour=self._check_h, minute=self._check_m,
-                                         second=0, microsecond=0)
-                if now >= check_time:
-                    self._solar_calc_and_fire(now, str(today))
-                else:
-                    self._state("WAIT_FIRST_CHECK")
+                return
+
+            check_time = now.replace(hour=self._check_h, minute=self._check_m,
+                                     second=0, microsecond=0)
+            if now < check_time:
+                self._state("WAIT_FIRST_CHECK")
+                return
+
+            # Past check time — calc once if we don't have a trigger yet
+            if self._trigger_time is None:
+                if not self._solar_calc(now):
+                    return   # calc failed — retry next poll
+
+            # Have a trigger time — wait for it
+            if datetime.now() < self._trigger_time:
+                self._state("WAIT_TRIGGER")
+                return
+
+            # Trigger reached — fire
+            self._solar_fire(str(today))
 
         # 2nd run
         if self._solar_done_today and not self._second_run_fired \
@@ -175,38 +217,41 @@ class Scheduler:
                 self._execute_2nd(self._second_run_duration)
                 self._second_run_fired = True
 
-    def _solar_calc_and_fire(self, now: datetime, today_str: str):
+    def _solar_calc(self, now: datetime) -> bool:
+        """Fetch sun times + weather, compute trigger. Returns True if calc succeeded."""
         self._state("FETCH_SUN")
         try:
             sunrise, sunset = self.weather.get_sun_times()
         except Exception as e:
             log.error(f"Sun times failed: {e}")
-            return
+            return False
 
         self._state("CALCULATING")
         try:
             calc = self.weather.calculate_all(sunrise, sunset)
         except Exception as e:
             log.error(f"Calc failed: {e}")
-            return
+            return False
 
-        first_run  = calc["first_run"]
-        second_run = calc["second_run"]
-        self._second_run_duration = second_run
+        self._calc_result   = calc
+        self._calc_sunrise  = sunrise
+        self._calc_sunset   = sunset
 
-        target = now.replace(hour=self._target_h, minute=self._target_m,
-                             second=0, microsecond=0)
-        trigger = target - timedelta(minutes=first_run)
+        target  = now.replace(hour=self._target_h, minute=self._target_m,
+                              second=0, microsecond=0)
+        trigger = target - timedelta(minutes=calc["first_run"])
+        self._trigger_time        = trigger
+        self._second_run_duration = calc["second_run"]
+        log.info(f"Solar trigger at {trigger.strftime('%H:%M')} "
+                 f"({calc['first_run']}min, 2nd={calc['second_run']}min)")
+        return True
 
-        if trigger > now:
-            log.info(f"Solar waiting until {trigger.strftime('%H:%M')}")
-            self._state("WAIT_TRIGGER")
-            while self._running and datetime.now() < trigger:
-                time.sleep(min(30, (trigger - datetime.now()).total_seconds()))
-            if not self._running:
-                return
-
-        ok = self._execute(first_run, "SOLAR-1ST")
+    def _solar_fire(self, today_str: str):
+        """Actually execute the first run and save the record."""
+        calc    = self._calc_result
+        sunrise = self._calc_sunrise
+        sunset  = self._calc_sunset
+        ok = self._execute(calc["first_run"], "SOLAR-1ST")
         self.dm.save_record({
             "date":           today_str,
             "dawn":           sunrise.strftime("%H:%M"),
@@ -215,12 +260,13 @@ class Scheduler:
             "avg_cloud":      calc["avg_cloud"],
             "effective_temp": calc["effective_temp"],
             "duration":       calc["duration"],
-            "first_run":      first_run,
-            "second_run":     second_run,
+            "first_run":      calc["first_run"],
+            "second_run":     calc["second_run"],
             "trigger_time":   datetime.now().strftime("%H:%M:%S"),
             "ha_status":      "OK" if ok else "FAILED",
         })
         self._solar_done_today = True
+        self._trigger_time     = None
         self._state("WAIT_NEXT_DAY" if ok else "ERROR")
 
     # ── Weekly ───────────────────────────────────────────────
