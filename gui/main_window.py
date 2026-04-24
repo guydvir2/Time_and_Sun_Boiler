@@ -11,6 +11,7 @@ import threading
 from gui.data_tab import DataTab
 from gui.log_tab import LogTab
 from gui.settings_tab import SettingsTab
+from gui.control_tab import ControlTab
 
 
 class BoilerApp:
@@ -88,22 +89,36 @@ class BoilerApp:
         self.notebook.pack(fill="both", expand=True, padx=5, pady=5)
     
     def _create_tabs(self):
-        """Create all tabs"""
-        # Tab 1: Data table
-        self.tab_data = tk.Frame(self.notebook, bg=self._clr["BG"])
-        self.notebook.add(self.tab_data, text="  📊  Daily Records  ")
-        
-        self.data_tab_widget = DataTab(
-            self.tab_data,
-            self.dm,
+        """Create all tabs — order: Control | Log | Records | Settings"""
+
+        # Tab 1: Control (operational)
+        self.tab_control = tk.Frame(self.notebook, bg=self._clr["BG"])
+        self.notebook.add(self.tab_control, text="  ⚡  Control  ")
+        self.control_tab_widget = ControlTab(
+            self.tab_control,
+            self.config,
+            self.config.runtime_settings,
+            self.scheduler,
             self.ha_service,
-            self._clr
+            self._clr,
+            mqtt_service=self.mqtt_service,
+            on_boiler_state=self._on_boiler_state
         )
-        
-        # Tab 2: Settings
+
+        # Tab 2: Log
+        self.tab_log = tk.Frame(self.notebook, bg=self._clr["BG"])
+        self.notebook.add(self.tab_log, text="  📝  Log  ")
+        self.log_tab_widget = LogTab(self.tab_log, self._clr)
+
+        # Tab 3: Daily Records
+        self.tab_data = tk.Frame(self.notebook, bg=self._clr["BG"])
+        self.notebook.add(self.tab_data, text="  📊  Records  ")
+        self.data_tab_widget = DataTab(
+            self.tab_data, self.dm, self.ha_service, self._clr)
+
+        # Tab 4: Settings
         self.tab_settings = tk.Frame(self.notebook, bg=self._clr["BG"])
         self.notebook.add(self.tab_settings, text="  ⚙️  Settings  ")
-        
         self.settings_tab_widget = SettingsTab(
             self.tab_settings,
             self.config,
@@ -114,15 +129,9 @@ class BoilerApp:
             mqtt_service=self.mqtt_service,
             ha_service=self.ha_service
         )
-        
-        # Tab 3: Log viewer
-        self.tab_log = tk.Frame(self.notebook, bg=self._clr["BG"])
-        self.notebook.add(self.tab_log, text="  📝  Log  ")
-        
-        self.log_tab_widget = LogTab(
-            self.tab_log,
-            self._clr
-        )
+
+        # Wire all MQTT callbacks now that every tab widget exists
+        self._wire_mqtt_callbacks()
     
     def _create_status_bar(self):
         """Create bottom status bar"""
@@ -179,6 +188,17 @@ class BoilerApp:
         self._mqtt_lbl = tk.Label(bar, text="MQTT", bg=c["BG2"], fg=c["FG_DIM"],
                                   font=("Segoe UI", 9), padx=2)
         self._mqtt_lbl.pack(side="left", pady=4)
+
+        tk.Label(bar, text="│", bg=c["BG2"], fg=c["SEP"],
+                 font=("Segoe UI", 11)).pack(side="left")
+
+        # ── Boiler state indicator ──
+        self._boiler_dot = tk.Label(bar, text="●", bg=c["BG2"], fg="#555555",
+                                    font=("Segoe UI", 13), padx=4)
+        self._boiler_dot.pack(side="left", pady=4)
+        self._boiler_lbl = tk.Label(bar, text="Boiler", bg=c["BG2"], fg=c["FG_DIM"],
+                                    font=("Segoe UI", 9), padx=2)
+        self._boiler_lbl.pack(side="left", pady=4)
 
         btn_style = {
             "bg": c["BG3"], "fg": c["FG"],
@@ -243,6 +263,64 @@ class BoilerApp:
         if state == "WAIT_NEXT_DAY":
             self.root.after(500, self._refresh_data)
     
+    def _on_boiler_state(self, status: str):
+        """Called from ControlTab when boiler status changes."""
+        self.root.after(0, lambda: self._update_boiler_dot(status))
+
+    def _update_boiler_dot(self, status: str):
+        GREEN, RED, DIM = "#22c55e", "#ef4444", "#555555"
+        s = status.upper()
+        if s == "ON":
+            self._boiler_dot.config(fg=GREEN)
+            self._boiler_lbl.config(fg="#e2e8f0", text="ON")
+        elif s == "OFF":
+            self._boiler_dot.config(fg=RED)
+            self._boiler_lbl.config(fg="#94a3b8", text="OFF")
+        else:
+            self._boiler_dot.config(fg=DIM)
+            self._boiler_lbl.config(fg="#94a3b8", text="Boiler")
+
+
+    def _wire_mqtt_callbacks(self):
+        """Register MQTT fan-out callbacks. Called once after all tabs are built.
+        Single source of truth — settings_tab and control_tab must NOT register
+        their own on_status_change / on_connect_change / on_tele callbacks."""
+        if not self.mqtt_service:
+            return
+
+        def _on_status(status: str):
+            """Tasmota POWER response → update every boiler indicator."""
+            # Status bar dot
+            self.root.after(0, lambda: self._on_boiler_state(status))
+            # Control tab boiler dot
+            if hasattr(self, 'control_tab_widget'):
+                self.root.after(0, lambda s=status:
+                    self.control_tab_widget._set_boiler_status(s))
+            # Settings tab MQTT device dot
+            if hasattr(self, 'settings_tab_widget'):
+                self.root.after(0, lambda s=status:
+                    self.settings_tab_widget._update_mqtt_device_indicator(s))
+
+        def _on_connect(connected: bool):
+            """Broker connect/disconnect → update broker indicators + clear boiler on disc."""
+            # Status bar MQTT dot
+            self.root.after(0, lambda: self.notify_mqtt_state(connected))
+            # Settings tab broker dot
+            if hasattr(self, 'settings_tab_widget'):
+                self.root.after(0, lambda c=connected:
+                    self.settings_tab_widget._update_mqtt_broker_indicator(c))
+            if not connected:
+                _on_status("unknown")
+
+        def _on_tele(subtopic, payload):
+            """Telemetry forwarded to settings tab only."""
+            if hasattr(self, 'settings_tab_widget'):
+                self.settings_tab_widget._on_tele_message(subtopic, payload)
+
+        self.mqtt_service.on_status_change  = _on_status
+        self.mqtt_service.on_connect_change = _on_connect
+        self.mqtt_service.on_tele           = _on_tele
+
     def _tick(self):
         """Update clock and uptime"""
         now = datetime.now()
@@ -254,8 +332,14 @@ class BoilerApp:
         self.root.after(1000, self._tick)
 
     def _poll_connections(self):
-        """Startup check: ping HA, connect MQTT if active, update all indicators."""
+        """Startup check: ping HA, connect MQTT if active, update all indicators.
+        Also wire MQTT callbacks so all three consumers stay in sync:
+          • status bar dots (main_window)
+          • Control tab boiler dot
+          • Settings tab MQTT dots
+        """
         import threading
+
         def _check():
             # HA reachability
             try:
@@ -269,11 +353,12 @@ class BoilerApp:
             if self.mqtt_service:
                 mqtt_active = getattr(self.mqtt_service, 'active', False)
                 if mqtt_active and not self.mqtt_service.is_connected():
-                    self.mqtt_service.connect()   # callback fires notify_mqtt_state
+                    self.mqtt_service.connect()   # triggers _on_connect callback
                 else:
-                    # Just reflect current state
-                    self.root.after(0, lambda: self.notify_mqtt_state(
-                        self.mqtt_service.is_connected()))
+                    connected = self.mqtt_service.is_connected()
+                    self.root.after(0, lambda: self.notify_mqtt_state(connected))
+                    if hasattr(self, 'settings_tab_widget'):
+                        self.settings_tab_widget.notify_broker_state(connected)
 
         threading.Thread(target=_check, daemon=True).start()
 

@@ -67,26 +67,52 @@ class SettingsTab:
         left.pack(side="left", fill="y", padx=(0, 8))
         left.pack_propagate(False)
         left.grid_columnconfigure(0, weight=1)
-        for r, w in [(0,0),(1,0),(2,0),(3,0),(4,1),(5,0)]:
+        for r, w in [(0,0),(1,0),(2,0),(3,0),(4,0),(5,1),(6,0)]:
             left.grid_rowconfigure(r, weight=w)
 
         self._build_lut_box(left)
         self._build_lut_buttons(left)
         self._build_settings_box(left)
         self._build_test_box(left)
-        tk.Frame(left, bg=self.clr["BG"]).grid(row=4, column=0, sticky="nsew")
+        self._build_solar_mode_box(left)
+        tk.Frame(left, bg=self.clr["BG"]).grid(row=5, column=0, sticky="nsew")
         self._build_save_button(left)
 
-        # RIGHT (expands)
+        # RIGHT outer frame (expands)
         right = tk.Frame(main, bg=self.clr["BG"])
         right.pack(side="right", fill="both", expand=True)
 
-        self.graph_container = tk.Frame(right, bg=self.clr["BG"])
-        self.graph_container.pack(fill="both", expand=True)
+        # RIGHT is split horizontally:
+        #   graph_area  (expands) | mqtt_area (fixed 280 px)
+        graph_area = tk.Frame(right, bg=self.clr["BG"])
+        graph_area.pack(side="left", fill="both", expand=True)
 
-        tk.Frame(right, bg=CARD_BDR, height=1).pack(fill="x", pady=(6, 0))
+        # Vertical separator
+        tk.Frame(right, bg=CARD_BDR, width=1).pack(side="left", fill="y", padx=(4, 0))
 
-        self._build_control_panel(right)
+        # MQTT side panel — fixed width, scrollable
+        mqtt_outer = tk.Frame(right, bg=self.clr["BG"], width=280)
+        mqtt_outer.pack(side="left", fill="y")
+        mqtt_outer.pack_propagate(False)
+
+        _sb = ttk.Scrollbar(mqtt_outer, orient="vertical",
+                            style="Thin.Vertical.TScrollbar")
+        _sb.pack(side="right", fill="y")
+        _cv = tk.Canvas(mqtt_outer, bg=self.clr["BG"],
+                        highlightthickness=0, yscrollcommand=_sb.set)
+        _cv.pack(side="left", fill="both", expand=True)
+        _sb.config(command=_cv.yview)
+        _inner = tk.Frame(_cv, bg=self.clr["BG"])
+        _win = _cv.create_window((0, 0), window=_inner, anchor="nw")
+        _inner.bind("<Configure>",
+                    lambda e: _cv.configure(scrollregion=_cv.bbox("all")))
+        _cv.bind("<Configure>",
+                 lambda e: _cv.itemconfig(_win, width=e.width))
+        _cv.bind_all("<MouseWheel>",
+                     lambda e: _cv.yview_scroll(int(-1*(e.delta/120)), "units"))
+
+        self.graph_container = graph_area
+        self._build_solar_panel(_inner)
         self._update_lut_graph()
 
     # ─────────────────────────────────────────────────────────
@@ -116,385 +142,7 @@ class SettingsTab:
                     borderwidth=0, arrowsize=10)
 
     # ─────────────────────────────────────────────────────────
-    # LEFT COLUMN
-    # ─────────────────────────────────────────────────────────
-    def _build_lut_box(self, parent):
-        box = self._card_grid(parent, "Temperature LUT", row=0)
-
-        cols = ("#", "Temp °C", "Min")
-        self.lut_tree = ttk.Treeview(box, columns=cols, show="headings",
-                                     height=9, style="DarkLUT.Treeview")
-        for col, w in zip(cols, [30, 80, 80]):
-            self.lut_tree.heading(col, text=col)
-            self.lut_tree.column(col, width=w, anchor="center")
-        self.lut_tree.tag_configure("odd",  background="#1a1f2e", foreground=TEXT_FG)
-        self.lut_tree.tag_configure("even", background=INPUT_BG,  foreground=TEXT_FG)
-
-        sb = ttk.Scrollbar(box, orient="vertical", command=self.lut_tree.yview,
-                           style="Thin.Vertical.TScrollbar")
-        self.lut_tree.configure(yscrollcommand=sb.set)
-        self.lut_tree.pack(side="left", fill="both", expand=True)
-        sb.pack(side="right", fill="y")
-        self._load_lut_to_tree()
-
-    def _build_lut_buttons(self, parent):
-        f = tk.Frame(parent, bg=self.clr["BG"])
-        f.grid(row=1, column=0, sticky="ew", pady=(0, 6))
-        for txt, cmd in [("＋ Add", self._add_lut_row),
-                          ("✎ Edit", self._edit_lut_row),
-                          ("✕ Del",  self._delete_lut_row)]:
-            self._btn_sec(f, txt, cmd).pack(side="left", fill="x", expand=True, padx=2)
-
-    def _build_settings_box(self, parent):
-        box = self._card_grid(parent, "Solar Settings", row=2)
-
-        r0 = self._row(box)
-        self._dim_lbl(r0, "Target ready:").pack(side="left")
-        p = self.config.first_run_target_time.split(":")
-        self.target_hour_var = tk.StringVar(value=p[0])
-        self.target_min_var  = tk.StringVar(value=p[1])
-        self._time_widget(box, self.target_hour_var,
-                          self.target_min_var).pack(in_=r0, side="right")
-
-        r1 = self._row(box)
-        self._dim_lbl(r1, "Cloud penalty:").pack(side="left")
-        self.cloud_penalty_var = tk.StringVar(
-            value=str(self.weather_service.cloud_penalty_factor))
-        self._inp(r1, self.cloud_penalty_var, width=7).pack(side="right")
-
-    def _build_test_box(self, parent):
-        box = self._card_grid(parent, "Test Calculation", row=3)
-
-        ir = tk.Frame(box, bg=CARD_BG)
-        ir.pack(fill="x", pady=(0, 6))
-        self._dim_lbl(ir, "Temp:").pack(side="left")
-        self.example_temp_var = tk.StringVar(value="12")
-        self._inp(ir, self.example_temp_var, width=5).pack(side="left", padx=(3,10))
-        self._dim_lbl(ir, "Clouds %:").pack(side="left")
-        self.example_cloud_var = tk.StringVar(value="50")
-        self._inp(ir, self.example_cloud_var, width=5).pack(side="left", padx=(3,8))
-        tk.Button(ir, text="▶", command=self._update_lut_graph,
-                  bg=ACC_BLUE, fg="#fff", font=("Segoe UI", 9, "bold"),
-                  relief="flat", padx=8, pady=2, cursor="hand2", bd=0
-                  ).pack(side="left")
-
-        self.lbl_calc_result = tk.Label(box, text="", bg=CARD_BG, fg=TEXT_DIM,
-                                        font=("Consolas", 8),
-                                        wraplength=260, justify="left")
-        self.lbl_calc_result.pack(fill="x")
-
-    def _build_save_button(self, parent):
-        tk.Button(parent, text="💾  Save Settings",
-                  command=self._save_settings,
-                  bg=ACC_BLUE, fg="#fff",
-                  font=("Segoe UI", 10, "bold"),
-                  relief="flat", padx=20, pady=10,
-                  cursor="hand2", bd=0,
-                  activebackground="#2563eb",
-                  activeforeground="#fff"
-                  ).grid(row=5, column=0, sticky="ew")
-
-    # ─────────────────────────────────────────────────────────
-    # RIGHT — CONTROL PANEL
-    # ─────────────────────────────────────────────────────────
-    def _build_control_panel(self, parent):
-        nb = ttk.Notebook(parent, style="TNotebook")
-        nb.pack(fill="both", expand=True, pady=(4, 0))
-
-        tabs = [
-            ("⚙ Mode",      self._build_mode_tab),
-            ("☀ Solar",     self._build_solar_tab),
-            ("📅 Weekly",   self._build_weekly_tab),
-            ("🚀 One-Shot", self._build_oneshot_tab),
-            ("📡 MQTT",     self._build_mqtt_tab),
-        ]
-        for label, builder in tabs:
-            # Scrollable wrapper: canvas + scrollbar
-            wrapper = tk.Frame(nb, bg=self.clr["BG"])
-            sb = ttk.Scrollbar(wrapper, orient="vertical",
-                               style="Thin.Vertical.TScrollbar")
-            sb.pack(side="right", fill="y")
-            canvas = tk.Canvas(wrapper, bg=self.clr["BG"],
-                               highlightthickness=0,
-                               yscrollcommand=sb.set)
-            canvas.pack(side="left", fill="both", expand=True)
-            sb.config(command=canvas.yview)
-
-            inner = tk.Frame(canvas, bg=self.clr["BG"])
-            win_id = canvas.create_window((0, 0), window=inner, anchor="nw")
-
-            # Keep inner width == canvas width
-            def _on_canvas_resize(e, c=canvas, wid=win_id):
-                c.itemconfig(wid, width=e.width)
-            canvas.bind("<Configure>", _on_canvas_resize)
-
-            # Update scroll region when inner changes size
-            def _on_inner_resize(e, c=canvas):
-                c.configure(scrollregion=c.bbox("all"))
-            inner.bind("<Configure>", _on_inner_resize)
-
-            nb.add(wrapper, text=f"  {label}  ")
-            builder(inner)
-
-        def _wheel(event):
-            w = event.widget
-            while w:
-                if isinstance(w, tk.Canvas):
-                    w.yview_scroll(int(-1*(event.delta/120)), "units"); break
-                w = getattr(w, "master", None)
-        nb.bind_all("<MouseWheel>", _wheel)
-
-    # ─────────────────────────────────────────────────────────
-    # TABS
-    # ─────────────────────────────────────────────────────────
-    def _build_mode_tab(self, parent):
-        box = self._card(parent, "Execution Mode", pady=(8,6))
-
-        r0 = self._row(box)
-        self._dim_lbl(r0, "Route via:").pack(side="left")
-        self._exec_mode_var = tk.StringVar(
-            value=self.runtime_settings.get_execution_mode())
-        for mode, col in (("HA", "#7c3aed"), ("MQTT", ACC_BLUE)):
-            self._radio_pill(r0, mode, self._exec_mode_var,
-                             col, self._save_exec_mode).pack(side="left", padx=4)
-
-        # MQTT broker active toggle (independent of execution mode)
-        r_mqtt = self._row(box)
-        self._dim_lbl(r_mqtt, "MQTT broker:").pack(side="left")
-        self._mqtt_active_var = tk.BooleanVar(
-            value=self.runtime_settings.get_mqtt_active())
-        self._toggle(r_mqtt, self._mqtt_active_var,
-                     self._on_mqtt_active_toggle).pack(side="left", padx=8)
-        _ma_init = self.runtime_settings.get_mqtt_active()
-        self._mqtt_active_lbl = tk.Label(r_mqtt,
-                                         text="on" if _ma_init else "off",
-                                         bg=CARD_BG,
-                                         fg=ACC_GREEN if _ma_init else TEXT_DIM,
-                                         font=("Segoe UI", 8))
-        self._mqtt_active_lbl.pack(side="left")
-
-        tk.Frame(box, bg=CARD_BDR, height=1).pack(fill="x", pady=6)
-
-        r1 = self._row(box)
-        self._dim_lbl(r1, "Boiler:").pack(side="left")
-        self._status_dot = tk.Label(r1, text="●", bg=CARD_BG,
-                                    fg=ACC_DIM, font=("Segoe UI", 16))
-        self._status_dot.pack(side="left", padx=6)
-        self._status_lbl = tk.Label(r1, text="unknown", bg=CARD_BG,
-                                    fg=TEXT_FG, font=("Segoe UI", 10, "bold"))
-        self._status_lbl.pack(side="left")
-        self._btn_sec(r1, "⟳", self._refresh_status, width=3).pack(side="right")
-
-    def _build_solar_tab(self, parent):
-        box = self._card(parent, "Solar Mode", pady=(8,6))
-
-        r0 = self._row(box)
-        self._dim_lbl(r0, "Active:").pack(side="left")
-        self._solar_active_var = tk.BooleanVar(
-            value=self.runtime_settings.get_solar_active())
-        self._toggle(r0, self._solar_active_var,
-                     self._save_solar_active).pack(side="left", padx=8)
-
-        r1 = self._row(box)
-        self._dim_lbl(r1, "2nd run time:").pack(side="left")
-        t2 = self.runtime_settings.get_second_run_time().split(":")
-        self._2nd_hour_var = tk.StringVar(value=t2[0])
-        self._2nd_min_var  = tk.StringVar(value=t2[1])
-        self._time_widget(box, self._2nd_hour_var,
-                          self._2nd_min_var).pack(in_=r1, side="right")
-
-        self._btn_pri(box, "Save 2nd Run Time",
-                      self._save_2nd_run_time).pack(fill="x", pady=(8,0))
-
-    def _build_weekly_tab(self, parent):
-        self._preset_widgets = []
-        for preset in self.runtime_settings.get_weekly_presets():
-            pid = preset["id"]
-            box = self._card(parent, f"Preset {pid}", pady=(8 if pid==1 else 4, 0))
-
-            r0 = self._row(box)
-            av = tk.BooleanVar(value=preset.get("active", False))
-            self._dim_lbl(r0, "Active:").pack(side="left")
-            self._toggle(r0, av).pack(side="left", padx=6)
-            self._dim_lbl(r0, "Start:").pack(side="left", padx=(10,0))
-            t = preset.get("start_time", "08:00").split(":")
-            hv = tk.StringVar(value=t[0]); mv = tk.StringVar(value=t[1])
-            self._time_widget(box, hv, mv).pack(in_=r0, side="left", padx=4)
-            self._dim_lbl(r0, "Min:").pack(side="left", padx=(8,0))
-            dv = tk.StringVar(value=str(preset.get("duration", 30)))
-            self._inp(r0, dv, width=4).pack(side="left", padx=4)
-
-            r1 = self._row(box)
-            day_vars = {}
-            for d in DAYS:
-                dvar = tk.BooleanVar(value=(d in preset.get("days", [])))
-                self._day_pill(r1, d, dvar).pack(side="left", padx=2, pady=2)
-                day_vars[d] = dvar
-
-            self._preset_widgets.append({"id": pid, "active": av,
-                                          "h": hv, "m": mv, "dur": dv,
-                                          "days": day_vars})
-
-        self._btn_pri(parent, "💾  Save All Presets",
-                      self._save_weekly_presets).pack(fill="x", padx=8, pady=(10,0))
-
-    def _build_oneshot_tab(self, parent):
-        box = self._card(parent, "One-Shot  (today only)", pady=(8,6))
-        one_shot = self.runtime_settings.get_one_shot()
-
-        r0 = self._row(box)
-        self._dim_lbl(r0, "Start time:").pack(side="left")
-        t = one_shot.get("start_time", "08:00").split(":")
-        self._os_hour_var = tk.StringVar(value=t[0])
-        self._os_min_var  = tk.StringVar(value=t[1])
-        self._time_widget(box, self._os_hour_var,
-                          self._os_min_var).pack(in_=r0, side="right")
-
-        r1 = self._row(box)
-        self._dim_lbl(r1, "Duration (min):").pack(side="left")
-        self._os_dur_var = tk.StringVar(value=str(one_shot.get("duration", 30)))
-        self._inp(r1, self._os_dur_var, width=6).pack(side="right")
-
-        self._btn_pri(box, "🚀  Arm One-Shot",
-                      self._arm_one_shot, color="#0e7490"
-                      ).pack(fill="x", pady=(10,4))
-        tk.Label(box, text="Fires once today. Coexists with Solar & Weekly.\nAuto-disarms after firing.",
-                 bg=CARD_BG, fg=TEXT_DIM, font=("Segoe UI", 8),
-                 justify="left").pack(anchor="w")
-
-    def _build_mqtt_tab(self, parent):
-        broker = getattr(self.config, "mqtt_broker_ip", None) or "not configured"
-        topic  = getattr(self.config, "mqtt_tasmota_topic", "") or "?"
-
-        # ── Broker card: config + connectivity ──
-        ib = self._card(parent, "Broker", pady=(8,4))
-
-        # Address info
-        tk.Label(ib, text=f"{broker}  |  topic: {topic}",
-                 bg=CARD_BG, fg=TEXT_DIM, font=("Consolas", 8)).pack(anchor="w", pady=(0,4))
-
-        # Topic format
-        rf = self._row(ib)
-        self._dim_lbl(rf, "Format:").pack(side="left")
-        self._topic_fmt_var = tk.StringVar(
-            value=getattr(self.config, "mqtt_topic_format", "device_first"))
-        for fmt, lbl in (("device_first", f"{topic}/cmnd/…"),
-                         ("standard",     f"cmnd/{topic}/…")):
-            tk.Radiobutton(rf, text=lbl,
-                           variable=self._topic_fmt_var, value=fmt,
-                           bg=CARD_BG, fg=TEXT_FG, selectcolor=INPUT_BG,
-                           activebackground=CARD_BG, font=("Segoe UI", 8),
-                           command=self._save_topic_format
-                           ).pack(side="left", padx=4)
-
-        tk.Frame(ib, bg=CARD_BDR, height=1).pack(fill="x", pady=(8,6))
-
-        # Broker connection row
-        rb = self._row(ib)
-        self._dim_lbl(rb, "Broker:").pack(side="left")
-        self._mqtt_broker_dot = tk.Label(rb, text="●", bg=CARD_BG,
-                                         fg=ACC_DIM, font=("Segoe UI", 14))
-        self._mqtt_broker_dot.pack(side="left", padx=6)
-        self._mqtt_broker_lbl = tk.Label(rb, text="disconnected",
-                                         bg=CARD_BG, fg=TEXT_DIM,
-                                         font=("Segoe UI", 9, "bold"))
-        self._mqtt_broker_lbl.pack(side="left")
-
-        # Boiler/device row
-        rd = self._row(ib)
-        self._dim_lbl(rd, "Boiler:").pack(side="left")
-        self._mqtt_device_dot = tk.Label(rd, text="●", bg=CARD_BG,
-                                         fg=ACC_DIM, font=("Segoe UI", 14))
-        self._mqtt_device_dot.pack(side="left", padx=6)
-        self._mqtt_device_lbl = tk.Label(rd, text="unknown",
-                                         bg=CARD_BG, fg=TEXT_DIM,
-                                         font=("Segoe UI", 9, "bold"))
-        self._mqtt_device_lbl.pack(side="left")
-
-        # Connect / Disconnect / Refresh
-        cb_row = self._row(ib)
-        tk.Button(cb_row, text="⚡ Connect",
-                  command=self._mqtt_connect,
-                  bg=ACC_BLUE, fg="#fff",
-                  font=("Segoe UI", 9, "bold"),
-                  relief="flat", padx=10, pady=4,
-                  cursor="hand2", bd=0,
-                  activebackground="#2563eb"
-                  ).pack(side="left", padx=(0,6))
-        tk.Button(cb_row, text="✕ Disconnect",
-                  command=self._mqtt_disconnect,
-                  bg=INPUT_BG, fg=TEXT_FG,
-                  font=("Segoe UI", 9),
-                  relief="flat", padx=10, pady=4,
-                  cursor="hand2", bd=0,
-                  highlightthickness=1, highlightbackground=CARD_BDR
-                  ).pack(side="left", padx=(0,6))
-        tk.Button(cb_row, text="⟳",
-                  command=self._mqtt_refresh_conn,
-                  bg=INPUT_BG, fg=TEXT_FG,
-                  font=("Segoe UI", 9),
-                  relief="flat", padx=8, pady=4,
-                  cursor="hand2", bd=0,
-                  highlightthickness=1, highlightbackground=CARD_BDR
-                  ).pack(side="left")
-
-        # Register callbacks
-        if self.mqtt_service:
-            self.mqtt_service.on_status_change = self._on_mqtt_power_status
-            self.mqtt_service.on_tele          = self._on_tele_message
-            self.mqtt_service.on_connect_change = self._on_mqtt_connect_change
-
-        # Power control
-        cb = self._card(parent, "Power Control", pady=(0,4))
-
-        r1 = self._row(cb)
-        self._dim_lbl(r1, "Duration (min):").pack(side="left")
-        self._mqtt_dur_var = tk.StringVar(value="30")
-        self._inp(r1, self._mqtt_dur_var, width=6).pack(side="right")
-
-        br = self._row(cb)
-        tk.Button(br, text="⚡ ON", command=self._mqtt_manual_on,
-                  bg=ACC_GREEN, fg="#fff", font=("Segoe UI", 9, "bold"),
-                  relief="flat", padx=16, pady=6, cursor="hand2", bd=0,
-                  activebackground="#16a34a").pack(side="left", padx=(0,8))
-        tk.Button(br, text="⏹ OFF", command=self._mqtt_manual_off,
-                  bg=ACC_RED, fg="#fff", font=("Segoe UI", 9, "bold"),
-                  relief="flat", padx=16, pady=6, cursor="hand2", bd=0,
-                  activebackground="#b91c1c").pack(side="left")
-
-        # Send CMD
-        sc = self._card(parent, "Send Command", pady=(0,4))
-
-        rc0 = self._row(sc)
-        self._dim_lbl(rc0, "Subtopic:").pack(side="left")
-        self._cmd_subtopic_var = tk.StringVar(value="POWER")
-        self._inp(rc0, self._cmd_subtopic_var, width=14).pack(side="right")
-
-        rc1 = self._row(sc)
-        self._dim_lbl(rc1, "Payload:").pack(side="left")
-        self._cmd_payload_var = tk.StringVar(value="")
-        self._inp(rc1, self._cmd_payload_var, width=14).pack(side="right")
-
-        self._btn_sec(sc, "▶  Send", self._mqtt_send_cmd
-                      ).pack(fill="x", pady=(6,0))
-
-        # Telemetry
-        tb = self._card(parent, "Telemetry", pady=(0,8))
-
-        self._tele_text = tk.Text(
-            tb, height=7, bg="#0f1520", fg="#00e5a0",
-            font=("Consolas", 8), state="disabled",
-            relief="flat", wrap="none",
-            selectbackground=ACC_BLUE)
-        self._tele_text.pack(fill="x")
-
-        tr = self._row(tb)
-        self._btn_sec(tr, "⟳ Refresh", self._refresh_tele).pack(side="left", padx=(0,4))
-        self._btn_sec(tr, "🗑 Clear",   self._clear_tele).pack(side="left")
-
-
-    # ─────────────────────────────────────────────────────────
-    # WIDGET FACTORY
+    # WIDGET HELPERS
     # ─────────────────────────────────────────────────────────
     def _card(self, parent, title="", padx=8, pady=(6,0)):
         """Card with blue top-accent. Packs itself into parent."""
@@ -644,6 +292,233 @@ class SettingsTab:
         var.trace_add("write", _upd)
         _upd()
         return f
+
+    # ─────────────────────────────────────────────────────────
+    # LEFT COLUMN
+    # ─────────────────────────────────────────────────────────
+    def _build_lut_box(self, parent):
+        box = self._card_grid(parent, "Temperature LUT", row=0)
+
+        cols = ("#", "Temp °C", "Min")
+        self.lut_tree = ttk.Treeview(box, columns=cols, show="headings",
+                                     height=9, style="DarkLUT.Treeview")
+        for col, w in zip(cols, [30, 80, 80]):
+            self.lut_tree.heading(col, text=col)
+            self.lut_tree.column(col, width=w, anchor="center")
+        self.lut_tree.tag_configure("odd",  background="#1a1f2e", foreground=TEXT_FG)
+        self.lut_tree.tag_configure("even", background=INPUT_BG,  foreground=TEXT_FG)
+
+        sb = ttk.Scrollbar(box, orient="vertical", command=self.lut_tree.yview,
+                           style="Thin.Vertical.TScrollbar")
+        self.lut_tree.configure(yscrollcommand=sb.set)
+        self.lut_tree.pack(side="left", fill="both", expand=True)
+        sb.pack(side="right", fill="y")
+        self._load_lut_to_tree()
+
+    def _build_lut_buttons(self, parent):
+        f = tk.Frame(parent, bg=self.clr["BG"])
+        f.grid(row=1, column=0, sticky="ew", pady=(0, 6))
+        for txt, cmd in [("＋ Add", self._add_lut_row),
+                          ("✎ Edit", self._edit_lut_row),
+                          ("✕ Del",  self._delete_lut_row)]:
+            self._btn_sec(f, txt, cmd).pack(side="left", fill="x", expand=True, padx=2)
+
+    def _build_settings_box(self, parent):
+        box = self._card_grid(parent, "Solar Settings", row=2)
+
+        r0 = self._row(box)
+        self._dim_lbl(r0, "Target ready:").pack(side="left")
+        p = self.config.first_run_target_time.split(":")
+        self.target_hour_var = tk.StringVar(value=p[0])
+        self.target_min_var  = tk.StringVar(value=p[1])
+        self._time_widget(box, self.target_hour_var,
+                          self.target_min_var).pack(in_=r0, side="right")
+
+        r1 = self._row(box)
+        self._dim_lbl(r1, "Cloud penalty:").pack(side="left")
+        self.cloud_penalty_var = tk.StringVar(
+            value=str(self.weather_service.cloud_penalty_factor))
+        self._inp(r1, self.cloud_penalty_var, width=7).pack(side="right")
+
+    def _build_test_box(self, parent):
+        box = self._card_grid(parent, "Test Calculation", row=3)
+
+        ir = tk.Frame(box, bg=CARD_BG)
+        ir.pack(fill="x", pady=(0, 6))
+        self._dim_lbl(ir, "Temp:").pack(side="left")
+        self.example_temp_var = tk.StringVar(value="12")
+        self._inp(ir, self.example_temp_var, width=5).pack(side="left", padx=(3,10))
+        self._dim_lbl(ir, "Clouds %:").pack(side="left")
+        self.example_cloud_var = tk.StringVar(value="50")
+        self._inp(ir, self.example_cloud_var, width=5).pack(side="left", padx=(3,8))
+        tk.Button(ir, text="▶", command=self._update_lut_graph,
+                  bg=ACC_BLUE, fg="#fff", font=("Segoe UI", 9, "bold"),
+                  relief="flat", padx=8, pady=2, cursor="hand2", bd=0
+                  ).pack(side="left")
+
+        self.lbl_calc_result = tk.Label(box, text="", bg=CARD_BG, fg=TEXT_DIM,
+                                        font=("Consolas", 8),
+                                        wraplength=260, justify="left")
+        self.lbl_calc_result.pack(fill="x")
+
+    def _build_save_button(self, parent):
+        tk.Button(parent, text="💾  Save Settings",
+                  command=self._save_settings,
+                  bg=ACC_BLUE, fg="#fff",
+                  font=("Segoe UI", 10, "bold"),
+                  relief="flat", padx=20, pady=10,
+                  cursor="hand2", bd=0,
+                  activebackground="#2563eb",
+                  activeforeground="#fff"
+                  ).grid(row=6, column=0, sticky="ew")
+
+
+    def _build_solar_mode_box(self, parent):
+        """Solar Mode card in left column, grid row 4."""
+        box = self._card_grid(parent, "Solar Mode", row=4)
+
+        r0 = self._row(box)
+        self._dim_lbl(r0, "Active:").pack(side="left")
+        self._solar_active_var = tk.BooleanVar(
+            value=self.runtime_settings.get_solar_active())
+        self._toggle(box, self._solar_active_var,
+                     self._save_solar_active).pack(in_=r0, side="left", padx=8)
+
+        r1 = self._row(box)
+        self._dim_lbl(r1, "2nd run time:").pack(side="left")
+        t2 = self.runtime_settings.get_second_run_time().split(":")
+        self._2nd_hour_var = tk.StringVar(value=t2[0])
+        self._2nd_min_var  = tk.StringVar(value=t2[1])
+        self._time_widget(box, self._2nd_hour_var,
+                          self._2nd_min_var).pack(in_=r1, side="right")
+
+        self._btn_pri(box, "Save 2nd Run Time",
+                      self._save_2nd_run_time).pack(fill="x", pady=(8, 0))
+
+    # ─────────────────────────────────────────────────────────
+    # RIGHT — SOLAR PANEL (below graph)
+    # ─────────────────────────────────────────────────────────
+    def _build_solar_panel(self, parent):
+        """MQTT Direct Control + Telemetry below the graph in the right column."""
+        # MQTT card
+        mqtt_card = self._card(parent, "MQTT Direct Control")
+        mqtt_card.pack(fill="x", padx=0, pady=(0, 6))
+
+        broker = getattr(self.config, "mqtt_broker_ip", None) or "not configured"
+        topic  = getattr(self.config, "mqtt_tasmota_topic", "") or "?"
+
+        tk.Label(mqtt_card, text=f"{broker}  |  {topic}",
+                 bg=CARD_BG, fg=TEXT_DIM, font=("Consolas", 8)).pack(anchor="w", pady=(0,4))
+
+        # Topic format
+        rf = self._row(mqtt_card)
+        self._dim_lbl(rf, "Format:").pack(side="left")
+        self._topic_fmt_var = tk.StringVar(
+            value=getattr(self.config, "mqtt_topic_format", "device_first"))
+        for fmt, lbl in (("device_first", f"{topic}/cmnd/…"),
+                         ("standard",     f"cmnd/{topic}/…")):
+            tk.Radiobutton(rf, text=lbl,
+                           variable=self._topic_fmt_var, value=fmt,
+                           bg=CARD_BG, fg=TEXT_FG, selectcolor=INPUT_BG,
+                           activebackground=CARD_BG, font=("Segoe UI", 8),
+                           command=self._save_topic_format
+                           ).pack(side="left", padx=4)
+
+        # Broker / device indicators
+        rb = self._row(mqtt_card)
+        self._dim_lbl(rb, "Broker:").pack(side="left")
+        self._mqtt_broker_dot = tk.Label(rb, text="●", bg=CARD_BG,
+                                         fg=ACC_DIM, font=("Segoe UI", 14))
+        self._mqtt_broker_dot.pack(side="left", padx=6)
+        self._mqtt_broker_lbl = tk.Label(rb, text="disconnected",
+                                         bg=CARD_BG, fg=TEXT_DIM,
+                                         font=("Segoe UI", 9, "bold"))
+        self._mqtt_broker_lbl.pack(side="left")
+
+        rd = self._row(mqtt_card)
+        self._dim_lbl(rd, "Boiler:").pack(side="left")
+        self._mqtt_device_dot = tk.Label(rd, text="●", bg=CARD_BG,
+                                         fg=ACC_DIM, font=("Segoe UI", 14))
+        self._mqtt_device_dot.pack(side="left", padx=6)
+        self._mqtt_device_lbl = tk.Label(rd, text="unknown",
+                                         bg=CARD_BG, fg=TEXT_DIM,
+                                         font=("Segoe UI", 9, "bold"))
+        self._mqtt_device_lbl.pack(side="left")
+
+        # Connect buttons
+        cb_row = self._row(mqtt_card)
+        tk.Button(cb_row, text="⚡ Connect",
+                  command=self._mqtt_connect,
+                  bg=ACC_BLUE, fg="#fff", font=("Segoe UI", 9, "bold"),
+                  relief="flat", padx=10, pady=4, cursor="hand2", bd=0,
+                  activebackground="#2563eb").pack(side="left", padx=(0, 6))
+        tk.Button(cb_row, text="✕ Disconnect",
+                  command=self._mqtt_disconnect,
+                  bg=INPUT_BG, fg=TEXT_FG, font=("Segoe UI", 9),
+                  relief="flat", padx=10, pady=4, cursor="hand2", bd=0,
+                  highlightthickness=1, highlightbackground=CARD_BDR
+                  ).pack(side="left", padx=(0, 6))
+        tk.Button(cb_row, text="⟳",
+                  command=self._mqtt_refresh_conn,
+                  bg=INPUT_BG, fg=TEXT_FG, font=("Segoe UI", 9),
+                  relief="flat", padx=8, pady=4, cursor="hand2", bd=0,
+                  highlightthickness=1, highlightbackground=CARD_BDR
+                  ).pack(side="left")
+
+        # Duration + ON/OFF
+        r1m = self._row(mqtt_card)
+        self._dim_lbl(r1m, "Duration (min):").pack(side="left")
+        self._mqtt_dur_var = tk.StringVar(value="30")
+        self._inp(r1m, self._mqtt_dur_var, width=6).pack(side="right")
+
+        br = self._row(mqtt_card)
+        tk.Button(br, text="⚡ ON", command=self._mqtt_manual_on,
+                  bg=ACC_GREEN, fg="#fff", font=("Segoe UI", 9, "bold"),
+                  relief="flat", padx=16, pady=6, cursor="hand2", bd=0,
+                  activebackground="#16a34a").pack(side="left", padx=(0, 8))
+        tk.Button(br, text="⏹ OFF", command=self._mqtt_manual_off,
+                  bg=ACC_RED, fg="#fff", font=("Segoe UI", 9, "bold"),
+                  relief="flat", padx=16, pady=6, cursor="hand2", bd=0,
+                  activebackground="#b91c1c").pack(side="left")
+
+        # Send CMD
+        rc0 = self._row(mqtt_card)
+        self._dim_lbl(rc0, "Subtopic:").pack(side="left")
+        self._cmd_subtopic_var = tk.StringVar(value="POWER")
+        self._inp(rc0, self._cmd_subtopic_var, width=14).pack(side="right")
+        rc1 = self._row(mqtt_card)
+        self._dim_lbl(rc1, "Payload:").pack(side="left")
+        self._cmd_payload_var = tk.StringVar(value="")
+        self._inp(rc1, self._cmd_payload_var, width=14).pack(side="right")
+        self._btn_sec(mqtt_card, "▶  Send", self._mqtt_send_cmd
+                      ).pack(fill="x", pady=(6, 0))
+
+        # Telemetry
+        tele_card = self._card(parent, "Telemetry")
+        tele_card.pack(fill="x", padx=0, pady=(0, 8))
+
+        self._tele_text = tk.Text(
+            tele_card, height=7, bg="#0f1520", fg="#00e5a0",
+            font=("Consolas", 8), state="disabled",
+            relief="flat", wrap="none", selectbackground=ACC_BLUE)
+        self._tele_text.pack(fill="x")
+
+        tr = self._row(tele_card)
+        self._btn_sec(tr, "⟳ Refresh", self._refresh_tele).pack(side="left", padx=(0, 4))
+        self._btn_sec(tr, "🗑 Clear",   self._clear_tele).pack(side="left")
+
+        # NOTE: MQTT callbacks (on_status_change, on_connect_change, on_tele)
+        # are registered centrally in main_window._poll_connections.
+        # Do NOT re-register here — it would overwrite the fan-out closures.
+
+    
+    def notify_boiler_state(self, status: str):
+        """Called by main_window when boiler status changes (any source)."""
+        self.parent.after(0, lambda: self._update_mqtt_device_indicator(status))
+
+    def notify_broker_state(self, connected: bool):
+        """Called by main_window when MQTT broker connects/disconnects."""
+        self.parent.after(0, lambda: self._update_mqtt_broker_indicator(connected))
 
     # ─────────────────────────────────────────────────────────
     # LUT CRUD
@@ -936,7 +811,6 @@ class SettingsTab:
                 self._update_status("unknown")
 
     def _on_mqtt_power_status(self, status):
-        self.parent.after(0, lambda: self._update_status(status))
         self.parent.after(0, lambda: self._update_mqtt_device_indicator(status))
 
     def _update_status(self, status):
@@ -1089,5 +963,3 @@ class SettingsTab:
             color, text = ACC_DIM, status
         self._mqtt_device_dot.config(fg=color)
         self._mqtt_device_lbl.config(text=text, fg=TEXT_FG if s in ("ON","OFF","ONLINE") else TEXT_DIM)
-        # Mirror to mode-tab status dot as well
-        self._update_status(status)
