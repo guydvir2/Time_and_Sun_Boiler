@@ -46,8 +46,8 @@ class DataTab:
         vsb.pack(side="right", fill="y", pady=5)
         
         # Row colors
-        self.tree.tag_configure("ha_ok_odd",  background="#1a2e1a", foreground="#a0e8a0")
-        self.tree.tag_configure("ha_ok_even", background="#162e24", foreground="#b0e8c8")
+        self.tree.tag_configure("ha_ok_odd",  background="#1e2130", foreground="#e2e8f0")
+        self.tree.tag_configure("ha_ok_even", background="#252b3b", foreground="#e2e8f0")
         self.tree.tag_configure("ha_failed",  background="#3a1e1e", foreground="#f5a0a0")
         self.tree.tag_configure("ha_unknown", background="#2a2a2e", foreground="#aaaaaa")
     

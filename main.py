@@ -54,6 +54,11 @@ if __name__ == "__main__":
         password=cfg.mqtt_password,
         topic_format=cfg.mqtt_topic_format,
     ) if cfg.mqtt_broker_ip else None
+    if mqtt:
+        mqtt.cmd_enabled = cfg.mqtt_cmd_enabled
+        mqtt.cmd_adhoc   = cfg.mqtt_cmd_adhoc
+        mqtt.cmd_oneshot = cfg.mqtt_cmd_oneshot
+        mqtt.cmd_weekly  = cfg.mqtt_cmd_weekly
 
     rs  = cfg.runtime_settings
     dm  = DataManager()

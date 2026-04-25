@@ -40,13 +40,14 @@ class BoilerApp:
             "ACCENT": "#007acc"
         }
         
-        self.root.title("Boiler Control System v2.2")
-        self.root.geometry("1400x800")  # Larger window for better visibility
+        self.root.title("Boiler Control System v2.3")
+        self.root.geometry("1400x720")
+        self.root.resizable(True, True)   # allow resize but start at right size
         self.root.configure(bg=self._clr["BG"])
         
+        self._create_status_bar()   # pack bottom first — guaranteed space
         self._setup_themed_notebook()
         self._create_tabs()
-        self._create_status_bar()
         
         # Load initial data
         self.data_tab_widget.load_data()
@@ -214,11 +215,6 @@ class BoilerApp:
         )
         self._retry_btn.pack(side="right", padx=(4, 12), pady=4)
         
-        tk.Button(
-            bar, text="⟳  Refresh",
-            command=self._refresh_data, **btn_style
-        ).pack(side="right", padx=4, pady=4)
-        
         # Designer credit
         tk.Label(
             bar, text="Designed by Guy Dvir",
@@ -273,13 +269,13 @@ class BoilerApp:
         s = status.upper()
         if s == "ON":
             self._boiler_dot.config(fg=GREEN)
-            self._boiler_lbl.config(fg="#e2e8f0", text="ON")
+            self._boiler_lbl.config(fg="#e2e8f0", text="Boiler  ON")
         elif s == "OFF":
             self._boiler_dot.config(fg=RED)
-            self._boiler_lbl.config(fg="#94a3b8", text="OFF")
+            self._boiler_lbl.config(fg="#94a3b8", text="Boiler  OFF")
         else:
             self._boiler_dot.config(fg=DIM)
-            self._boiler_lbl.config(fg="#94a3b8", text="Boiler")
+            self._boiler_lbl.config(fg="#94a3b8", text="Boiler  —")
 
 
     def _wire_mqtt_callbacks(self):
@@ -318,9 +314,57 @@ class BoilerApp:
             if hasattr(self, 'settings_tab_widget'):
                 self.settings_tab_widget._on_tele_message(subtopic, payload)
 
+        def _on_command(cmd_type: str, payload: str):
+            """Inbound command from Telegram/MQTT → execute action."""
+            import threading
+            log = __import__('logging').getLogger(__name__)
+            try:
+                if cmd_type == "adhoc":
+                    dur = int(payload.strip())
+                    log.info(f"MQTT cmd: adhoc {dur} min")
+                    threading.Thread(
+                        target=lambda: self.scheduler.manual_run(dur),
+                        daemon=True).start()
+
+                elif cmd_type == "oneshot":
+                    parts = payload.strip().split(",")
+                    time_str = parts[0].strip()   # HH:MM
+                    dur      = int(parts[1].strip())
+                    log.info(f"MQTT cmd: oneshot {time_str} {dur} min")
+                    self.config.runtime_settings.set_one_shot(
+                        time_str, dur, armed=True)
+                    # Refresh dashboard one-shot status label
+                    if hasattr(self, 'control_tab_widget') and                        self.control_tab_widget.dashboard:
+                        self.root.after(0,
+                            self.control_tab_widget.dashboard._refresh)
+
+                elif cmd_type == "weekly":
+                    # format: "<id>,<HH:MM>,<dur>,<day1>,<day2>..."
+                    parts  = [p.strip() for p in payload.strip().split(",")]
+                    pid    = int(parts[0])
+                    t_str  = parts[1]
+                    dur    = int(parts[2])
+                    days   = parts[3:]
+                    presets = self.config.runtime_settings.get_weekly_presets()
+                    for p in presets:
+                        if p["id"] == pid:
+                            p["start_time"] = t_str
+                            p["duration"]   = dur
+                            p["days"]       = days
+                            p["active"]     = True
+                    self.config.runtime_settings.set_weekly_presets(presets)
+                    log.info(f"MQTT cmd: weekly preset {pid} updated")
+                    if hasattr(self, 'control_tab_widget') and                        self.control_tab_widget.dashboard:
+                        self.root.after(0,
+                            self.control_tab_widget.dashboard._refresh_weekly)
+
+            except Exception as e:
+                log.error(f"MQTT on_command error ({cmd_type}={payload}): {e}")
+
         self.mqtt_service.on_status_change  = _on_status
         self.mqtt_service.on_connect_change = _on_connect
         self.mqtt_service.on_tele           = _on_tele
+        self.mqtt_service.on_command        = _on_command
 
     def _tick(self):
         """Update clock and uptime"""

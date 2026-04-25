@@ -75,10 +75,7 @@ class ControlTab:
             on_boiler_state=self.on_boiler_state
         )
 
-        # Sub-tab 2: Weekly schedule
-        weekly_frame = tk.Frame(nb, bg=self.clr["BG"])
-        nb.add(weekly_frame, text="  📅  Weekly  ")
-        self._build_weekly_tab(weekly_frame)
+        # Weekly schedule moved to Dashboard middle column
 
     # ── Widget helpers (weekly tab only) ─────────────────────
 

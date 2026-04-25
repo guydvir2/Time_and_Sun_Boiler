@@ -42,10 +42,22 @@ class MQTTService:
         self._off_timer: Optional[threading.Timer] = None
         self._tele_log: List[tuple] = []
 
+        # Command listener topics (from Telegram / external clients)
+        self.cmd_enabled  = False
+        self.cmd_adhoc    = ""
+        self.cmd_oneshot  = ""
+        self.cmd_weekly   = ""
+
         # Callbacks — set by caller
-        self.on_connect_change: Optional[Callable[[bool], None]] = None
-        self.on_status_change:  Optional[Callable[[str], None]]  = None
-        self.on_tele:           Optional[Callable[[str, str], None]] = None
+        self.on_connect_change: Optional[Callable[[bool], None]]         = None
+        self.on_status_change:  Optional[Callable[[str], None]]          = None
+        self.on_tele:           Optional[Callable[[str, str], None]]      = None
+        self.on_command:        Optional[Callable[[str, str], None]]      = None
+        # on_command(cmd_type, payload)
+        # cmd_type: "adhoc" | "oneshot" | "weekly"
+        # adhoc   payload: "<minutes>"            e.g. "45"
+        # oneshot payload: "<HH:MM>,<minutes>"    e.g. "20:00,60"
+        # weekly  payload: "<id>,<HH:MM>,<min>,<days>"  e.g. "1,08:00,45,Mon,Wed,Fri"
 
         self._build_topics()
 
@@ -170,10 +182,14 @@ class MQTTService:
             self._connected = True
             client.subscribe(self.stat_topic)
             client.subscribe(self.tele_sub)
-            log.info(f"MQTT connected → subscribed stat+tele")
+            if self.cmd_enabled:
+                for t in [self.cmd_adhoc, self.cmd_oneshot, self.cmd_weekly]:
+                    if t:
+                        client.subscribe(t)
+                        log.info(f"MQTT cmd topic subscribed: {t}")
+            log.info(f"MQTT connected → subscribed stat+tele+cmds")
             self._fire(self.on_connect_change, True)
-            # Query current POWER state — Tasmota replies to stat/POWER
-            # which triggers on_status_change and updates all boiler dots.
+            # Query current POWER state
             client.publish(self.cmd_topic, "")
         else:
             log.error(f"MQTT connect error rc={rc}")
@@ -198,5 +214,14 @@ class MQTTService:
                 if len(self._tele_log) > self.MAX_TELE_LINES:
                     self._tele_log.pop(0)
                 self._fire(self.on_tele, subtopic, payload)
+            elif self.cmd_enabled and topic == self.cmd_adhoc:
+                log.info(f"MQTT cmd adhoc: {payload}")
+                self._fire(self.on_command, "adhoc", payload)
+            elif self.cmd_enabled and topic == self.cmd_oneshot:
+                log.info(f"MQTT cmd oneshot: {payload}")
+                self._fire(self.on_command, "oneshot", payload)
+            elif self.cmd_enabled and topic == self.cmd_weekly:
+                log.info(f"MQTT cmd weekly: {payload}")
+                self._fire(self.on_command, "weekly", payload)
         except Exception as e:
             log.error(f"MQTT message error: {e}")

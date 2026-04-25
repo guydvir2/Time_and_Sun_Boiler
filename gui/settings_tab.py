@@ -388,11 +388,33 @@ class SettingsTab:
         mqtt_card = self._card(parent, "MQTT Direct Control")
         mqtt_card.pack(fill="x", padx=4, pady=(6, 6))
 
-        broker = getattr(self.config, "mqtt_broker_ip", None) or "not configured"
-        topic  = getattr(self.config, "mqtt_tasmota_topic", "") or "?"
+        broker   = getattr(self.config, "mqtt_broker_ip", None) or "not configured"
+        topic    = getattr(self.config, "mqtt_tasmota_topic", "") or "?"
+        enabled  = getattr(self.config, "mqtt_cmd_enabled", False)
+        t_adhoc  = getattr(self.config, "mqtt_cmd_adhoc",   "") or "—"
+        t_one    = getattr(self.config, "mqtt_cmd_oneshot", "") or "—"
+        t_weekly = getattr(self.config, "mqtt_cmd_weekly",  "") or "—"
 
         tk.Label(mqtt_card, text=f"{broker}  |  {topic}",
-                 bg=CARD_BG, fg=TEXT_DIM, font=("Consolas", 8)).pack(anchor="w", pady=(0,4))
+                 bg=CARD_BG, fg=TEXT_DIM, font=("Consolas", 8)).pack(anchor="w", pady=(0,2))
+
+        # Command topics info block
+        cmd_frame = tk.Frame(mqtt_card, bg=INPUT_BG,
+                             highlightthickness=1, highlightbackground=CARD_BDR)
+        cmd_frame.pack(fill="x", pady=(0, 6))
+        tk.Label(cmd_frame,
+                 text=f"  CMD topics  ({'enabled' if enabled else 'disabled'})",
+                 bg=INPUT_BG, fg=ACC_BLUE if enabled else ACC_DIM,
+                 font=("Segoe UI", 8, "bold"), pady=3).pack(anchor="w")
+        for label, val in [("  Ad-hoc:", t_adhoc),
+                            ("  One-shot:", t_one),
+                            ("  Weekly:", t_weekly)]:
+            r = tk.Frame(cmd_frame, bg=INPUT_BG)
+            r.pack(fill="x")
+            tk.Label(r, text=label, bg=INPUT_BG, fg=TEXT_DIM,
+                     font=("Segoe UI", 8), width=10, anchor="w").pack(side="left")
+            tk.Label(r, text=val, bg=INPUT_BG, fg=TEXT_FG,
+                     font=("Consolas", 8)).pack(side="left", padx=(2, 4))
 
         # Topic format
         rf = self._row(mqtt_card)

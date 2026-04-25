@@ -18,9 +18,7 @@ _REQUIRED = {
                       "RUN_SCRIPT_2ND_START_BOILER_ENTITY_ID"],
     "location":      ["latitude", "longitude", "timezone"],
     "weather":       ["weather_url"],
-    "parameters":    ["max_first_run", "sunset_offset_minutes",
-                      "init_hour", "poll_interval_minutes",
-                      "cloud_penalty_factor"],
+    "parameters":    ["max_first_run", "cloud_penalty_factor"],
 }
 
 
@@ -34,7 +32,8 @@ class ConfigLoader:
 
         # HA
         self.ha_ip = self.ha_port = self.ha_token = None
-        self.boiler_1st_on_entity_id = None
+        self.boiler_entity_id         = ""
+        self.boiler_1st_on_entity_id  = None
         self.run_script_1st_entity_id = self.run_script_2nd_entity_id = None
         self.ha_url = self.ha_headers = None
 
@@ -42,17 +41,21 @@ class ConfigLoader:
         self.lat = self.lon = self.timezone = self.weather_url = None
 
         # Parameters
-        self.max_first_run = self.sunset_offset_minutes = None
-        self.init_hour = self.poll_interval_minutes = None
+        self.max_first_run        = None
         self.cloud_penalty_factor = None
 
         # MQTT (optional section)
-        self.mqtt_broker_ip    = None
-        self.mqtt_broker_port  = 1883
-        self.mqtt_username     = ""
-        self.mqtt_password     = ""
-        self.mqtt_tasmota_topic = "boiler"
-        self.mqtt_topic_format  = "device_first"
+        self.mqtt_broker_ip     = None
+        self.mqtt_broker_port   = 1883
+        self.mqtt_username      = ""
+        self.mqtt_password      = ""
+        self.mqtt_tasmota_topic  = "boiler"
+        self.mqtt_topic_format   = "device_first"
+        # Command listener topics
+        self.mqtt_cmd_enabled    = False
+        self.mqtt_cmd_adhoc      = ""
+        self.mqtt_cmd_oneshot    = ""
+        self.mqtt_cmd_weekly     = ""
 
         # Populated from RuntimeSettings after load()
         self.temp_lut              = None
@@ -81,6 +84,7 @@ class ConfigLoader:
         if not self.ha_token:
             raise SystemExit("HA token not found")
 
+        self.boiler_entity_id           = ha.get("BOILER_ENTITY_ID", "")
         self.boiler_1st_on_entity_id    = ha["BOILER_1ST_ON_ENTITY_ID"]
         self.run_script_1st_entity_id   = ha["RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID"]
         self.run_script_2nd_entity_id   = ha["RUN_SCRIPT_2ND_START_BOILER_ENTITY_ID"]
@@ -93,11 +97,8 @@ class ConfigLoader:
         self.weather_url = self.config["weather"]["weather_url"]
 
         p = self.config["parameters"]
-        self.max_first_run          = int(p["max_first_run"])
-        self.sunset_offset_minutes  = int(p["sunset_offset_minutes"])
-        self.init_hour              = int(p["init_hour"])
-        self.poll_interval_minutes  = int(p["poll_interval_minutes"])
-        self.cloud_penalty_factor   = float(p["cloud_penalty_factor"])
+        self.max_first_run        = int(p["max_first_run"])
+        self.cloud_penalty_factor = float(p["cloud_penalty_factor"])
 
         if self.config.has_section("mqtt"):
             m = self.config["mqtt"]
@@ -105,8 +106,12 @@ class ConfigLoader:
             self.mqtt_broker_port   = int(m.get("broker_port", 1883))
             self.mqtt_username      = m.get("username", "")
             self.mqtt_password      = m.get("password", "")
-            self.mqtt_tasmota_topic = m.get("tasmota_topic", "boiler")
-            self.mqtt_topic_format  = m.get("topic_format", "device_first")
+            self.mqtt_tasmota_topic  = m.get("tasmota_topic", "boiler")
+            self.mqtt_topic_format   = m.get("topic_format", "device_first")
+            self.mqtt_cmd_enabled    = m.get("cmd_enabled", "false").lower() == "true"
+            self.mqtt_cmd_adhoc      = m.get("cmd_adhoc",   "")
+            self.mqtt_cmd_oneshot    = m.get("cmd_oneshot", "")
+            self.mqtt_cmd_weekly     = m.get("cmd_weekly",  "")
 
     def _load_runtime(self):
         default_lut = {10: 180, 12: 140, 14: 90, 16: 45, 18: 30, 20: 15, 22: 5, 24: 0}
