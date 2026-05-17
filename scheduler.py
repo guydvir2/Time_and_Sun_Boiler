@@ -83,11 +83,32 @@ class Scheduler:
 
     def manual_run(self, duration: int) -> bool:
         """Fire an immediate run via the active execution path.
-        Accumulates into _manual_minutes_today for the dashboard total."""
+        Saves a MANUAL record so the dashboard total ON today is accurate."""
         ok = self._execute(duration, "MANUAL")
         if ok:
-            self._manual_date = date.today()
+            today = date.today()
+            self._manual_date = today
             self._manual_minutes_today += duration
+            # Append to today's CSV record so dashboard totals include manual runs
+            records = self.dm.all_records()
+            today_str = str(today)
+            existing = next((r for r in records if r.get("date") == today_str), None)
+            if existing:
+                # Accumulate into existing record's manual_minutes field
+                prev = int(existing.get("manual_minutes", 0))
+                existing["manual_minutes"] = prev + duration
+                self.dm.save_record(existing)
+            else:
+                self.dm.save_record({
+                    "date":           today_str,
+                    "dawn":           "—", "dusk": "—",
+                    "avg_temp":       "—", "avg_cloud": "—",
+                    "effective_temp": "—", "duration": "—",
+                    "first_run":      0,   "second_run": 0,
+                    "manual_minutes": duration,
+                    "trigger_time":   datetime.now().strftime("%H:%M:%S"),
+                    "ha_status":      "MANUAL",
+                })
         return ok
 
     def update_target_time(self, t: str):
@@ -110,7 +131,8 @@ class Scheduler:
     def _mode(self) -> str:
         return self.rs.get_execution_mode()
 
-    def _execute(self, duration: int, label: str) -> bool:
+    def _execute(self, duration: int, label: str, second_run: bool = False) -> bool:
+        """Route execution to HA or MQTT. second_run=True uses the 2nd-run HA script."""
         mode = self._mode()
         log.info(f"EXECUTE [{label}] {duration}min via {mode}")
         self._state("EXECUTE")
@@ -123,20 +145,7 @@ class Scheduler:
                 return False
             return self.mqtt.turn_on_for(duration)
         else:
-            return self.ha.send_first_run(duration)
-
-    def _execute_2nd(self, duration: int) -> bool:
-        mode = self._mode()
-        log.info(f"EXECUTE [2ND] {duration}min via {mode}")
-        self._state("EXECUTE")
-        if mode == "MQTT":
-            if not self.mqtt:
-                return False
-            if not self.mqtt.is_connected():
-                self.mqtt.connect()
-            return self.mqtt.turn_on_for(duration)
-        else:
-            return self.ha.send_second_run(duration)
+            return self.ha.send_second_run(duration) if second_run                    else self.ha.send_first_run(duration)
 
     # ── Main loop ────────────────────────────────────────────
 
@@ -181,7 +190,12 @@ class Scheduler:
             return
 
         if not self._solar_done_today:
-            already = any(r["date"] == str(today) for r in self.dm.all_records())
+            # Only treat today as done if a real solar run completed (OK or FAILED).
+            # MANUAL records must NOT block the solar schedule.
+            already = any(
+                r["date"] == str(today) and r.get("ha_status") in ("OK", "FAILED")
+                for r in self.dm.all_records()
+            )
             if already:
                 self._solar_done_today = True
                 self._trigger_time     = None
@@ -214,7 +228,7 @@ class Scheduler:
             h, m = int(t2[:2]), int(t2[3:])
             if now >= now.replace(hour=h, minute=m, second=0, microsecond=0):
                 log.info(f"Solar 2nd run {self._second_run_duration}min")
-                self._execute_2nd(self._second_run_duration)
+                self._execute(self._second_run_duration, "SOLAR-2ND", second_run=True)
                 self._second_run_fired = True
 
     def _solar_calc(self, now: datetime) -> bool:
@@ -281,9 +295,11 @@ class Scheduler:
                 continue
             h, m = int(p["start_time"][:2]), int(p["start_time"][3:])
             fire = now.replace(hour=h, minute=m, second=0, microsecond=0)
-            if 0 <= (now - fire).total_seconds() < self.POLL * 2:
-                self._execute(int(p.get("duration", 30)), f"WEEKLY-{pid}")
+            # Fire if we are past the scheduled time and haven't fired yet today.
+            # Mark fired immediately to prevent re-entry even if _execute is slow.
+            if now >= fire:
                 self._weekly_fired.add(pid)
+                self._execute(int(p.get("duration", 30)), f"WEEKLY-{pid}")
 
     # ── One-shot ─────────────────────────────────────────────
 
@@ -296,8 +312,9 @@ class Scheduler:
         st = os["start_time"]
         h, m = int(st[:2]), int(st[3:])
         fire = now.replace(hour=h, minute=m, second=0, microsecond=0)
-        if 0 <= (now - fire).total_seconds() < self.POLL * 2:
-            self._execute(int(os["duration"]), "ONE-SHOT")
+        if now >= fire:
+            # Disarm immediately — prevent re-entry if _execute is slow
             self._oneshot_fired = True
             self._oneshot_date  = today
             self.rs.set_one_shot(st, int(os["duration"]), armed=False)
+            self._execute(int(os["duration"]), "ONE-SHOT")

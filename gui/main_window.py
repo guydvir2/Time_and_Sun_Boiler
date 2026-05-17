@@ -315,51 +315,78 @@ class BoilerApp:
                 self.settings_tab_widget._on_tele_message(subtopic, payload)
 
         def _on_command(cmd_type: str, payload: str):
-            """Inbound command from Telegram/MQTT → execute action."""
-            import threading
+            """Inbound command from Telegram/MQTT → validate then execute."""
+            import threading, re
             log = __import__('logging').getLogger(__name__)
+
+            def _dashboard():
+                if hasattr(self, 'control_tab_widget') and                    self.control_tab_widget.dashboard:
+                    return self.control_tab_widget.dashboard
+                return None
+
             try:
                 if cmd_type == "adhoc":
                     dur = int(payload.strip())
+                    if dur <= 0 or dur > 300:
+                        raise ValueError(f"Duration out of range: {dur}")
                     log.info(f"MQTT cmd: adhoc {dur} min")
                     threading.Thread(
                         target=lambda: self.scheduler.manual_run(dur),
                         daemon=True).start()
 
                 elif cmd_type == "oneshot":
-                    parts = payload.strip().split(",")
-                    time_str = parts[0].strip()   # HH:MM
-                    dur      = int(parts[1].strip())
+                    parts    = [p.strip() for p in payload.strip().split(",")]
+                    if len(parts) != 2:
+                        raise ValueError(f"Expected 'HH:MM,minutes' got: {payload}")
+                    time_str = parts[0]
+                    if not re.match(r"^\d{2}:\d{2}$", time_str):
+                        raise ValueError(f"Invalid time format: {time_str}")
+                    dur = int(parts[1])
+                    if dur <= 0 or dur > 300:
+                        raise ValueError(f"Duration out of range: {dur}")
                     log.info(f"MQTT cmd: oneshot {time_str} {dur} min")
                     self.config.runtime_settings.set_one_shot(
                         time_str, dur, armed=True)
-                    # Refresh dashboard one-shot status label
-                    if hasattr(self, 'control_tab_widget') and                        self.control_tab_widget.dashboard:
-                        self.root.after(0,
-                            self.control_tab_widget.dashboard._refresh)
+                    d = _dashboard()
+                    if d: self.root.after(0, d._refresh)
 
                 elif cmd_type == "weekly":
                     # format: "<id>,<HH:MM>,<dur>,<day1>,<day2>..."
-                    parts  = [p.strip() for p in payload.strip().split(",")]
-                    pid    = int(parts[0])
-                    t_str  = parts[1]
-                    dur    = int(parts[2])
-                    days   = parts[3:]
+                    parts = [p.strip() for p in payload.strip().split(",")]
+                    if len(parts) < 3:
+                        raise ValueError(f"Expected id,HH:MM,dur[,days] got: {payload}")
+                    pid   = int(parts[0])
+                    t_str = parts[1]
+                    if not re.match(r"^\d{2}:\d{2}$", t_str):
+                        raise ValueError(f"Invalid time format: {t_str}")
+                    dur  = int(parts[2])
+                    if dur <= 0 or dur > 300:
+                        raise ValueError(f"Duration out of range: {dur}")
+                    valid_days = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat"}
+                    days = [d for d in parts[3:] if d in valid_days]
                     presets = self.config.runtime_settings.get_weekly_presets()
+                    matched = False
                     for p in presets:
                         if p["id"] == pid:
                             p["start_time"] = t_str
                             p["duration"]   = dur
                             p["days"]       = days
                             p["active"]     = True
+                            matched         = True
+                    if not matched:
+                        raise ValueError(f"No preset with id={pid}")
                     self.config.runtime_settings.set_weekly_presets(presets)
-                    log.info(f"MQTT cmd: weekly preset {pid} updated")
-                    if hasattr(self, 'control_tab_widget') and                        self.control_tab_widget.dashboard:
-                        self.root.after(0,
-                            self.control_tab_widget.dashboard._refresh_weekly)
+                    log.info(f"MQTT cmd: weekly preset {pid} updated → {t_str} {dur}min {days}")
+                    d = _dashboard()
+                    if d: self.root.after(0, d._refresh_weekly)
 
+                else:
+                    log.warning(f"MQTT on_command: unknown type '{cmd_type}'")
+
+            except (ValueError, IndexError) as e:
+                log.error(f"MQTT cmd rejected ({cmd_type}={payload!r}): {e}")
             except Exception as e:
-                log.error(f"MQTT on_command error ({cmd_type}={payload}): {e}")
+                log.error(f"MQTT on_command unexpected error: {e}", exc_info=True)
 
         self.mqtt_service.on_status_change  = _on_status
         self.mqtt_service.on_connect_change = _on_connect

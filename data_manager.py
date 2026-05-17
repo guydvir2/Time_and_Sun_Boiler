@@ -44,7 +44,8 @@ class DataManager:
         # All columns (daily averages only)
         self.COLUMNS = [
             "date", "dawn", "dusk", "avg_temp", "avg_cloud", "effective_temp",
-            "duration", "first_run", "second_run", "trigger_time", "ha_status"
+            "duration", "first_run", "second_run", "trigger_time", "ha_status",
+            "manual_minutes"
         ]
         
         self._cache = None
