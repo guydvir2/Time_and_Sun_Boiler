@@ -1757,3 +1757,45 @@
 2026-05-20 07:01:57,308 [INFO] MQTT subscribed: DvirHome/Boiler/oneshot
 2026-05-20 07:01:57,308 [INFO] MQTT subscribed: DvirHome/Boiler/weekly
 2026-05-20 07:01:57,465 [INFO] MQTT stat: OFF
+2026-05-20 07:03:56,995 [INFO] EXECUTE [MANUAL] 5min via HA
+2026-05-20 07:03:57,004 [INFO] HA 1st run: 5min
+2026-05-20 07:03:57,028 [INFO] Set input_number.boiler_duration_helper = 5 min
+2026-05-20 07:03:57,040 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-20 07:03:57,041 [INFO] HA 1st run complete
+2026-05-20 07:03:57,204 [INFO] MQTT stat: ON
+2026-05-20 07:04:21,402 [INFO] MQTT stat: OFF
+2026-05-20 07:06:11,299 [INFO] EXECUTE [MANUAL] 1min via HA
+2026-05-20 07:06:11,300 [INFO] HA 1st run: 1min
+2026-05-20 07:06:11,323 [INFO] Set input_number.boiler_duration_helper = 1 min
+2026-05-20 07:06:11,339 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-20 07:06:11,339 [INFO] HA 1st run complete
+2026-05-20 07:06:11,689 [INFO] MQTT stat: ON
+2026-05-20 07:07:11,227 [INFO] MQTT stat: OFF
+2026-05-20 14:00:27,206 [INFO] EXECUTE [WEEKLY-2] 1min via HA
+2026-05-20 14:00:27,207 [INFO] HA 1st run: 1min
+2026-05-20 14:00:27,231 [INFO] Set input_number.boiler_duration_helper = 1 min
+2026-05-20 14:00:27,248 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-20 14:00:27,249 [INFO] HA 1st run complete
+2026-05-20 14:00:27,658 [INFO] MQTT stat: ON
+2026-05-20 14:01:27,174 [INFO] MQTT stat: OFF
+2026-05-20 16:40:28,372 [INFO] Sun: ↑05:37 ↓19:34
+2026-05-20 16:40:28,730 [INFO] Collected 11 hourly measurements (sunrise→16:40)
+2026-05-20 16:40:28,731 [INFO] Calc: avg=22.6°C cloud=70% eff=19.75°C dur=17min sliders=(17,0)
+2026-05-20 16:40:28,731 [INFO] Solar trigger at 18:23 (17min, 2nd=0min)
+2026-05-20 18:21:00,358 [INFO] MQTT stat: ON
+2026-05-20 18:23:29,003 [INFO] EXECUTE [SOLAR-1ST] 17min via HA
+2026-05-20 18:23:29,004 [INFO] HA 1st run: 17min
+2026-05-20 18:23:29,028 [INFO] Set input_number.boiler_duration_helper = 17 min
+2026-05-20 18:23:29,046 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-20 18:23:29,046 [INFO] HA 1st run complete
+2026-05-20 18:23:29,052 [INFO] Saved record for 2026-05-20
+2026-05-20 18:23:29,231 [INFO] MQTT stat: ON
+2026-05-20 18:40:29,386 [INFO] MQTT stat: OFF
+2026-05-20 21:33:41,689 [INFO] Sun: ↑05:37 ↓19:34
+2026-05-20 21:33:42,052 [INFO] Collected 14 hourly measurements (sunrise→19:34)
+2026-05-20 21:33:42,053 [INFO] Calc: avg=22.3°C cloud=67% eff=19.65°C dur=18min sliders=(18,0)
+2026-05-20 21:33:43,771 [INFO] Sun: ↑05:37 ↓19:34
+2026-05-20 21:33:44,093 [INFO] Collected 14 hourly measurements (sunrise→19:34)
+2026-05-20 21:33:44,094 [INFO] Calc: avg=22.3°C cloud=67% eff=19.65°C dur=18min sliders=(18,0)
+2026-05-21 05:50:18,048 [INFO] Sun: ↑05:36 ↓19:35
+2026-05-21 05:50:18,779 [INFO] Collected 0 hourly measurements (sunrise→05:50)
