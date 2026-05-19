@@ -1,5 +1,5 @@
 """
-Scheduler — single background thread, 30s poll.
+scheduler.py — single background thread, 30s poll.
 Modes (coexist): SOLAR, WEEKLY, ONE-SHOT.
 Execution routed to HA or MQTT per runtime_settings.
 """
@@ -11,56 +11,55 @@ from typing import Optional
 
 log = logging.getLogger(__name__)
 
-# Day order matches the GUI day pills: Sun=0, Mon=1 ... Sat=6
-# Python isoweekday(): Mon=1 ... Sun=7
 _WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 
 def _weekday() -> str:
-    iso = datetime.now().isoweekday()  # Mon=1 ... Sun=7
-    return _WEEKDAYS[iso % 7]          # Sun=7%7=0, Mon=1%7=1 ... Sat=6%7=6
+    iso = datetime.now().isoweekday()   # Mon=1 … Sun=7
+    return _WEEKDAYS[iso % 7]           # Sun=7%7=0 … Sat=6%7=6
 
 
 class Scheduler:
-    POLL = 30  # seconds
+    POLL = 30   # seconds
 
     def __init__(self, weather_service, ha_service, data_manager,
                  runtime_settings, mqtt_service=None):
-        self.weather      = weather_service
-        self.ha           = ha_service
-        self.dm           = data_manager
-        self.rs           = runtime_settings
-        self.mqtt         = mqtt_service
+        self.weather = weather_service
+        self.ha      = ha_service
+        self.dm      = data_manager
+        self.rs      = runtime_settings
+        self.mqtt    = mqtt_service
 
         self.on_state_change = None   # GUI callback(state: str)
 
         self._thread: Optional[threading.Thread] = None
         self._running = False
 
-        # Solar state
+        # ── Solar state ──────────────────────────────────────
         self._solar_done_today    = False
         self._solar_done_date     = None
         self._second_run_duration = 0
         self._second_run_fired    = False
-        self._trigger_time        = None   # computed by _solar_calc, cleared after fire
+        self._trigger_time        = None
         self._calc_result         = None
         self._calc_sunrise        = None
         self._calc_sunset         = None
 
-        # Weekly state
-        self._weekly_fired: set   = set()
-        self._weekly_date         = None
+        # ── Weekly state ─────────────────────────────────────
+        self._weekly_fired: set = set()
+        self._weekly_date       = None
 
-        # One-shot state
-        self._oneshot_fired       = False
-        self._oneshot_date        = None
+        # ── One-shot state ───────────────────────────────────
+        self._oneshot_fired     = False
+        self._oneshot_date      = None
+        # minutes fired via one-shot today (for daily total display)
+        self._oneshot_minutes_today = 0
 
-        # UI state mirror
-        self._current_state       = "INITIALIZING"
-        # Manual run accumulator for total-ON-today tracking
+        # ── Manual accumulator ───────────────────────────────
         self._manual_minutes_today = 0
         self._manual_date          = None
 
+        self._current_state = "INITIALIZING"
         self._parse_target(self.rs.get_target_time())
         log.info(f"Scheduler ready — target {self.rs.get_target_time()}, "
                  f"check {self._check_h:02d}:{self._check_m:02d}")
@@ -71,7 +70,7 @@ class Scheduler:
         if self._running:
             return
         self._running = True
-        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread  = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
         log.info("Scheduler started")
 
@@ -82,33 +81,10 @@ class Scheduler:
         log.info("Scheduler stopped")
 
     def manual_run(self, duration: int) -> bool:
-        """Fire an immediate run via the active execution path.
-        Saves a MANUAL record so the dashboard total ON today is accurate."""
         ok = self._execute(duration, "MANUAL")
         if ok:
-            today = date.today()
-            self._manual_date = today
+            self._manual_date          = date.today()
             self._manual_minutes_today += duration
-            # Append to today's CSV record so dashboard totals include manual runs
-            records = self.dm.all_records()
-            today_str = str(today)
-            existing = next((r for r in records if r.get("date") == today_str), None)
-            if existing:
-                # Accumulate into existing record's manual_minutes field
-                prev = int(existing.get("manual_minutes", 0))
-                existing["manual_minutes"] = prev + duration
-                self.dm.save_record(existing)
-            else:
-                self.dm.save_record({
-                    "date":           today_str,
-                    "dawn":           "—", "dusk": "—",
-                    "avg_temp":       "—", "avg_cloud": "—",
-                    "effective_temp": "—", "duration": "—",
-                    "first_run":      0,   "second_run": 0,
-                    "manual_minutes": duration,
-                    "trigger_time":   datetime.now().strftime("%H:%M:%S"),
-                    "ha_status":      "MANUAL",
-                })
         return ok
 
     def update_target_time(self, t: str):
@@ -132,7 +108,6 @@ class Scheduler:
         return self.rs.get_execution_mode()
 
     def _execute(self, duration: int, label: str, second_run: bool = False) -> bool:
-        """Route execution to HA or MQTT. second_run=True uses the 2nd-run HA script."""
         mode = self._mode()
         log.info(f"EXECUTE [{label}] {duration}min via {mode}")
         self._state("EXECUTE")
@@ -144,8 +119,7 @@ class Scheduler:
                 log.error("MQTT connect failed")
                 return False
             return self.mqtt.turn_on_for(duration)
-        else:
-            return self.ha.send_second_run(duration) if second_run                    else self.ha.send_first_run(duration)
+        return self.ha.send_run(duration, run_number=2 if second_run else 1)
 
     # ── Main loop ────────────────────────────────────────────
 
@@ -173,7 +147,9 @@ class Scheduler:
             self._calc_result         = None
             self._solar_done_date     = today
         if self._oneshot_date != today:
-            self._oneshot_fired = False
+            self._oneshot_fired          = False
+            self._oneshot_minutes_today  = 0
+            self._oneshot_date           = today
         if self._manual_date != today:
             self._manual_minutes_today = 0
             self._manual_date          = today
@@ -190,8 +166,6 @@ class Scheduler:
             return
 
         if not self._solar_done_today:
-            # Only treat today as done if a real solar run completed (OK or FAILED).
-            # MANUAL records must NOT block the solar schedule.
             already = any(
                 r["date"] == str(today) and r.get("ha_status") in ("OK", "FAILED")
                 for r in self.dm.all_records()
@@ -208,23 +182,20 @@ class Scheduler:
                 self._state("WAIT_FIRST_CHECK")
                 return
 
-            # Past check time — calc once if we don't have a trigger yet
             if self._trigger_time is None:
                 if not self._solar_calc(now):
-                    return   # calc failed — retry next poll
+                    return
 
-            # Have a trigger time — wait for it
             if datetime.now() < self._trigger_time:
                 self._state("WAIT_TRIGGER")
                 return
 
-            # Trigger reached — fire
             self._solar_fire(str(today))
 
         # 2nd run
-        if self._solar_done_today and not self._second_run_fired \
-                and self._second_run_duration > 0:
-            t2 = self.rs.get_second_run_time()
+        if (self._solar_done_today and not self._second_run_fired
+                and self._second_run_duration > 0):
+            t2  = self.rs.get_second_run_time()
             h, m = int(t2[:2]), int(t2[3:])
             if now >= now.replace(hour=h, minute=m, second=0, microsecond=0):
                 log.info(f"Solar 2nd run {self._second_run_duration}min")
@@ -232,7 +203,6 @@ class Scheduler:
                 self._second_run_fired = True
 
     def _solar_calc(self, now: datetime) -> bool:
-        """Fetch sun times + weather, compute trigger. Returns True if calc succeeded."""
         self._state("FETCH_SUN")
         try:
             sunrise, sunset = self.weather.get_sun_times()
@@ -247,13 +217,13 @@ class Scheduler:
             log.error(f"Calc failed: {e}")
             return False
 
-        self._calc_result   = calc
-        self._calc_sunrise  = sunrise
-        self._calc_sunset   = sunset
-
-        target  = now.replace(hour=self._target_h, minute=self._target_m,
-                              second=0, microsecond=0)
-        trigger = target - timedelta(minutes=calc["first_run"])
+        self._calc_result         = calc
+        self._calc_sunrise        = sunrise
+        self._calc_sunset         = sunset
+        target                    = now.replace(hour=self._target_h,
+                                                minute=self._target_m,
+                                                second=0, microsecond=0)
+        trigger                   = target - timedelta(minutes=calc["first_run"])
         self._trigger_time        = trigger
         self._second_run_duration = calc["second_run"]
         log.info(f"Solar trigger at {trigger.strftime('%H:%M')} "
@@ -261,7 +231,6 @@ class Scheduler:
         return True
 
     def _solar_fire(self, today_str: str):
-        """Actually execute the first run and save the record."""
         calc    = self._calc_result
         sunrise = self._calc_sunrise
         sunset  = self._calc_sunset
@@ -294,10 +263,7 @@ class Scheduler:
             if today_day not in p.get("days", []):
                 continue
             h, m = int(p["start_time"][:2]), int(p["start_time"][3:])
-            fire = now.replace(hour=h, minute=m, second=0, microsecond=0)
-            # Fire if we are past the scheduled time and haven't fired yet today.
-            # Mark fired immediately to prevent re-entry even if _execute is slow.
-            if now >= fire:
+            if now >= now.replace(hour=h, minute=m, second=0, microsecond=0):
                 self._weekly_fired.add(pid)
                 self._execute(int(p.get("duration", 30)), f"WEEKLY-{pid}")
 
@@ -306,15 +272,15 @@ class Scheduler:
     def _tick_oneshot(self, now: datetime, today: date):
         if self._oneshot_fired:
             return
-        os = self.rs.get_one_shot()
-        if not os.get("armed") or int(os.get("duration", 0)) <= 0:
+        os_cfg = self.rs.get_one_shot()
+        dur    = int(os_cfg.get("duration", 0))
+        if not os_cfg.get("armed") or dur <= 0:
             return
-        st = os["start_time"]
+        st   = os_cfg["start_time"]
         h, m = int(st[:2]), int(st[3:])
-        fire = now.replace(hour=h, minute=m, second=0, microsecond=0)
-        if now >= fire:
-            # Disarm immediately — prevent re-entry if _execute is slow
-            self._oneshot_fired = True
-            self._oneshot_date  = today
-            self.rs.set_one_shot(st, int(os["duration"]), armed=False)
-            self._execute(int(os["duration"]), "ONE-SHOT")
+        if now >= now.replace(hour=h, minute=m, second=0, microsecond=0):
+            self._oneshot_fired         = True
+            self._oneshot_date          = today
+            self._oneshot_minutes_today = dur   # ← FIX: track for daily total
+            self.rs.set_one_shot(st, dur, armed=False)
+            self._execute(dur, "ONE-SHOT")

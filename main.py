@@ -6,8 +6,8 @@ import logging.handlers
 import sys
 import tkinter as tk
 
-from data_directory import DataDirectoryManager
-from utils import init_timezone
+from config import DataDirectoryManager, AppConfig
+from utils  import init_timezone
 
 DataDirectoryManager.setup()
 DataDirectoryManager.migrate_old_files()
@@ -23,15 +23,12 @@ log = logging.getLogger(__name__)
 if __name__ == "__main__":
     log.info("=== Boiler Control System Starting ===")
 
-    from config_loader import ConfigLoader
-    cfg = ConfigLoader()
+    cfg = AppConfig()
     cfg.load()
     init_timezone(cfg.timezone)
 
-    from weather_service import WeatherService
-    from ha_service import HAService
-    from mqtt_service import MQTTService
-    from data_manager import DataManager
+    from core      import WeatherService, DataManager
+    from services  import HAService, MQTTService
     from scheduler import Scheduler
 
     weather = WeatherService(
@@ -44,7 +41,6 @@ if __name__ == "__main__":
         ha_url=cfg.ha_url, headers=cfg.ha_headers,
         boiler_1st_entity=cfg.boiler_1st_on_entity_id,
         script_1st_entity=cfg.run_script_1st_entity_id,
-        script_2nd_entity=cfg.run_script_2nd_entity_id,
     )
     mqtt = MQTTService(
         broker_ip=cfg.mqtt_broker_ip or "localhost",
@@ -53,12 +49,11 @@ if __name__ == "__main__":
         username=cfg.mqtt_username,
         password=cfg.mqtt_password,
         topic_format=cfg.mqtt_topic_format,
+        cmd_enabled=cfg.mqtt_cmd_enabled,
+        cmd_adhoc=cfg.mqtt_cmd_adhoc,
+        cmd_oneshot=cfg.mqtt_cmd_oneshot,
+        cmd_weekly=cfg.mqtt_cmd_weekly,
     ) if cfg.mqtt_broker_ip else None
-    if mqtt:
-        mqtt.cmd_enabled = cfg.mqtt_cmd_enabled
-        mqtt.cmd_adhoc   = cfg.mqtt_cmd_adhoc
-        mqtt.cmd_oneshot = cfg.mqtt_cmd_oneshot
-        mqtt.cmd_weekly  = cfg.mqtt_cmd_weekly
 
     rs  = cfg.runtime_settings
     dm  = DataManager()
@@ -71,9 +66,6 @@ if __name__ == "__main__":
                      ha_service=ha, data_manager=dm,
                      scheduler=sch, mqtt_service=mqtt)
 
-    # Wire HA reachability → status bar
-    # NOTE: mqtt callbacks (on_connect_change, on_status_change, on_tele) are
-    # owned by app._wire_mqtt_callbacks() — do NOT reassign here.
     ha.on_reachability_change = lambda ok: root.after(0, lambda: app.notify_ha_state(ok))
     if mqtt:
         mqtt.active = rs.get_mqtt_active()

@@ -4,10 +4,11 @@ Style: dark cards, blue accent borders, clean typography inspired by modern dark
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 from datetime import datetime
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from gui.dialogs import show_info, show_error, show_warning, ask_yes_no
 
 DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
@@ -74,7 +75,6 @@ class SettingsTab:
         self._build_lut_buttons(left)
         self._build_settings_box(left)
         self._build_test_box(left)
-        self._build_solar_mode_box(left)
         tk.Frame(left, bg=self.clr["BG"]).grid(row=5, column=0, sticky="nsew")
         self._build_save_button(left)
 
@@ -311,7 +311,7 @@ class SettingsTab:
         box = self._card_grid(parent, "Solar Settings", row=2)
 
         r0 = self._row(box)
-        self._dim_lbl(r0, "Target ready:").pack(side="left")
+        self._dim_lbl(r0, "1st run target:").pack(side="left")
         p = self.config.first_run_target_time.split(":")
         self.target_hour_var = tk.StringVar(value=p[0])
         self.target_min_var  = tk.StringVar(value=p[1])
@@ -319,10 +319,18 @@ class SettingsTab:
                           self.target_min_var).pack(in_=r0, side="right")
 
         r1 = self._row(box)
-        self._dim_lbl(r1, "Cloud penalty:").pack(side="left")
+        self._dim_lbl(r1, "2nd run time:").pack(side="left")
+        t2 = self.runtime_settings.get_second_run_time().split(":")
+        self._2nd_hour_var = tk.StringVar(value=t2[0])
+        self._2nd_min_var  = tk.StringVar(value=t2[1])
+        self._time_widget(box, self._2nd_hour_var,
+                          self._2nd_min_var).pack(in_=r1, side="right")
+
+        r2 = self._row(box)
+        self._dim_lbl(r2, "Cloud penalty:").pack(side="left")
         self.cloud_penalty_var = tk.StringVar(
             value=str(self.weather_service.cloud_penalty_factor))
-        self._inp(r1, self.cloud_penalty_var, width=7).pack(side="right")
+        self._inp(r2, self.cloud_penalty_var, width=7).pack(side="right")
 
     def _build_test_box(self, parent):
         box = self._card_grid(parent, "Test Calculation", row=3)
@@ -357,27 +365,7 @@ class SettingsTab:
                   ).grid(row=6, column=0, sticky="ew")
 
 
-    def _build_solar_mode_box(self, parent):
-        """Solar Mode card in left column, grid row 4."""
-        box = self._card_grid(parent, "Solar Mode", row=4)
-
-        r0 = self._row(box)
-        self._dim_lbl(r0, "Active:").pack(side="left")
-        self._solar_active_var = tk.BooleanVar(
-            value=self.runtime_settings.get_solar_active())
-        self._toggle(box, self._solar_active_var,
-                     self._save_solar_active).pack(in_=r0, side="left", padx=8)
-
-        r1 = self._row(box)
-        self._dim_lbl(r1, "2nd run time:").pack(side="left")
-        t2 = self.runtime_settings.get_second_run_time().split(":")
-        self._2nd_hour_var = tk.StringVar(value=t2[0])
-        self._2nd_min_var  = tk.StringVar(value=t2[1])
-        self._time_widget(box, self._2nd_hour_var,
-                          self._2nd_min_var).pack(in_=r1, side="right")
-
-        self._btn_pri(box, "Save 2nd Run Time",
-                      self._save_2nd_run_time).pack(fill="x", pady=(8, 0))
+    # Solar Mode card removed — toggle moved to Dashboard (Solar Mode card)
 
     # ─────────────────────────────────────────────────────────
     # RIGHT — SOLAR PANEL (below graph)
@@ -397,6 +385,25 @@ class SettingsTab:
 
         tk.Label(mqtt_card, text=f"{broker}  |  {topic}",
                  bg=CARD_BG, fg=TEXT_DIM, font=("Consolas", 8)).pack(anchor="w", pady=(0,2))
+
+        # Live Tasmota topics (computed from mqtt_service)
+        ms = self.mqtt_service
+        t_cmd  = getattr(ms, "cmd_topic",   "—") if ms else "—"
+        t_stat = getattr(ms, "stat_topic",  "—") if ms else "—"
+        t_tele = getattr(ms, "tele_sub",    "—") if ms else "—"
+        topics_frame = tk.Frame(mqtt_card, bg=INPUT_BG,
+                                highlightthickness=1, highlightbackground=CARD_BDR)
+        topics_frame.pack(fill="x", pady=(0, 4))
+        tk.Label(topics_frame, text="  Tasmota topics",
+                 bg=INPUT_BG, fg=ACC_BLUE,
+                 font=("Segoe UI", 8, "bold"), pady=3).pack(anchor="w")
+        for lbl, val in [("  cmd:", t_cmd), ("  stat:", t_stat), ("  tele:", t_tele)]:
+            r = tk.Frame(topics_frame, bg=INPUT_BG)
+            r.pack(fill="x")
+            tk.Label(r, text=lbl, bg=INPUT_BG, fg=TEXT_DIM,
+                     font=("Segoe UI", 8), width=7, anchor="w").pack(side="left")
+            tk.Label(r, text=val, bg=INPUT_BG, fg=TEXT_FG,
+                     font=("Consolas", 8)).pack(side="left", padx=(2, 4))
 
         # Command topics info block
         cmd_frame = tk.Frame(mqtt_card, bg=INPUT_BG,
@@ -545,13 +552,13 @@ class SettingsTab:
                 self.temp_lut[int(tv.get())] = int(dv.get())
                 self._load_lut_to_tree(); self._update_lut_graph(); d.destroy()
             except ValueError as e:
-                messagebox.showerror("Error", str(e), parent=d)
+                show_error(d, "Error", str(e))
         self._lut_btns(d, save)
 
     def _edit_lut_row(self):
         sel = self.lut_tree.selection()
         if not sel:
-            messagebox.showwarning("No Selection", "Select a row"); return
+            show_warning(self.parent, "No Selection", "Select a row"); return
         v = self.lut_tree.item(sel[0], "values"); old_t = int(v[1])
         d = self._lut_dlg("Edit Point")
         tv, dv = tk.StringVar(value=v[1]), tk.StringVar(value=v[2])
@@ -563,17 +570,17 @@ class SettingsTab:
                 self.temp_lut[nt] = nd
                 self._load_lut_to_tree(); self._update_lut_graph(); d.destroy()
             except ValueError as e:
-                messagebox.showerror("Error", str(e), parent=d)
+                show_error(d, "Error", str(e))
         self._lut_btns(d, save)
 
     def _delete_lut_row(self):
         sel = self.lut_tree.selection()
         if not sel:
-            messagebox.showwarning("No Selection", "Select a row"); return
+            show_warning(self.parent, "No Selection", "Select a row"); return
         if len(self.temp_lut) <= 2:
-            messagebox.showerror("Cannot Delete", "Need ≥ 2 points"); return
+            show_error(self.parent, "Cannot Delete", "Need ≥ 2 points"); return
         t = int(self.lut_tree.item(sel[0], "values")[1])
-        if messagebox.askyesno("Confirm", f"Delete {t}°C?"):
+        if ask_yes_no(self.parent, "Confirm", f"Delete {t}°C?"):
             del self.temp_lut[t]
             self._load_lut_to_tree(); self._update_lut_graph()
 
@@ -706,17 +713,24 @@ class SettingsTab:
             m = self.target_min_var.get().strip().zfill(2)
             ts = f"{h}:{m}"
             if not self.runtime_settings.set_target_time(ts):
-                messagebox.showerror("Invalid Time", "Must be HH:MM"); return
+                show_error(self.parent, "Invalid Time", "Must be HH:MM"); return
+
+            h2 = self._2nd_hour_var.get().strip().zfill(2)
+            m2 = self._2nd_min_var.get().strip().zfill(2)
+            t2 = f"{h2}:{m2}"
+            if not self.runtime_settings.set_second_run_time(t2):
+                show_error(self.parent, "Invalid Time", "2nd run must be HH:MM"); return
+
             try:
                 pen = float(self.cloud_penalty_var.get())
                 if not self.runtime_settings.set_cloud_penalty(pen):
-                    messagebox.showerror("Invalid", "Penalty must be positive"); return
+                    show_error(self.parent, "Invalid", "Penalty must be positive"); return
             except ValueError:
-                messagebox.showerror("Invalid", "Penalty must be a number"); return
+                show_error(self.parent, "Invalid", "Penalty must be a number"); return
             if len(self.temp_lut) < 2:
-                messagebox.showerror("Invalid LUT", "Need ≥ 2 points"); return
+                show_error(self.parent, "Invalid LUT", "Need ≥ 2 points"); return
             if not self.runtime_settings.set_temp_lut(self.temp_lut):
-                messagebox.showerror("Invalid LUT", "Validation failed"); return
+                show_error(self.parent, "Invalid LUT", "Validation failed"); return
 
             self.config.first_run_target_time        = ts
             self.config.cloud_penalty_factor          = pen
@@ -724,10 +738,10 @@ class SettingsTab:
             self.weather_service.temp_lut              = self.temp_lut
             self.weather_service.cloud_penalty_factor  = pen
             self.scheduler.update_target_time(ts)
-            messagebox.showinfo("Saved",
-                f"Target: {ts}  |  Penalty: {pen}  |  LUT: {len(self.temp_lut)} pts")
+            show_info(self.parent, "Saved",
+                f"1st run: {ts}  |  2nd run: {t2}  |  Penalty: {pen}  |  LUT: {len(self.temp_lut)} pts")
         except Exception as e:
-            messagebox.showerror("Save Failed", str(e))
+            show_error(self.parent, "Save Failed", str(e))
 
     # ─────────────────────────────────────────────────────────
     # CONTROL ACTIONS
@@ -735,19 +749,16 @@ class SettingsTab:
     def _save_exec_mode(self):
         mode = self._exec_mode_var.get()
         self.runtime_settings.set_execution_mode(mode)
-        # MQTT execution mode implies broker must be active
         if mode == "MQTT" and not self._mqtt_active_var.get():
-            self._mqtt_active_var.set(True)  # triggers _on_mqtt_active_toggle
+            self._mqtt_active_var.set(True)
 
     def _on_mqtt_active_toggle(self):
         active = self._mqtt_active_var.get()
         self.runtime_settings.set_mqtt_active(active)
-        # Update label
         if hasattr(self, '_mqtt_active_lbl'):
             self._mqtt_active_lbl.config(
                 text="on" if active else "off",
                 fg=ACC_GREEN if active else TEXT_DIM)
-        # Sync to mqtt_service
         if self.mqtt_service:
             self.mqtt_service.active = active
             if active and not self.mqtt_service.is_connected():
@@ -765,9 +776,9 @@ class SettingsTab:
         m = self._2nd_min_var.get().strip().zfill(2)
         t = f"{h}:{m}"
         if self.runtime_settings.set_second_run_time(t):
-            messagebox.showinfo("Saved", f"2nd run → {t}")
+            show_info(self.parent, "Saved", f"2nd run → {t}")
         else:
-            messagebox.showerror("Invalid", "Time must be HH:MM")
+            show_error(self.parent, "Invalid", "Time must be HH:MM")
 
     def _save_weekly_presets(self):
         presets = []
@@ -777,7 +788,7 @@ class SettingsTab:
             try:
                 dur = int(w["dur"].get().strip())
             except ValueError:
-                messagebox.showerror("Invalid",
+                show_error(self.parent, "Invalid",
                     f"Preset {w['id']}: duration must be integer"); return
             presets.append({
                 "id": w["id"], "active": w["active"].get(),
@@ -785,7 +796,7 @@ class SettingsTab:
                 "days": [d for d in DAYS if w["days"][d].get()]
             })
         self.runtime_settings.set_weekly_presets(presets)
-        messagebox.showinfo("Saved", "Weekly presets saved")
+        show_info(self.parent, "Saved", "Weekly presets saved")
 
     def _arm_one_shot(self):
         h = self._os_hour_var.get().strip().zfill(2)
@@ -794,11 +805,11 @@ class SettingsTab:
             dur = int(self._os_dur_var.get().strip())
             if dur <= 0: raise ValueError
         except ValueError:
-            messagebox.showerror("Invalid", "Duration must be positive integer"); return
+            show_error(self.parent, "Invalid", "Duration must be positive integer"); return
         self.runtime_settings.settings["one_shot"] = {
             "start_time": f"{h}:{m}", "duration": dur, "armed": True}
         self.runtime_settings.save()
-        messagebox.showinfo("Armed", f"One-shot: {h}:{m}  {dur} min")
+        show_info(self.parent, "Armed", f"One-shot: {h}:{m}  {dur} min")
 
     def _refresh_status(self):
         mode = self.runtime_settings.get_execution_mode()
@@ -839,11 +850,11 @@ class SettingsTab:
 
     def _ensure_mqtt(self):
         if not self.mqtt_service:
-            messagebox.showerror("MQTT", "Not configured — check config.ini [mqtt]")
+            show_error(self.parent, "MQTT", "Not configured — check config.ini [mqtt]")
             return False
         if not self.mqtt_service.is_connected():
             if not self.mqtt_service.connect():
-                messagebox.showerror("MQTT",
+                show_error(self.parent, "MQTT",
                     f"Cannot connect to {self.config.mqtt_broker_ip}")
                 return False
         return True
@@ -854,27 +865,27 @@ class SettingsTab:
             dur = int(self._mqtt_dur_var.get().strip())
             if dur <= 0: raise ValueError
         except ValueError:
-            messagebox.showerror("Invalid", "Duration must be positive integer"); return
+            show_error(self.parent, "Invalid", "Duration must be positive integer"); return
         if self.mqtt_service.turn_on_for(dur):
             self._update_status("ON")
         else:
-            messagebox.showerror("MQTT", "Command failed")
+            show_error(self.parent, "MQTT", "Command failed")
 
     def _mqtt_manual_off(self):
         if not self._ensure_mqtt(): return
         if self.mqtt_service.turn_off():
             self._update_status("OFF")
         else:
-            messagebox.showerror("MQTT", "Command failed")
+            show_error(self.parent, "MQTT", "Command failed")
 
     def _mqtt_send_cmd(self):
         if not self._ensure_mqtt(): return
         sub = self._cmd_subtopic_var.get().strip()
         pay = self._cmd_payload_var.get().strip()
         if not sub:
-            messagebox.showerror("Invalid", "Subtopic cannot be empty"); return
+            show_error(self.parent, "Invalid", "Subtopic cannot be empty"); return
         if not self.mqtt_service.send_cmd(sub, pay):
-            messagebox.showerror("MQTT", "Command failed")
+            show_error(self.parent, "MQTT", "Command failed")
 
     def _on_tele_message(self, subtopic, payload):
         self.parent.after(0, lambda: self._append_tele(subtopic, payload))
@@ -909,7 +920,7 @@ class SettingsTab:
     # ─────────────────────────────────────────────────────────
     def _mqtt_connect(self):
         if not self.mqtt_service:
-            messagebox.showerror("MQTT", "Not configured — check config.ini [mqtt]")
+            show_error(self.parent, "MQTT", "Not configured — check config.ini [mqtt]")
             return
         if self.mqtt_service.is_connected():
             self._update_mqtt_broker_indicator(True)
@@ -917,8 +928,8 @@ class SettingsTab:
         ok = self.mqtt_service.connect()
         self._update_mqtt_broker_indicator(ok)
         if not ok:
-            messagebox.showerror("MQTT", f"Cannot connect to broker\n"
-                                 f"{getattr(self.config,'mqtt_broker_ip','?')}")
+            show_error(self.parent, "MQTT",
+                f"Cannot connect to broker\n{getattr(self.config,'mqtt_broker_ip','?')}")
 
     def _mqtt_disconnect(self):
         if self.mqtt_service:

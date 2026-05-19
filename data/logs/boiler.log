@@ -1518,3 +1518,242 @@
 2026-05-17 21:09:46,215 [INFO] MQTT stat: OFF
 2026-05-17 21:22:49,919 [INFO] Scheduler stopped
 2026-05-17 21:22:49,919 [INFO] === System Shutdown ===
+2026-05-17 21:28:44,634 [INFO] === Boiler Control System Starting ===
+2026-05-17 21:28:44,653 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-05-17 21:28:44,653 [INFO] Runtime: target=18:40, mode=HA, lut=9pts
+2026-05-17 21:28:44,653 [INFO] Configuration loaded
+2026-05-17 21:28:44,781 [INFO] MQTT topics — cmd:DvirHome/WaterHeater/cmnd/POWER stat:DvirHome/WaterHeater/stat/POWER tele:DvirHome/WaterHeater/tele/#
+2026-05-17 21:28:44,781 [INFO] Scheduler ready — target 18:40, check 16:40
+2026-05-17 21:28:45,858 [INFO] Scheduler started
+2026-05-17 21:28:45,858 [INFO] === System Ready ===
+2026-05-17 21:28:46,051 [INFO] Sun times: sunrise=05:39, sunset=19:32
+2026-05-17 21:28:46,354 [INFO] Collected 14 hourly measurements (sunrise→19:32)
+2026-05-17 21:28:46,354 [INFO] Calculation: avg_temp=27.6°C, avg_cloud=17%, effective=26.9°C, duration=0min, sliders=(0,0)
+2026-05-17 21:28:47,872 [INFO] MQTT cmd topic subscribed: DvirHome/Boiler/adhoc
+2026-05-17 21:28:47,872 [INFO] MQTT cmd topic subscribed: DvirHome/Boiler/oneshot
+2026-05-17 21:28:47,872 [INFO] MQTT cmd topic subscribed: DvirHome/Boiler/weekly
+2026-05-17 21:28:47,872 [INFO] MQTT connected → subscribed stat+tele+cmds
+2026-05-17 21:28:48,195 [INFO] MQTT stat: OFF
+2026-05-17 21:31:35,609 [INFO] EXECUTE [MANUAL] 1min via HA
+2026-05-17 21:31:35,619 [INFO] HA 1st run: 1min
+2026-05-17 21:31:35,649 [INFO] Set input_number.boiler_duration_helper = 1 min
+2026-05-17 21:31:35,671 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-17 21:31:35,671 [INFO] HA 1st run complete
+2026-05-17 21:31:35,842 [INFO] MQTT stat: ON
+2026-05-17 21:32:35,135 [INFO] MQTT stat: OFF
+2026-05-17 21:35:35,031 [INFO] EXECUTE [MANUAL] 8min via HA
+2026-05-17 21:35:35,040 [INFO] HA 1st run: 8min
+2026-05-17 21:35:35,061 [INFO] Set input_number.boiler_duration_helper = 8 min
+2026-05-17 21:35:35,077 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-17 21:35:35,078 [INFO] HA 1st run complete
+2026-05-17 21:35:35,264 [INFO] MQTT stat: ON
+2026-05-17 21:36:08,212 [INFO] MQTT DvirHome/WaterHeater/cmnd/POWER = OFF → OK
+2026-05-17 21:36:08,488 [INFO] MQTT stat: OFF
+2026-05-17 21:43:35,149 [INFO] MQTT stat: OFF
+2026-05-17 21:47:56,503 [INFO] === Boiler Control System Starting ===
+2026-05-17 21:47:56,516 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-05-17 21:47:56,516 [INFO] Runtime: target=18:40, mode=HA, lut=9pts
+2026-05-17 21:47:56,516 [INFO] Configuration loaded
+2026-05-17 21:47:56,634 [INFO] MQTT topics — cmd:DvirHome/WaterHeater/cmnd/POWER stat:DvirHome/WaterHeater/stat/POWER tele:DvirHome/WaterHeater/tele/#
+2026-05-17 21:47:56,634 [INFO] Scheduler ready — target 18:40, check 16:40
+2026-05-17 21:47:57,692 [INFO] Scheduler started
+2026-05-17 21:47:57,692 [INFO] === System Ready ===
+2026-05-17 21:47:57,872 [INFO] Sun times: sunrise=05:39, sunset=19:32
+2026-05-17 21:47:58,169 [INFO] Collected 14 hourly measurements (sunrise→19:32)
+2026-05-17 21:47:58,169 [INFO] Calculation: avg_temp=27.6°C, avg_cloud=17%, effective=26.9°C, duration=0min, sliders=(0,0)
+2026-05-17 21:47:59,708 [INFO] MQTT cmd topic subscribed: DvirHome/Boiler/adhoc
+2026-05-17 21:47:59,709 [INFO] MQTT cmd topic subscribed: DvirHome/Boiler/oneshot
+2026-05-17 21:47:59,709 [INFO] MQTT cmd topic subscribed: DvirHome/Boiler/weekly
+2026-05-17 21:47:59,709 [INFO] MQTT connected → subscribed stat+tele+cmds
+2026-05-17 21:48:00,046 [INFO] MQTT stat: OFF
+2026-05-17 21:48:26,549 [INFO] EXECUTE [MANUAL] 1min via HA
+2026-05-17 21:48:26,556 [INFO] HA 1st run: 1min
+2026-05-17 21:48:26,573 [INFO] Set input_number.boiler_duration_helper = 1 min
+2026-05-17 21:48:26,586 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-17 21:48:26,587 [INFO] HA 1st run complete
+2026-05-17 21:48:26,745 [INFO] MQTT stat: ON
+2026-05-17 21:49:26,163 [INFO] MQTT stat: OFF
+2026-05-17 21:49:46,715 [INFO] EXECUTE [MANUAL] 1min via HA
+2026-05-17 21:49:46,722 [INFO] HA 1st run: 1min
+2026-05-17 21:49:46,744 [INFO] Set input_number.boiler_duration_helper = 1 min
+2026-05-17 21:49:46,762 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-17 21:49:46,763 [INFO] HA 1st run complete
+2026-05-17 21:49:46,919 [INFO] MQTT stat: ON
+2026-05-17 21:50:46,187 [INFO] MQTT stat: OFF
+2026-05-17 21:52:27,848 [INFO] EXECUTE [ONE-SHOT] 2min via HA
+2026-05-17 21:52:27,848 [INFO] HA 1st run: 2min
+2026-05-17 21:52:27,867 [INFO] Set input_number.boiler_duration_helper = 2 min
+2026-05-17 21:52:27,885 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-17 21:52:27,886 [INFO] HA 1st run complete
+2026-05-17 21:52:28,123 [INFO] MQTT stat: ON
+2026-05-17 21:54:27,297 [INFO] MQTT stat: OFF
+2026-05-18 16:40:30,341 [INFO] Sun times: sunrise=05:38, sunset=19:33
+2026-05-18 16:40:30,710 [INFO] Collected 11 hourly measurements (sunrise→16:40)
+2026-05-18 16:40:30,711 [INFO] Calculation: avg_temp=26.7°C, avg_cloud=79%, effective=23.57°C, duration=1min, sliders=(1,0)
+2026-05-18 16:40:30,711 [INFO] Solar trigger at 18:39 (1min, 2nd=0min)
+2026-05-18 18:36:00,400 [INFO] MQTT stat: ON
+2026-05-18 18:39:00,857 [INFO] EXECUTE [SOLAR-1ST] 1min via HA
+2026-05-18 18:39:00,857 [INFO] HA 1st run: 1min
+2026-05-18 18:39:00,881 [INFO] Set input_number.boiler_duration_helper = 1 min
+2026-05-18 18:39:00,896 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-18 18:39:00,897 [INFO] HA 1st run complete
+2026-05-18 18:39:00,903 [INFO] Saved record for 2026-05-18
+2026-05-18 18:39:01,204 [INFO] MQTT stat: ON
+2026-05-18 18:40:00,153 [INFO] MQTT stat: OFF
+2026-05-18 21:43:00,964 [INFO] EXECUTE [ONE-SHOT] 2min via HA
+2026-05-18 21:43:00,964 [INFO] HA 1st run: 2min
+2026-05-18 21:43:00,988 [INFO] Set input_number.boiler_duration_helper = 2 min
+2026-05-18 21:43:01,003 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-18 21:43:01,003 [INFO] HA 1st run complete
+2026-05-18 21:43:01,250 [INFO] MQTT stat: ON
+2026-05-18 21:45:01,271 [INFO] MQTT stat: OFF
+2026-05-18 22:05:27,929 [INFO] Scheduler stopped
+2026-05-18 22:05:27,930 [INFO] === System Shutdown ===
+2026-05-18 22:10:43,255 [INFO] === Boiler Control System Starting ===
+2026-05-18 22:10:43,274 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-05-18 22:10:43,274 [INFO] Runtime: target=18:40, mode=HA, lut=9pts
+2026-05-18 22:10:43,274 [INFO] Configuration loaded
+2026-05-18 22:10:43,431 [INFO] MQTT topics — cmd:DvirHome/WaterHeater/cmnd/POWER stat:DvirHome/WaterHeater/stat/POWER tele:DvirHome/WaterHeater/tele/#
+2026-05-18 22:10:43,431 [INFO] Scheduler ready — target 18:40, check 16:40
+2026-05-18 22:10:44,713 [INFO] Scheduler started
+2026-05-18 22:10:44,714 [INFO] === System Ready ===
+2026-05-18 22:10:44,883 [INFO] Sun times: sunrise=05:38, sunset=19:33
+2026-05-18 22:10:45,208 [INFO] Collected 14 hourly measurements (sunrise→19:33)
+2026-05-18 22:10:45,209 [INFO] Calculation: avg_temp=26.4°C, avg_cloud=76%, effective=23.36°C, duration=2min, sliders=(2,0)
+2026-05-18 22:10:46,730 [INFO] MQTT cmd topic subscribed: DvirHome/Boiler/adhoc
+2026-05-18 22:10:46,730 [INFO] MQTT cmd topic subscribed: DvirHome/Boiler/oneshot
+2026-05-18 22:10:46,731 [INFO] MQTT cmd topic subscribed: DvirHome/Boiler/weekly
+2026-05-18 22:10:46,731 [INFO] MQTT connected → subscribed stat+tele+cmds
+2026-05-18 22:10:46,956 [INFO] MQTT stat: OFF
+2026-05-18 22:20:14,891 [INFO] Scheduler stopped
+2026-05-18 22:20:14,892 [INFO] === System Shutdown ===
+2026-05-18 22:21:40,973 [INFO] === Boiler Control System Starting ===
+2026-05-18 22:21:40,999 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-05-18 22:21:40,999 [INFO] Runtime: target=18:40, mode=HA, lut=9pts
+2026-05-18 22:21:40,999 [INFO] Configuration loaded
+2026-05-18 22:21:41,165 [INFO] MQTT topics — cmd:DvirHome/WaterHeater/cmnd/POWER stat:DvirHome/WaterHeater/stat/POWER tele:DvirHome/WaterHeater/tele/#
+2026-05-18 22:21:41,166 [INFO] Scheduler ready — target 18:40, check 16:40
+2026-05-18 22:21:42,448 [INFO] Scheduler started
+2026-05-18 22:21:42,448 [INFO] === System Ready ===
+2026-05-18 22:21:42,621 [INFO] Sun times: sunrise=05:38, sunset=19:33
+2026-05-18 22:21:42,990 [INFO] Collected 14 hourly measurements (sunrise→19:33)
+2026-05-18 22:21:42,990 [INFO] Calculation: avg_temp=26.4°C, avg_cloud=76%, effective=23.36°C, duration=2min, sliders=(2,0)
+2026-05-18 22:21:44,467 [INFO] MQTT cmd topic subscribed: DvirHome/Boiler/adhoc
+2026-05-18 22:21:44,467 [INFO] MQTT cmd topic subscribed: DvirHome/Boiler/oneshot
+2026-05-18 22:21:44,467 [INFO] MQTT cmd topic subscribed: DvirHome/Boiler/weekly
+2026-05-18 22:21:44,467 [INFO] MQTT connected → subscribed stat+tele+cmds
+2026-05-18 22:21:44,518 [INFO] MQTT stat: OFF
+2026-05-18 22:22:42,632 [INFO] EXECUTE [WEEKLY-1] 45min via HA
+2026-05-18 22:22:42,633 [INFO] HA 1st run: 45min
+2026-05-18 22:22:42,656 [INFO] Set input_number.boiler_duration_helper = 45 min
+2026-05-18 22:22:42,671 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-18 22:22:42,672 [INFO] HA 1st run complete
+2026-05-18 22:22:42,929 [INFO] MQTT stat: ON
+2026-05-18 22:24:12,673 [INFO] EXECUTE [ONE-SHOT] 1min via HA
+2026-05-18 22:24:12,673 [INFO] HA 1st run: 1min
+2026-05-18 22:24:12,692 [INFO] Set input_number.boiler_duration_helper = 1 min
+2026-05-18 22:24:12,706 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-18 22:24:12,706 [INFO] HA 1st run complete
+2026-05-18 22:24:13,081 [INFO] MQTT stat: ON
+2026-05-18 22:25:12,146 [INFO] MQTT stat: OFF
+2026-05-19 07:00:13,409 [INFO] EXECUTE [WEEKLY-1] 45min via HA
+2026-05-19 07:00:13,410 [INFO] HA 1st run: 45min
+2026-05-19 07:00:13,435 [INFO] Set input_number.boiler_duration_helper = 45 min
+2026-05-19 07:00:13,453 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-19 07:00:13,453 [INFO] HA 1st run complete
+2026-05-19 07:00:13,680 [INFO] MQTT stat: ON
+2026-05-19 07:08:01,759 [INFO] === Boiler Control System Starting ===
+2026-05-19 07:08:01,760 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-05-19 07:08:01,760 [INFO] Runtime: target=18:40, mode=HA, lut=9pts
+2026-05-19 07:08:01,760 [INFO] Configuration loaded
+2026-05-19 07:08:01,885 [INFO] Scheduler ready — target 18:40, check 16:40
+2026-05-19 07:08:03,057 [INFO] Scheduler started
+2026-05-19 07:08:03,057 [INFO] === System Ready ===
+2026-05-19 07:08:03,158 [INFO] EXECUTE [WEEKLY-1] 45min via HA
+2026-05-19 07:08:03,161 [INFO] HA 1st run: 45min
+2026-05-19 07:08:03,184 [INFO] Set input_number.boiler_duration_helper = 45 min
+2026-05-19 07:08:03,200 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-19 07:08:03,200 [INFO] HA 1st run complete
+2026-05-19 07:08:03,209 [INFO] Sun: ↑05:38 ↓19:33
+2026-05-19 07:08:03,521 [INFO] Collected 2 hourly measurements (sunrise→07:08)
+2026-05-19 07:08:03,522 [INFO] Calc: avg=18.2°C cloud=74% eff=15.31°C dur=61min sliders=(61,0)
+2026-05-19 07:08:05,071 [INFO] MQTT topics — cmd:DvirHome/WaterHeater/cmnd/POWER stat:DvirHome/WaterHeater/stat/POWER tele:DvirHome/WaterHeater/tele/#
+2026-05-19 07:08:05,075 [INFO] MQTT connected to 192.168.30.2:1883
+2026-05-19 07:08:05,076 [INFO] MQTT subscribed: DvirHome/Boiler/adhoc
+2026-05-19 07:08:05,076 [INFO] MQTT subscribed: DvirHome/Boiler/oneshot
+2026-05-19 07:08:05,076 [INFO] MQTT subscribed: DvirHome/Boiler/weekly
+2026-05-19 07:09:48,303 [INFO] MQTT timed ON: 30min
+2026-05-19 07:09:48,527 [INFO] MQTT stat: ON
+2026-05-19 07:09:53,117 [INFO] MQTT stat: OFF
+2026-05-19 07:13:33,362 [INFO] Scheduler stopped
+2026-05-19 07:13:33,362 [INFO] === System Shutdown ===
+2026-05-19 07:15:13,830 [INFO] === Boiler Control System Starting ===
+2026-05-19 07:15:13,832 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-05-19 07:15:13,833 [INFO] Runtime: target=18:40, mode=HA, lut=9pts
+2026-05-19 07:15:13,833 [INFO] Configuration loaded
+2026-05-19 07:15:13,940 [INFO] Scheduler ready — target 18:40, check 16:40
+2026-05-19 07:15:15,034 [INFO] Scheduler started
+2026-05-19 07:15:15,034 [INFO] === System Ready ===
+2026-05-19 07:15:15,199 [INFO] EXECUTE [WEEKLY-1] 45min via HA
+2026-05-19 07:15:15,204 [INFO] HA 1st run: 45min
+2026-05-19 07:15:15,224 [INFO] Sun: ↑05:38 ↓19:33
+2026-05-19 07:15:15,232 [INFO] Set input_number.boiler_duration_helper = 45 min
+2026-05-19 07:15:15,252 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-19 07:15:15,252 [INFO] HA 1st run complete
+2026-05-19 07:15:15,545 [INFO] Collected 2 hourly measurements (sunrise→07:15)
+2026-05-19 07:15:15,545 [INFO] Calc: avg=18.2°C cloud=74% eff=15.31°C dur=61min sliders=(61,0)
+2026-05-19 07:15:17,049 [INFO] MQTT topics — cmd:DvirHome/WaterHeater/cmnd/POWER stat:DvirHome/WaterHeater/stat/POWER tele:DvirHome/WaterHeater/tele/#
+2026-05-19 07:15:17,053 [INFO] MQTT connected to 192.168.30.2:1883
+2026-05-19 07:15:17,053 [INFO] MQTT subscribed: DvirHome/Boiler/adhoc
+2026-05-19 07:15:17,053 [INFO] MQTT subscribed: DvirHome/Boiler/oneshot
+2026-05-19 07:15:17,053 [INFO] MQTT subscribed: DvirHome/Boiler/weekly
+2026-05-19 07:17:35,364 [INFO] MQTT stat: OFF
+2026-05-19 08:00:15,264 [INFO] MQTT stat: OFF
+2026-05-19 16:40:16,742 [INFO] Sun: ↑05:38 ↓19:33
+2026-05-19 16:40:17,511 [INFO] Collected 11 hourly measurements (sunrise→16:40)
+2026-05-19 16:40:17,511 [INFO] Calc: avg=23.6°C cloud=52% eff=21.55°C dur=7min sliders=(7,0)
+2026-05-19 16:40:17,511 [INFO] Solar trigger at 18:33 (7min, 2nd=0min)
+2026-05-19 18:29:00,287 [INFO] MQTT stat: ON
+2026-05-19 18:33:17,649 [INFO] EXECUTE [SOLAR-1ST] 7min via HA
+2026-05-19 18:33:17,649 [INFO] HA 1st run: 7min
+2026-05-19 18:33:17,668 [INFO] Set input_number.boiler_duration_helper = 7 min
+2026-05-19 18:33:17,684 [INFO] Triggered script.start_waterheater_using_ui
+2026-05-19 18:33:17,685 [INFO] HA 1st run complete
+2026-05-19 18:33:17,687 [INFO] Saved record for 2026-05-19
+2026-05-19 18:33:17,880 [INFO] MQTT stat: ON
+2026-05-19 18:40:17,250 [INFO] MQTT stat: OFF
+2026-05-19 22:40:26,614 [INFO] Scheduler stopped
+2026-05-19 22:40:26,615 [INFO] === System Shutdown ===
+2026-05-20 06:43:21,444 [INFO] === Boiler Control System Starting ===
+2026-05-20 06:43:21,446 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-05-20 06:43:21,446 [INFO] Runtime: target=18:40, mode=HA, lut=9pts
+2026-05-20 06:43:21,446 [INFO] Configuration loaded
+2026-05-20 06:43:21,613 [INFO] Scheduler ready — target 18:40, check 16:40
+2026-05-20 06:43:22,864 [INFO] Scheduler started
+2026-05-20 06:43:22,864 [INFO] === System Ready ===
+2026-05-20 06:43:23,039 [INFO] Sun: ↑05:37 ↓19:34
+2026-05-20 06:43:23,390 [INFO] Collected 1 hourly measurements (sunrise→06:43)
+2026-05-20 06:43:23,390 [INFO] Calc: avg=18.5°C cloud=91% eff=14.86°C dur=71min sliders=(71,0)
+2026-05-20 06:43:24,886 [INFO] MQTT topics — cmd:DvirHome/WaterHeater/cmnd/POWER stat:DvirHome/WaterHeater/stat/POWER tele:DvirHome/WaterHeater/tele/#
+2026-05-20 06:43:24,888 [INFO] MQTT connected to 192.168.30.2:1883
+2026-05-20 06:43:24,889 [INFO] MQTT subscribed: DvirHome/Boiler/adhoc
+2026-05-20 06:43:24,889 [INFO] MQTT subscribed: DvirHome/Boiler/oneshot
+2026-05-20 06:43:24,889 [INFO] MQTT subscribed: DvirHome/Boiler/weekly
+2026-05-20 06:57:40,580 [INFO] Scheduler stopped
+2026-05-20 06:57:40,581 [INFO] === System Shutdown ===
+2026-05-20 07:01:54,098 [INFO] === Boiler Control System Starting ===
+2026-05-20 07:01:54,099 [INFO] Loaded runtime settings from data/config/runtime_settings.json
+2026-05-20 07:01:54,100 [INFO] Runtime: target=18:40, mode=HA, lut=9pts
+2026-05-20 07:01:54,100 [INFO] Configuration loaded
+2026-05-20 07:01:54,233 [INFO] Scheduler ready — target 18:40, check 16:40
+2026-05-20 07:01:55,288 [INFO] Scheduler started
+2026-05-20 07:01:55,288 [INFO] === System Ready ===
+2026-05-20 07:01:55,547 [INFO] Sun: ↑05:37 ↓19:34
+2026-05-20 07:01:56,022 [INFO] Collected 2 hourly measurements (sunrise→07:01)
+2026-05-20 07:01:56,022 [INFO] Calc: avg=19.0°C cloud=89% eff=15.44°C dur=58min sliders=(58,0)
+2026-05-20 07:01:57,305 [INFO] MQTT topics — cmd:DvirHome/WaterHeater/cmnd/POWER stat:DvirHome/WaterHeater/stat/POWER tele:DvirHome/WaterHeater/tele/#
+2026-05-20 07:01:57,308 [INFO] MQTT connected to 192.168.30.2:1883
+2026-05-20 07:01:57,308 [INFO] MQTT subscribed: DvirHome/Boiler/adhoc
+2026-05-20 07:01:57,308 [INFO] MQTT subscribed: DvirHome/Boiler/oneshot
+2026-05-20 07:01:57,308 [INFO] MQTT subscribed: DvirHome/Boiler/weekly
+2026-05-20 07:01:57,465 [INFO] MQTT stat: OFF

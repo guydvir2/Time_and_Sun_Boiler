@@ -4,14 +4,18 @@ Themed notebook tabs + status bar
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 from datetime import datetime
 import threading
 
-from gui.data_tab import DataTab
-from gui.log_tab import LogTab
-from gui.settings_tab import SettingsTab
-from gui.control_tab import ControlTab
+from config    import AppConfig
+from gui.data_tab      import DataTab
+from gui.log_tab       import LogTab
+from gui.settings_tab  import SettingsTab
+from gui.dashboard_tab import DashboardTab
+from gui.config_tab    import ConfigTab
+from gui.dialogs       import show_info, show_error
+from gui.theme         import setup_notebook_style, CLR, BG, BG2, BG3, TEXT_FG, TEXT_DIM, SEP, ACC_BLUE
 
 
 class BoilerApp:
@@ -90,23 +94,23 @@ class BoilerApp:
         self.notebook.pack(fill="both", expand=True, padx=5, pady=5)
     
     def _create_tabs(self):
-        """Create all tabs — order: Control | Log | Records | Settings"""
-
-        # Tab 1: Control (operational)
+        # Tab 1: Dashboard (operational)
         self.tab_control = tk.Frame(self.notebook, bg=self._clr["BG"])
         self.notebook.add(self.tab_control, text="  ⚡  Control  ")
-        self.control_tab_widget = ControlTab(
+        self.control_tab_widget = DashboardTab(
             self.tab_control,
             self.config,
             self.config.runtime_settings,
             self.scheduler,
             self.ha_service,
+            self.weather_service,
+            self.dm,
             self._clr,
-            weather_service=self.weather_service,
-            data_manager=self.dm,
             mqtt_service=self.mqtt_service,
             on_boiler_state=self._on_boiler_state
         )
+        # Alias so fan-out callbacks still work
+        self.control_tab_widget.dashboard = self.control_tab_widget
 
         # Tab 2: Log
         self.tab_log = tk.Frame(self.notebook, bg=self._clr["BG"])
@@ -131,6 +135,15 @@ class BoilerApp:
             self._clr,
             mqtt_service=self.mqtt_service,
             ha_service=self.ha_service
+        )
+
+        # Tab 5: Config editor
+        self.tab_config = tk.Frame(self.notebook, bg=self._clr["BG"])
+        self.notebook.add(self.tab_config, text="  🗄  Config  ")
+        self.config_tab_widget = ConfigTab(
+            self.tab_config,
+            self.config,
+            self._clr
         )
 
         # Wire all MQTT callbacks now that every tab widget exists
@@ -227,9 +240,9 @@ class BoilerApp:
         def _done(ok, status):
             self._set_retry_btn_state("normal")
             if ok:
-                messagebox.showinfo("Retry HA", f"HA updated successfully.\nStatus: {status}")
+                show_info(self.root, "Retry HA", f"HA updated successfully.\nStatus: {status}")
             else:
-                messagebox.showerror("Retry HA", f"HA call failed.\nStatus: {status}\nCheck boiler.log.")
+                show_error(self.root, "Retry HA", f"HA call failed.\nStatus: {status}\nCheck boiler.log.")
             self._refresh_data()
         
         self._set_retry_btn_state("disabled")

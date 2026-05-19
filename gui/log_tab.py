@@ -18,7 +18,7 @@ class LogTab:
         if log_file is None:
             # Use data directory
             try:
-                from data_directory import DataDirectoryManager
+                from config import DataDirectoryManager
                 log_file = DataDirectoryManager.get_log_path()
             except ImportError:
                 log_file = "boiler.log"  # Fallback
