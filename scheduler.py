@@ -161,6 +161,9 @@ class Scheduler:
     # ── Solar ────────────────────────────────────────────────
 
     def _tick_solar(self, now: datetime, today: date):
+        if self.rs.get_vacation_mode():
+            self._state("VACATION")
+            return
         if not self.rs.get_solar_active():
             self._state("SOLAR_INACTIVE")
             return
@@ -255,6 +258,8 @@ class Scheduler:
     # ── Weekly ───────────────────────────────────────────────
 
     def _tick_weekly(self, now: datetime):
+        if self.rs.get_vacation_mode():
+            return
         today_day = _weekday()
         for p in self.rs.get_weekly_presets():
             pid = p.get("id")
@@ -270,6 +275,8 @@ class Scheduler:
     # ── One-shot ─────────────────────────────────────────────
 
     def _tick_oneshot(self, now: datetime, today: date):
+        if self.rs.get_vacation_mode():
+            return
         if self._oneshot_fired:
             return
         os_cfg = self.rs.get_one_shot()

@@ -13,7 +13,7 @@
   },
   "first_run_target_time": "18:40",
   "second_run_target_time": "20:00",
-  "last_updated": "2026-05-20 07:04:48",
+  "last_updated": "2026-05-21 13:19:20",
   "cloud_penalty_factor": 4.0,
   "temp_lut": {
     "10": 180,
@@ -67,5 +67,6 @@
     "duration": 1,
     "armed": false
   },
-  "mqtt_active": true
+  "mqtt_active": true,
+  "vacation_mode": false
 }

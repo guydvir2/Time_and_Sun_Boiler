@@ -154,86 +154,130 @@ class BoilerApp:
         c = self._clr
         bar = tk.Frame(self.root, bg=c["BG2"])
         bar.pack(side="bottom", fill="x")
-        
+        self._status_bar   = bar
+        self._bar_bg_labels = []   # Labels/Frames whose bg changes on vacation
+
         tk.Frame(bar, bg=c["SEP"], height=1).place(relx=0, rely=0, relwidth=1)
-        
-        self.lbl_clock = tk.Label(
-            bar, text="", bg=c["BG2"], fg=c["FG"],
-            font=("Segoe UI", 10, "bold"), padx=12
-        )
+
+        def _sep():
+            w = tk.Label(bar, text="│", bg=c["BG2"], fg=c["SEP"],
+                         font=("Segoe UI", 11))
+            self._bar_bg_labels.append(w)
+            return w
+
+        # ── Clock ────────────────────────────────────────────
+        self.lbl_clock = tk.Label(bar, text="", bg=c["BG2"], fg=c["FG"],
+                                  font=("Segoe UI", 10, "bold"), padx=12)
         self.lbl_clock.pack(side="left", pady=4)
-        
-        tk.Label(bar, text="│", bg=c["BG2"], fg=c["SEP"],
-                 font=("Segoe UI", 11)).pack(side="left")
-        
-        self.lbl_uptime = tk.Label(
-            bar, text="", bg=c["BG2"], fg=c["FG_DIM"],
-            font=("Segoe UI", 10), padx=12
-        )
+        self._bar_bg_labels.append(self.lbl_clock)
+
+        _sep().pack(side="left")
+
+        self.lbl_uptime = tk.Label(bar, text="", bg=c["BG2"], fg=c["FG_DIM"],
+                                   font=("Segoe UI", 10), padx=12)
         self.lbl_uptime.pack(side="left", pady=4)
-        
-        tk.Label(bar, text="│", bg=c["BG2"], fg=c["SEP"],
-                 font=("Segoe UI", 11)).pack(side="left")
-        
-        self.lbl_state = tk.Label(
-            bar, textvariable=self._state_var,
-            bg=c["BG2"], fg="#f0c060",
-            font=("Segoe UI", 10, "bold"), padx=12
-        )
+        self._bar_bg_labels.append(self.lbl_uptime)
+
+        _sep().pack(side="left")
+
+        self.lbl_state = tk.Label(bar, textvariable=self._state_var,
+                                  bg=c["BG2"], fg="#f0c060",
+                                  font=("Segoe UI", 10, "bold"), padx=12)
         self.lbl_state.pack(side="left", pady=4)
-        
-        tk.Label(bar, text="│", bg=c["BG2"], fg=c["SEP"],
-                 font=("Segoe UI", 11)).pack(side="left")
+        self._bar_bg_labels.append(self.lbl_state)
 
-        # ── HA connection indicator ──
-        self._ha_dot = tk.Label(bar, text="●", bg=c["BG2"], fg="#555555",
-                                font=("Segoe UI", 13), padx=4)
-        self._ha_dot.pack(side="left", pady=4)
-        self._ha_lbl = tk.Label(bar, text="HA", bg=c["BG2"], fg=c["FG_DIM"],
-                                font=("Segoe UI", 9), padx=2)
-        self._ha_lbl.pack(side="left", pady=4)
+        _sep().pack(side="left")
 
-        tk.Label(bar, text="│", bg=c["BG2"], fg=c["SEP"],
-                 font=("Segoe UI", 11)).pack(side="left")
+        # ── Execution mode pill (HA/MQTT) — only shown when HA is configured ──
+        if self.config.ha_configured:
+            self._mode_btn = tk.Button(
+                bar,
+                text=f"  {self.config.runtime_settings.get_execution_mode()}  ",
+                command=self._toggle_exec_mode,
+                bg="#1e3a5f", fg="#93c5fd",
+                font=("Segoe UI", 9, "bold"),
+                relief="flat", padx=6, pady=3,
+                cursor="hand2", bd=0,
+                activebackground="#1e40af", activeforeground="#bfdbfe",
+                highlightthickness=1, highlightbackground="#3b82f6"
+            )
+            self._mode_btn.pack(side="left", padx=(0, 6), pady=4)
+            _sep().pack(side="left")
+        else:
+            self._mode_btn = None
 
-        # ── MQTT connection indicator ──
+        # ── HA indicator (hidden when HA not configured) ──────
+        if self.config.ha_configured:
+            self._ha_dot = tk.Label(bar, text="●", bg=c["BG2"], fg="#555555",
+                                    font=("Segoe UI", 13), padx=4)
+            self._ha_dot.pack(side="left", pady=4)
+            self._bar_bg_labels.append(self._ha_dot)
+            self._ha_lbl = tk.Label(bar, text="HA", bg=c["BG2"], fg=c["FG_DIM"],
+                                    font=("Segoe UI", 9), padx=2)
+            self._ha_lbl.pack(side="left", pady=4)
+            self._bar_bg_labels.append(self._ha_lbl)
+            _sep().pack(side="left")
+        else:
+            self._ha_dot = None
+            self._ha_lbl = None
+
+        # ── MQTT indicator ───────────────────────────────────
         self._mqtt_dot = tk.Label(bar, text="●", bg=c["BG2"], fg="#555555",
                                   font=("Segoe UI", 13), padx=4)
         self._mqtt_dot.pack(side="left", pady=4)
+        self._bar_bg_labels.append(self._mqtt_dot)
         self._mqtt_lbl = tk.Label(bar, text="MQTT", bg=c["BG2"], fg=c["FG_DIM"],
                                   font=("Segoe UI", 9), padx=2)
         self._mqtt_lbl.pack(side="left", pady=4)
+        self._bar_bg_labels.append(self._mqtt_lbl)
 
-        tk.Label(bar, text="│", bg=c["BG2"], fg=c["SEP"],
-                 font=("Segoe UI", 11)).pack(side="left")
+        _sep().pack(side="left")
 
-        # ── Boiler state indicator ──
+        # ── Boiler indicator ─────────────────────────────────
         self._boiler_dot = tk.Label(bar, text="●", bg=c["BG2"], fg="#555555",
                                     font=("Segoe UI", 13), padx=4)
         self._boiler_dot.pack(side="left", pady=4)
+        self._bar_bg_labels.append(self._boiler_dot)
         self._boiler_lbl = tk.Label(bar, text="Boiler", bg=c["BG2"], fg=c["FG_DIM"],
                                     font=("Segoe UI", 9), padx=2)
         self._boiler_lbl.pack(side="left", pady=4)
+        self._bar_bg_labels.append(self._boiler_lbl)
 
+        # ── Right side ───────────────────────────────────────
         btn_style = {
             "bg": c["BG3"], "fg": c["FG"],
             "activebackground": "#4e5254", "activeforeground": "#ffffff",
             "relief": "flat", "font": ("Segoe UI", 10),
             "padx": 14, "pady": 5, "cursor": "hand2", "bd": 0
         }
-        
-        self._retry_btn = tk.Button(
-            bar, text="⚡  Retry HA (today)",
-            command=self._retry_ha, **btn_style
-        )
-        self._retry_btn.pack(side="right", padx=(4, 12), pady=4)
-        
+
         # Designer credit
-        tk.Label(
-            bar, text="Designed by Guy Dvir",
-            bg=c["BG2"], fg=c["FG_DIM"],
-            font=("Segoe UI", 8, "italic"), padx=15
-        ).pack(side="right")
+        tk.Label(bar, text="Designed by Guy Dvir",
+                 bg=c["BG2"], fg=c["FG_DIM"],
+                 font=("Segoe UI", 8, "italic"), padx=15
+                 ).pack(side="right")
+
+        # Vacation toggle
+        self._vacation_btn = tk.Button(
+            bar, text="⏸  Vacation",
+            command=self._toggle_vacation,
+            **btn_style
+        )
+        self._vacation_btn.pack(side="right", padx=(4, 8), pady=4)
+
+        # Retry HA (hidden when HA not configured)
+        if self.config.ha_configured:
+            self._retry_btn = tk.Button(
+                bar, text="⚡  Retry HA (today)",
+                command=self._retry_ha, **btn_style
+            )
+            self._retry_btn.pack(side="right", padx=(4, 4), pady=4)
+        else:
+            self._retry_btn = None
+
+        # Apply vacation visual on startup if already set
+        if self.config.runtime_settings.get_vacation_mode():
+            self.root.after(200, lambda: self._set_vacation_visual(True))
     
     def _retry_ha(self):
         """Retry HA button handler"""
@@ -244,18 +288,61 @@ class BoilerApp:
             else:
                 show_error(self.root, "Retry HA", f"HA call failed.\nStatus: {status}\nCheck boiler.log.")
             self._refresh_data()
-        
+
         self._set_retry_btn_state("disabled")
         self.data_tab_widget.retry_ha(_done)
-    
+
     def _refresh_data(self):
         """Refresh data table"""
         self.data_tab_widget.load_data()
-    
+
     def _set_retry_btn_state(self, state):
         """Enable/disable retry button"""
         if self._retry_btn:
             self._retry_btn.config(state=state)
+
+    # ── Vacation mode ─────────────────────────────────────────
+
+    def _toggle_vacation(self):
+        rs = self.config.runtime_settings
+        new_state = not rs.get_vacation_mode()
+        rs.set_vacation_mode(new_state)
+        self._set_vacation_visual(new_state)
+        if new_state:
+            self._state_var.set("⏸  VACATION")
+
+    def _set_vacation_visual(self, on: bool):
+        AMBER   = "#92400e"
+        NORMAL  = self._clr["BG2"]
+        bg = AMBER if on else NORMAL
+        self._status_bar.config(bg=bg)
+        for w in self._bar_bg_labels:
+            try:
+                w.config(bg=bg)
+            except Exception:
+                pass
+        self._vacation_btn.config(
+            text="▶  Resume" if on else "⏸  Vacation",
+            bg="#b45309" if on else self._clr["BG3"],
+            fg="#fef3c7" if on else self._clr["FG"]
+        )
+
+    # ── Execution mode pill ───────────────────────────────────
+
+    def _toggle_exec_mode(self):
+        rs = self.config.runtime_settings
+        current  = rs.get_execution_mode()
+        new_mode = "MQTT" if current == "HA" else "HA"
+        rs.set_execution_mode(new_mode)
+        if self._mode_btn:
+            self._mode_btn.config(text=f"  {new_mode}  ")
+        # Switching to MQTT: ensure service connects if active
+        if new_mode == "MQTT" and self.mqtt_service:
+            rs.set_mqtt_active(True)
+            if not self.mqtt_service.is_connected():
+                import threading
+                threading.Thread(target=self.mqtt_service.connect,
+                                 daemon=True).start()
     
     def on_scheduler_state(self, state):
         """Called from Scheduler thread"""
@@ -449,6 +536,8 @@ class BoilerApp:
 
     def notify_ha_state(self, ok: bool):
         """Call this whenever an HA operation succeeds or fails."""
+        if self._ha_dot is None:
+            return
         GREEN, RED = "#22c55e", "#ef4444"
         self._ha_dot.config(fg=GREEN if ok else RED)
         self._ha_lbl.config(fg="#e2e8f0" if ok else "#94a3b8")

@@ -164,19 +164,26 @@ class RuntimeSettings:
         return self._set("one_shot",
                          {"start_time": start_time, "duration": duration, "armed": armed})
 
+    # ── Vacation ─────────────────────────────────────────────
+
+    def get_vacation_mode(self) -> bool:  return self._get("vacation_mode", False)
+    def set_vacation_mode(self, v: bool) -> bool: return self._set("vacation_mode", v)
+
 
 # ─────────────────────────────────────────────────────────────
 # Static config (config.ini)
 # ─────────────────────────────────────────────────────────────
 
 _REQUIRED = {
-    "homeassistant": ["HA_IP", "HA_PORT", "token",
-                      "BOILER_1ST_ON_ENTITY_ID",
-                      "RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID"],
     "location":      ["latitude", "longitude", "timezone"],
     "weather":       ["weather_url"],
     "parameters":    ["max_first_run", "cloud_penalty_factor"],
 }
+
+# HA is optional — only validated if the section is present
+_HA_REQUIRED = ["HA_IP", "HA_PORT", "token",
+                "BOILER_1ST_ON_ENTITY_ID",
+                "RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID"]
 
 
 class AppConfig:
@@ -205,6 +212,9 @@ class AppConfig:
         self.mqtt_cmd_enabled = False
         self.mqtt_cmd_adhoc = self.mqtt_cmd_oneshot = self.mqtt_cmd_weekly = ""
 
+        # HA availability flag (set after load())
+        self.ha_configured = False
+
         # Runtime (populated after load())
         self.runtime_settings: Optional[RuntimeSettings] = None
         self.temp_lut: Dict[int, int] = {}
@@ -215,7 +225,9 @@ class AppConfig:
         self.config = configparser.ConfigParser()
         self.config.read(self.config_file)
         self._check_required()
-        self._load_ha()
+        if self.config.has_section("homeassistant"):
+            self._load_ha()
+            self.ha_configured = True
         self._load_location()
         self._load_weather()
         self._load_params()
@@ -234,6 +246,11 @@ class AppConfig:
             for k in keys:
                 if k not in self.config[section]:
                     missing.append(f"[{section}].{k}")
+        # HA is optional but if section is present all its keys must be there
+        if self.config.has_section("homeassistant"):
+            for k in _HA_REQUIRED:
+                if k not in self.config["homeassistant"]:
+                    missing.append(f"[homeassistant].{k}")
         if missing:
             raise SystemExit("config.ini missing: " + ", ".join(missing))
 
