@@ -1,3 +1,4 @@
+import json
 """
 Dashboard Tab — landing page.
 Shows live status, Solar Mode card, weekly schedule, quick actions.
@@ -163,9 +164,9 @@ class DashboardTab:
 
         cols = tk.Frame(root, bg=self.clr["BG"])
         cols.pack(fill="both", expand=True)
-        cols.columnconfigure(0, weight=3)
-        cols.columnconfigure(1, weight=2)
-        cols.columnconfigure(2, weight=2)
+        cols.columnconfigure(0, weight=1)
+        cols.columnconfigure(1, weight=3)
+        cols.columnconfigure(2, weight=3)
         cols.rowconfigure(0, weight=1)
 
         left   = tk.Frame(cols, bg=self.clr["BG"])
@@ -181,7 +182,6 @@ class DashboardTab:
 
         self._build_solar_card(left)
         self._build_weekly_card(middle)
-        self._build_mqtt_topics_card(middle)
         self._build_start_now_card(right)
         self._build_oneshot_card(right)
 
@@ -306,43 +306,6 @@ class DashboardTab:
                   activebackground="#2563eb").pack(fill="x", pady=(4, 0))
 
     # ── MQTT TOPICS ──────────────────────────────────────────
-
-    def _build_mqtt_topics_card(self, parent):
-        outer = tk.Frame(parent, bg=ACC_BLUE, pady=1)
-        outer.pack(fill="x", pady=(6, 0))
-        inner = tk.Frame(outer, bg=CARD_BG)
-        inner.pack(fill="both", expand=True)
-        tk.Label(inner, text="MQTT TOPICS", bg=CARD_BG, fg=TEXT_DIM,
-                 font=("Segoe UI", 8, "bold"), padx=12, pady=5).pack(anchor="w")
-        tk.Frame(inner, bg=CARD_BDR, height=1).pack(fill="x", padx=10)
-        box = tk.Frame(inner, bg=CARD_BG, padx=12, pady=8)
-        box.pack(fill="x")
-
-        ms = self.mqtt_service
-        rows = []
-        if ms:
-            rows = [
-                ("cmd",   getattr(ms, "cmd_topic",  "—")),
-                ("stat",  getattr(ms, "stat_topic", "—")),
-                ("tele",  getattr(ms, "tele_sub",   "—")),
-            ]
-            if getattr(ms, "cmd_enabled", False):
-                for lbl, attr in [("adhoc",   "cmd_adhoc"),
-                                   ("oneshot", "cmd_oneshot"),
-                                   ("weekly",  "cmd_weekly")]:
-                    v = getattr(ms, attr, "")
-                    if v:
-                        rows.append((lbl, v))
-        else:
-            rows = [("MQTT", "not configured")]
-
-        for lbl, val in rows:
-            r = tk.Frame(box, bg=CARD_BG)
-            r.pack(fill="x", pady=1)
-            tk.Label(r, text=f"{lbl}:", bg=CARD_BG, fg=TEXT_DIM,
-                     font=("Segoe UI", 8), width=8, anchor="w").pack(side="left")
-            tk.Label(r, text=val, bg=CARD_BG, fg=TEXT_FG,
-                     font=("Consolas", 8), anchor="w").pack(side="left", padx=(2, 0))
 
     # ── START NOW ────────────────────────────────────────────
 
@@ -620,12 +583,21 @@ class DashboardTab:
         self.rs.set_one_shot(f"{h}:{m}", dur, armed=True)
         self._os_status_lbl.config(
             text=f"⏳ Armed  {h}:{m}  {dur} min", fg=ACC_ORANGE)
+        if self.mqtt_service and self.mqtt_service.is_connected():
+            payload = json.dumps({"armed": True, "time": f"{h}:{m}",
+                                  "duration": dur}, separators=(",", ":"))
+            self.mqtt_service.publish_state("oneshot", payload)
 
     def _disarm_oneshot(self):
-        os = self.rs.get_one_shot()
-        self.rs.set_one_shot(os.get("start_time", "20:00"),
-                             int(os.get("duration", 30)), armed=False)
+        os_cfg = self.rs.get_one_shot()
+        t_str  = os_cfg.get("start_time", "20:00")
+        dur    = int(os_cfg.get("duration", 30))
+        self.rs.set_one_shot(t_str, dur, armed=False)
         self._os_status_lbl.config(text="Not armed", fg=TEXT_DIM)
+        if self.mqtt_service and self.mqtt_service.is_connected():
+            payload = json.dumps({"armed": False, "time": t_str,
+                                  "duration": dur}, separators=(",", ":"))
+            self.mqtt_service.publish_state("oneshot", payload)
 
     def _save_weekly(self):
         DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -648,6 +620,15 @@ class DashboardTab:
             })
         self.rs.set_weekly_presets(presets)
         show_info(self.parent, "Saved", "Weekly schedule saved")
+        if self.mqtt_service and self.mqtt_service.is_connected():
+            for p in presets:
+                payload = json.dumps({
+                    "active":   p["active"],
+                    "time":     p["start_time"],
+                    "duration": p["duration"],
+                    "days":     p["days"],
+                }, separators=(",", ":"))
+                self.mqtt_service.publish_state(f"weekly/{p['id']}", payload)
 
     def _refresh_weekly(self):
         DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]

@@ -26,13 +26,15 @@ class WeatherService:
     def __init__(self, weather_url: str, lat: float, lon: float,
                  temp_lut: Dict[int, int],
                  cloud_penalty_factor: float,
-                 max_first_run: int):
+                 max_first_run: int,
+                 min_run_duration: int = 10):
         self.weather_url          = weather_url
         self.lat                  = lat
         self.lon                  = lon
         self.temp_lut             = temp_lut
         self.cloud_penalty_factor = cloud_penalty_factor
         self.max_first_run        = max_first_run
+        self.min_run_duration     = min_run_duration
 
     # ── Sun times ────────────────────────────────────────────
 
@@ -153,6 +155,7 @@ class WeatherService:
             "duration":       duration,
             "first_run":      first_run,
             "second_run":     second_run,
+            "min_run":        self.min_run_duration,
         }
 
 

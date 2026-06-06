@@ -177,7 +177,7 @@ class RuntimeSettings:
 _REQUIRED = {
     "location":      ["latitude", "longitude", "timezone"],
     "weather":       ["weather_url"],
-    "parameters":    ["max_first_run", "cloud_penalty_factor"],
+    "parameters":    ["max_first_run", "min_run_duration", "cloud_penalty_factor"],
 }
 
 # HA is optional — only validated if the section is present
@@ -199,7 +199,8 @@ class AppConfig:
         # Location / weather
         self.lat = self.lon = self.timezone = None
         self.weather_url = None
-        self.max_first_run = 120
+        self.max_first_run       = 120
+        self.min_run_duration    = 10
         self.cloud_penalty_factor = 3.0
         self.first_run_target_time = "18:45"
 
@@ -277,6 +278,7 @@ class AppConfig:
     def _load_params(self):
         p = self.config["parameters"]
         self.max_first_run        = int(p["max_first_run"])
+        self.min_run_duration     = int(p.get("min_run_duration", 10))
         self.cloud_penalty_factor = float(p["cloud_penalty_factor"])
 
     def _load_mqtt(self):

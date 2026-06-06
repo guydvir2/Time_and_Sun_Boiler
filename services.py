@@ -125,6 +125,10 @@ class MQTTService:
         self._off_timer:    Optional[threading.Timer] = None
         self._tele_log:     List[tuple]            = []
 
+        # Heartbeat
+        self._hb_stop:   Optional[threading.Event]  = None
+        self._hb_thread: Optional[threading.Thread] = None
+
         self._build_topics()
 
     # ── Topic layout ─────────────────────────────────────────
@@ -150,6 +154,9 @@ class MQTTService:
             self._client.on_connect    = self._on_connect
             self._client.on_disconnect = self._on_disconnect
             self._client.on_message    = self._on_message
+            # LWT — broker publishes OFFLINE automatically on unexpected disconnect
+            lwt_topic = f"{self.tasmota_topic}/status/app"
+            self._client.will_set(lwt_topic, "OFFLINE", retain=True)
             self._client.connect(self.broker_ip, self.broker_port, keepalive=60)
             self._client.loop_start()
             log.info(f"MQTT topics — cmd:{self.cmd_topic} "
@@ -160,6 +167,7 @@ class MQTTService:
             return False
 
     def disconnect(self):
+        self.stop_heartbeat()
         if self._client:
             self._client.loop_stop()
             self._client.disconnect()
@@ -210,15 +218,47 @@ class MQTTService:
 
     # ── Internal ─────────────────────────────────────────────
 
-    def _publish(self, topic: str, payload: str) -> bool:
+    def _publish(self, topic: str, payload: str, retain: bool = False) -> bool:
         if not self._connected or not self._client:
             log.warning(f"MQTT publish skipped — not connected ({topic}={payload})")
             return False
-        result = self._client.publish(topic, payload)
+        result = self._client.publish(topic, payload, retain=retain)
         ok = result.rc == mqtt.MQTT_ERR_SUCCESS
         if not ok:
             log.error(f"MQTT publish failed: {topic}={payload} rc={result.rc}")
         return ok
+
+    def publish_state(self, suffix: str, payload: str, retain: bool = True) -> bool:
+        """Publish an application-state message under {tasmota_topic}/status/{suffix}."""
+        topic = f"{self.tasmota_topic}/status/{suffix}"
+        log.debug(f"State publish: {topic} = {payload}")
+        return self._publish(topic, payload, retain=retain)
+
+    def start_heartbeat(self, interval_s: int, state_fn) -> None:
+        """Start a daemon thread that calls state_fn() every interval_s seconds
+        and publishes the returned {suffix: payload} dict as retained state topics."""
+        self.stop_heartbeat()
+        self._hb_stop = threading.Event()
+
+        def _run():
+            log.info(f"MQTT heartbeat started ({interval_s}s)")
+            while not self._hb_stop.wait(interval_s):
+                try:
+                    snapshot = state_fn()
+                    for suffix, payload in snapshot.items():
+                        self.publish_state(suffix, str(payload))
+                except Exception as e:
+                    log.error(f"Heartbeat publish error: {e}")
+            log.info("MQTT heartbeat stopped")
+
+        self._hb_thread = threading.Thread(target=_run, daemon=True, name="mqtt-heartbeat")
+        self._hb_thread.start()
+
+    def stop_heartbeat(self) -> None:
+        if self._hb_stop:
+            self._hb_stop.set()
+            self._hb_stop = None
+            self._hb_thread = None
 
     def _auto_off(self):
         log.info("MQTT auto-off timer fired")
@@ -244,6 +284,8 @@ class MQTTService:
                         log.info(f"MQTT subscribed: {topic}")
             # Query current boiler state so status bar is not gray on startup
             client.publish(self.cmd_topic, "")
+            # Announce app is online
+            self.publish_state("app", "ONLINE")
             if self.on_connect_change:
                 self.on_connect_change(True)
         else:

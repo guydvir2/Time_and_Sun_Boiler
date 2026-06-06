@@ -146,6 +146,8 @@ class Scheduler:
             self._trigger_time        = None
             self._calc_result         = None
             self._solar_done_date     = today
+            self._fetch_in_progress   = False
+            self._retry_after         = None
         if self._oneshot_date != today:
             self._oneshot_fired          = False
             self._oneshot_minutes_today  = 0
@@ -186,6 +188,15 @@ class Scheduler:
                 return
 
             if self._trigger_time is None:
+                # Warn if we are past the target time and never completed a calc
+                target_dt = now.replace(hour=self._target_h, minute=self._target_m,
+                                        second=0, microsecond=0)
+                if now > target_dt:
+                    log.warning("Solar target time passed — calc never completed, "
+                                "boiler skipped today")
+                    self._solar_done_today = True
+                    self._state("WAIT_NEXT_DAY")
+                    return
                 if not self._solar_calc(now):
                     return
 
@@ -206,37 +217,84 @@ class Scheduler:
                 self._second_run_fired = True
 
     def _solar_calc(self, now: datetime) -> bool:
-        self._state("FETCH_SUN")
-        try:
-            sunrise, sunset = self.weather.get_sun_times()
-        except Exception as e:
-            log.error(f"Sun times failed: {e}")
+        """Fetch sun times + calculate. Guards against parallel calls and
+        hammering the API after failures (5-minute cooldown per failure)."""
+
+        # Skip if a fetch thread is already running
+        if self._fetch_in_progress:
             return False
 
-        self._state("CALCULATING")
-        try:
-            calc = self.weather.calculate_all(sunrise, sunset)
-        except Exception as e:
-            log.error(f"Calc failed: {e}")
+        # Skip if in cooldown window after a previous failure
+        if self._retry_after is not None and now < self._retry_after:
+            remaining = int((self._retry_after - now).total_seconds() / 60) + 1
+            log.debug(f"API cooldown — retry in ~{remaining}min")
             return False
 
-        self._calc_result         = calc
-        self._calc_sunrise        = sunrise
-        self._calc_sunset         = sunset
-        target                    = now.replace(hour=self._target_h,
-                                                minute=self._target_m,
-                                                second=0, microsecond=0)
-        trigger                   = target - timedelta(minutes=calc["first_run"])
-        self._trigger_time        = trigger
-        self._second_run_duration = calc["second_run"]
-        log.info(f"Solar trigger at {trigger.strftime('%H:%M')} "
-                 f"({calc['first_run']}min, 2nd={calc['second_run']}min)")
-        return True
+        self._fetch_in_progress = True
+        try:
+            self._state("FETCH_SUN")
+            try:
+                sunrise, sunset = self.weather.get_sun_times()
+            except Exception as e:
+                log.error(f"Sun times failed: {e}")
+                self._retry_after = now + timedelta(minutes=5)
+                log.info("API cooldown: next solar fetch attempt in 5 min")
+                return False
+
+            self._state("CALCULATING")
+            try:
+                calc = self.weather.calculate_all(sunrise, sunset)
+            except Exception as e:
+                log.error(f"Calc failed: {e}")
+                self._retry_after = now + timedelta(minutes=5)
+                log.info("API cooldown: next solar fetch attempt in 5 min")
+                return False
+
+            # Success — clear cooldown
+            self._retry_after         = None
+            self._calc_result         = calc
+            self._calc_sunrise        = sunrise
+            self._calc_sunset         = sunset
+            target                    = now.replace(hour=self._target_h,
+                                                    minute=self._target_m,
+                                                    second=0, microsecond=0)
+            trigger                   = target - timedelta(minutes=calc["first_run"])
+            self._trigger_time        = trigger
+            self._second_run_duration = calc["second_run"]
+            log.info(f"Solar trigger at {trigger.strftime('%H:%M')} "
+                     f"({calc['first_run']}min, 2nd={calc['second_run']}min)")
+            return True
+        finally:
+            self._fetch_in_progress = False
 
     def _solar_fire(self, today_str: str):
         calc    = self._calc_result
         sunrise = self._calc_sunrise
         sunset  = self._calc_sunset
+
+        # Skip if computed duration is below minimum
+        min_run = calc.get("min_run", 0)
+        if calc["first_run"] <= min_run:
+            log.info(f"Solar calc {calc['first_run']}min ≤ min_run {min_run}min "
+                     f"— boiler skipped today")
+            self.dm.save_record({
+                "date":           today_str,
+                "dawn":           sunrise.strftime("%H:%M"),
+                "dusk":           sunset.strftime("%H:%M"),
+                "avg_temp":       calc["avg_temp"],
+                "avg_cloud":      calc["avg_cloud"],
+                "effective_temp": calc["effective_temp"],
+                "duration":       calc["duration"],
+                "first_run":      calc["first_run"],
+                "second_run":     calc["second_run"],
+                "trigger_time":   datetime.now().strftime("%H:%M:%S"),
+                "ha_status":      "SKIPPED",
+            })
+            self._solar_done_today = True
+            self._trigger_time     = None
+            self._state("WAIT_NEXT_DAY")
+            return
+
         ok = self._execute(calc["first_run"], "SOLAR-1ST")
         self.dm.save_record({
             "date":           today_str,
@@ -268,7 +326,15 @@ class Scheduler:
             if today_day not in p.get("days", []):
                 continue
             h, m = int(p["start_time"][:2]), int(p["start_time"][3:])
-            if now >= now.replace(hour=h, minute=m, second=0, microsecond=0):
+            slot = now.replace(hour=h, minute=m, second=0, microsecond=0)
+            if now >= slot:
+                # On startup the slot may already be in the past.
+                # Only fire if we are within 2 minutes of the scheduled time.
+                # Otherwise the window has passed — mark as done and skip.
+                if (now - slot).total_seconds() > 120:
+                    log.info(f"WEEKLY-{pid} slot {h:02d}:{m:02d} already passed — skipping")
+                    self._weekly_fired.add(pid)
+                    continue
                 self._weekly_fired.add(pid)
                 self._execute(int(p.get("duration", 30)), f"WEEKLY-{pid}")
 

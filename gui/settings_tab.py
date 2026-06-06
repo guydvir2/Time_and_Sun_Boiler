@@ -64,7 +64,7 @@ class SettingsTab:
         main.pack(fill="both", expand=True, padx=8, pady=8)
 
         # LEFT (fixed 300 px)
-        left = tk.Frame(main, bg=self.clr["BG"], width=300)
+        left = tk.Frame(main, bg=self.clr["BG"], width=450)
         left.pack(side="left", fill="y", padx=(0, 8))
         left.pack_propagate(False)
         left.grid_columnconfigure(0, weight=1)
@@ -91,7 +91,7 @@ class SettingsTab:
         tk.Frame(right, bg=CARD_BDR, width=1).pack(side="left", fill="y", padx=(4, 0))
 
         # MQTT side panel — fixed width, plain (no scrollbar)
-        mqtt_outer = tk.Frame(right, bg=self.clr["BG"], width=280)
+        mqtt_outer = tk.Frame(right, bg=self.clr["BG"], width=500)
         mqtt_outer.pack(side="left", fill="y")
         mqtt_outer.pack_propagate(False)
 

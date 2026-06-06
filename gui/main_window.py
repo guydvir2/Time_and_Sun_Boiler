@@ -44,7 +44,7 @@ class BoilerApp:
             "ACCENT": "#007acc"
         }
         
-        self.root.title("Boiler Control System v2.3")
+        self.root.title("Boiler Control System v2.4")
         self.root.geometry("1400x720")
         self.root.resizable(True, True)   # allow resize but start at right size
         self.root.configure(bg=self._clr["BG"])
@@ -310,6 +310,8 @@ class BoilerApp:
         self._set_vacation_visual(new_state)
         if new_state:
             self._state_var.set("⏸  VACATION")
+        if self.mqtt_service and self.mqtt_service.is_connected():
+            self.mqtt_service.publish_state("vacation", "ON" if new_state else "OFF")
 
     def _set_vacation_visual(self, on: bool):
         AMBER   = "#92400e"
@@ -343,6 +345,8 @@ class BoilerApp:
                 import threading
                 threading.Thread(target=self.mqtt_service.connect,
                                  daemon=True).start()
+        if self.mqtt_service and self.mqtt_service.is_connected():
+            self.mqtt_service.publish_state("mode", new_mode)
     
     def on_scheduler_state(self, state):
         """Called from Scheduler thread"""
@@ -355,10 +359,13 @@ class BoilerApp:
             "WAIT_NEXT_DAY":    "😴  DONE TODAY",
         }
         self.root.after(0, lambda: self._state_var.set(state_icons.get(state, state)))
-        
         # Auto-refresh after execution
         if state == "WAIT_NEXT_DAY":
             self.root.after(500, self._refresh_data)
+        # Publish solar state
+        if self.mqtt_service and self.mqtt_service.is_connected():
+            self.mqtt_service.publish_state(
+                "solar", BoilerApp._solar_state_for_mqtt(state))
     
     def _on_boiler_state(self, status: str):
         """Called from ControlTab when boiler status changes."""
@@ -397,6 +404,10 @@ class BoilerApp:
             if hasattr(self, 'settings_tab_widget'):
                 self.root.after(0, lambda s=status:
                     self.settings_tab_widget._update_mqtt_device_indicator(s))
+            # Publish boiler state (ON/OFF only — skip unknown/transient)
+            s = status.upper()
+            if s in ("ON", "OFF"):
+                self.mqtt_service.publish_state("boiler", s)
 
         def _on_connect(connected: bool):
             """Broker connect/disconnect → update broker indicators + clear boiler on disc."""
@@ -406,7 +417,14 @@ class BoilerApp:
             if hasattr(self, 'settings_tab_widget'):
                 self.root.after(0, lambda c=connected:
                     self.settings_tab_widget._update_mqtt_broker_indicator(c))
-            if not connected:
+            if connected:
+                # Publish full state immediately, then start heartbeat
+                import threading
+                threading.Thread(target=self._publish_full_snapshot,
+                                 daemon=True).start()
+                self.mqtt_service.start_heartbeat(300, self._build_state_snapshot)
+            else:
+                self.mqtt_service.stop_heartbeat()
                 _on_status("unknown")
 
         def _on_tele(subtopic, payload):
@@ -492,6 +510,59 @@ class BoilerApp:
         self.mqtt_service.on_connect_change = _on_connect
         self.mqtt_service.on_tele           = _on_tele
         self.mqtt_service.on_command        = _on_command
+
+    # ── MQTT state publishing ────────────────────────────────────
+
+    @staticmethod
+    def _solar_state_for_mqtt(state: str) -> str:
+        return {
+            "SOLAR_INACTIVE":   "INACTIVE",
+            "VACATION":         "VACATION",
+            "WAIT_FIRST_CHECK": "SCHEDULED",
+            "FETCH_SUN":        "SCHEDULED",
+            "CALCULATING":      "SCHEDULED",
+            "WAIT_TRIGGER":     "SCHEDULED",
+            "EXECUTE":          "RUNNING",
+            "WAIT_NEXT_DAY":    "FIRED",
+            "ERROR":            "ERROR",
+        }.get(state, state)
+
+    def _build_state_snapshot(self) -> dict:
+        """Return full app state as {suffix: payload} for heartbeat / on-connect publish."""
+        import json
+        rs = self.config.runtime_settings
+        snap = {}
+        snap["vacation"] = "ON" if rs.get_vacation_mode() else "OFF"
+        snap["mode"]     = rs.get_execution_mode()
+        snap["solar"]    = self._solar_state_for_mqtt(
+            getattr(self.scheduler, "_current_state", "UNKNOWN"))
+        # Boiler: last known from MQTT stat
+        last = (self.mqtt_service.get_last_status() or "UNKNOWN") if self.mqtt_service else "UNKNOWN"
+        snap["boiler"] = last.upper()
+        # One-shot
+        os_cfg = rs.get_one_shot()
+        snap["oneshot"] = json.dumps({
+            "armed":    os_cfg.get("armed", False),
+            "time":     os_cfg.get("start_time", ""),
+            "duration": os_cfg.get("duration", 0),
+        }, separators=(",", ":"))
+        # Weekly presets
+        for p in rs.get_weekly_presets():
+            pid = p.get("id", "?")
+            snap[f"weekly/{pid}"] = json.dumps({
+                "active":   p.get("active", False),
+                "time":     p.get("start_time", ""),
+                "duration": p.get("duration", 0),
+                "days":     p.get("days", []),
+            }, separators=(",", ":"))
+        return snap
+
+    def _publish_full_snapshot(self):
+        """Publish every state topic. Called in a background thread on connect."""
+        if not self.mqtt_service:
+            return
+        for suffix, payload in self._build_state_snapshot().items():
+            self.mqtt_service.publish_state(suffix, payload)
 
     def _tick(self):
         """Update clock and uptime"""

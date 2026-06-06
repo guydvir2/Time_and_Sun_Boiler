@@ -103,28 +103,28 @@ class LogTab:
         self.text_widget.tag_configure("INFO", foreground="#a0e8a0")
         self.text_widget.tag_configure("DEBUG", foreground="#a0a0a0")
     
-    def _load_log(self):
-        """Load log file content"""
+    def _load_log(self, force: bool = False):
+        """Load log file content — skips re-render if file unchanged since last load."""
         if not os.path.exists(self.log_file):
             self._update_text("Log file not found: " + self.log_file)
             return
-        
+
         try:
-            with open(self.log_file, 'r') as f:
+            mtime = os.path.getmtime(self.log_file)
+            if not force and hasattr(self, "_last_log_mtime") and mtime == self._last_log_mtime:
+                return  # File unchanged — skip re-render
+            self._last_log_mtime = mtime
+
+            with open(self.log_file, "r") as f:
                 lines = f.readlines()
-            
-            # Keep last 500 lines to avoid memory issues
+
             lines = lines[-500:]
-            
             self._update_text("".join(lines))
-            
-            # Apply syntax highlighting
             self._highlight_log_levels()
-            
-            # Auto-scroll to bottom
+
             if self.auto_scroll_var.get():
                 self.text_widget.see("end")
-                
+
         except Exception as e:
             self._update_text(f"Error reading log: {e}")
     

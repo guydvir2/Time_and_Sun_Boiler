@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO, handlers=[_fh, _ch])
 log = logging.getLogger(__name__)
 
 if __name__ == "__main__":
-    log.info("=== Boiler Control System Starting ===")
+    log.info("=== Boiler Control System v2.4 Starting ===")
 
     cfg = AppConfig()
     cfg.load()
@@ -36,6 +36,7 @@ if __name__ == "__main__":
         temp_lut=cfg.temp_lut,
         cloud_penalty_factor=cfg.cloud_penalty_factor,
         max_first_run=cfg.max_first_run,
+        min_run_duration=cfg.min_run_duration,
     )
     ha = HAService(
         ha_url=cfg.ha_url, headers=cfg.ha_headers,

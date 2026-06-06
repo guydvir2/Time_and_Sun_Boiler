@@ -51,8 +51,18 @@ class DataTab:
         self.tree.tag_configure("ha_failed",  background="#3a1e1e", foreground="#f5a0a0")
         self.tree.tag_configure("ha_unknown", background="#2a2a2e", foreground="#aaaaaa")
     
-    def load_data(self):
-        """Load data into table"""
+    def load_data(self, force: bool = False):
+        """Load data into table — skips re-render if CSV unchanged since last load."""
+        csv_path = self.dm.DAILY_LOG_FILE
+        try:
+            import os
+            mtime = os.path.getmtime(csv_path) if os.path.exists(csv_path) else 0
+            if not force and hasattr(self, "_last_csv_mtime") and mtime == self._last_csv_mtime:
+                return
+            self._last_csv_mtime = mtime
+        except Exception:
+            pass
+
         self.dm.invalidate()
         self.tree.delete(*self.tree.get_children())
         
