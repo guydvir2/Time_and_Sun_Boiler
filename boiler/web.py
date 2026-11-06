@@ -17,12 +17,13 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import APP_VERSION
-from .formula import Formula, explain
+from .formula import Formula, explain, load_formula
 from .state import load_last_update, load_attempt, load_running, save_running, clear_running, load_auto, set_auto
 from .activity import log_event, read_events
 from .drivers import start_boiler
 
 PAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "page.html")
+TUNE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tune.html")
 COOKIE = "boiler_session"
 CSRF_HEADER = ("X-Requested-With", "boiler-ui")      # a cross-site page cannot send this without our consent
 FORECAST_TTL = 1800                                  # seconds
@@ -182,7 +183,6 @@ class Ctx:
     def __init__(self, s, drivers, formula):
         self.s = s
         self.drivers = list(drivers)
-        self.formula = formula or Formula()
         self.auth = Auth(s.dashboard_password)
         self.action_lock = threading.Lock()          # one switch command at a time
         self.fc_lock = threading.Lock()
@@ -196,6 +196,12 @@ class Ctx:
             if self.sv["value"] is None or _time.time() - self.sv["t"] > SERVICES_TTL:
                 self.sv = {"t": _time.time(), "value": check_all(self.s, self.forecast())}
             return self.sv["value"]
+
+    @property
+    def formula(self):
+        """Always the saved one (stored_data/formula.json), so /tune changes show immediately."""
+        f = load_formula(self.s)
+        return f if not f.blocking_problems() else Formula()
 
     @property
     def names(self):
@@ -252,9 +258,14 @@ class _Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split("?")[0]
         c = self.ctx
-        if path in ("/", "/index.html"):
-            with open(PAGE_FILE, "rb") as f:
+        if path in ("/", "/index.html", "/tune"):
+            with open(TUNE_FILE if path == "/tune" else PAGE_FILE, "rb") as f:
                 self._send(200, f.read(), "text/html; charset=utf-8")
+        elif path == "/api/tune":
+            try:
+                self._json(200, self._tune_data())
+            except Exception as e:
+                self._json(500, {"error": str(e)})
         elif path == "/api/status":
             try:
                 st = build_status(c.s, c.names, c.formula)
@@ -302,7 +313,12 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True, "message": "Locked"},
                               {"Set-Cookie": f"{COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0"})
 
-        if path not in ("/api/run", "/api/stop", "/api/auto"):
+        if path == "/api/tune/preview":               # read-only what-if: no password needed
+            return self._preview(body)
+        if path == "/api/sunshine":                   # fetch public data into the cache: no password needed
+            return self._sunshine()
+
+        if path not in ("/api/run", "/api/stop", "/api/auto", "/api/formula"):
             return self._json(404, {"ok": False, "message": "Not found"})
         if not c.auth.enabled:
             return self._json(403, {"ok": False, "message": "Controls are off: no dashboard password is set"})
@@ -310,6 +326,8 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
         if path == "/api/auto":                       # pause/resume needs no driver
             return self._auto(body)
+        if path == "/api/formula":
+            return self._save_formula(body)
         if not c.drivers:
             return self._json(503, {"ok": False, "message": "View-only mode: no driver is attached"})
         if not c.action_lock.acquire(blocking=False):
@@ -335,6 +353,59 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True, "message": f"Running for {m} min (via {used})"})
         log_event(s, "manual", f"Manual run {m} min FAILED: no driver accepted it", False)
         return self._json(502, {"ok": False, "message": "No driver accepted the run. Check the connection."})
+
+    # -- formula tuning
+    def _tune_data(self):
+        from . import tune, sunshine
+        s, f = self.ctx.s, self.ctx.formula
+        sun = sunshine.load(s)
+        days = tune.replay(s, f, sun)
+        return {"saved": f.to_dict(), "default": Formula().to_dict(), "days": days,
+                "sunshine": sunshine.verdict(days), "controls": self._controls()}
+
+    def _preview(self, body):
+        from . import tune
+        from .formula import parse_formula
+        try:
+            f = parse_formula(body.get("formula"))
+        except (ValueError, TypeError) as e:
+            return self._json(400, {"ok": False, "message": str(e)})
+        s = self.ctx.s
+        current, new = tune.replay(s, self.ctx.formula), tune.replay(s, f)
+        return self._json(200, {"ok": True, "days": [{"date": r["date"], "minutes": r["minutes"]} for r in new],
+                                "summary": tune.compare(current, new), "problems": f.validate(),
+                                "blocking": f.blocking_problems()})
+
+    def _save_formula(self, body):
+        from .formula import parse_formula, save_formula
+        try:
+            f = parse_formula(body.get("formula"))
+        except (ValueError, TypeError) as e:
+            return self._json(400, {"ok": False, "message": str(e)})
+        bad = f.blocking_problems()
+        if bad:
+            return self._json(400, {"ok": False, "message": "Not saved: " + "; ".join(bad)})
+        s = self.ctx.s
+        try:
+            save_formula(s, f)
+        except OSError as e:
+            return self._json(500, {"ok": False, "message": f"Could not save: {e}"})
+        self.ctx.fc["t"] = 0.0                         # forecast "expected run" uses the new formula
+        log_event(s, "manual", "Formula changed on /tune (applies from the next daily run)", True)
+        return self._json(200, {"ok": True, "message": "Saved. Applies from the next daily run."})
+
+    def _sunshine(self):
+        from . import tune, sunshine
+        s = self.ctx.s
+        if not self.ctx.action_lock.acquire(blocking=False):
+            return self._json(409, {"ok": False, "message": "Busy, try again"})
+        try:
+            n, msg = sunshine.fetch_missing(s, [d["date"] for d in tune.saved_days(s)])
+            return self._json(200, {"ok": True, "message": msg, "added": n})
+        except Exception as e:
+            return self._json(502, {"ok": False, "message": f"Could not reach Open-Meteo archive ({type(e).__name__})"})
+        finally:
+            self.ctx.action_lock.release()
 
     def _auto(self, body):
         s, en = self.ctx.s, body.get("enabled")

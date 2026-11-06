@@ -5,3 +5,8 @@ state.json
 config.local.ini
 *.pyc
 .venv/
+stored_data/activity.jsonl
+stored_data/formula.json
+stored_data/formula_history.jsonl
+stored_data/sunshine.csv
+*.tmp

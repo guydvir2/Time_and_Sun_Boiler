@@ -25,6 +25,13 @@ With no password set the buttons stay locked.
 The **Services** card shows 🟢/🔴 for the engine, weather, MQTT broker, the Tasmota plug and Home Assistant
 (checks only read; they never switch anything). "spare" = configured but not in `[output] drivers`. `dashboard.py` is view-only (no driver attached).
 
+## Tune the formula
+
+`http://<this-machine>:8080/tune`: move sliders and see what every saved day would have got.
+Nothing changes until **Save** (password). Saved to `stored_data/formula.json`; every change is kept in
+`formula_history.jsonl`. **Clouds vs real sunshine** downloads measured sunshine (Open-Meteo archive) to
+check that cloud cover is a fair stand-in for sun.
+
 ## History from saved weather
 
 `python backfill.py` fills the history chart from the weather files already in `stored_data/`

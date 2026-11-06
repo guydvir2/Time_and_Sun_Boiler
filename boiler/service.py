@@ -5,7 +5,7 @@ from datetime import datetime, date, time
 
 from . import APP_VERSION
 from .settings import Settings
-from .formula import Formula, daily_mean, explain
+from .formula import Formula, daily_mean, explain, load_formula
 from .weather import get_weather, get_sun_times, csv_path, save_csv, load_csv
 from .state import (load_last_update, save_last_update, save_attempt, save_running, log_decision,
                     save_heartbeat, auto_enabled)
@@ -64,10 +64,11 @@ def main():
     if not drivers:
         sys.exit("❌ No usable driver. Fix the config above (or set [output] drivers = dryrun to test).")
 
-    formula = Formula()
-    bad = formula.validate()
+    formula = load_formula(s)
+    bad = formula.blocking_problems()
     if bad:
-        sys.exit("❌ Formula problems: " + "; ".join(bad))
+        print("⚠️  Saved formula has problems (" + "; ".join(bad) + "); using the default")
+        formula = Formula()
 
     hh, mm = (int(x) for x in s.update_after.split(":"))
     trim(s)
@@ -98,6 +99,9 @@ def main():
         due = now.time() >= time(hh, mm) or debug_pending
 
         if due and (not done_today or debug_pending):
+            formula = load_formula(s)            # picks up a formula saved on /tune, no restart needed
+            if formula.blocking_problems():
+                formula = Formula()
             if run_daily_update(s, drivers, formula):
                 save_last_update(s, date.today())
                 debug_pending = False           # keep running (and serving the dashboard) afterwards

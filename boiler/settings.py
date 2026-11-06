@@ -78,3 +78,7 @@ class Settings:
         self.stored_dir = os.path.join(BASE_DIR, "stored_data")
         self.decisions_file = os.path.join(self.stored_dir, "decisions.csv")
         self.activity_file = os.path.join(self.stored_dir, "activity.jsonl")
+        self.formula_file = os.path.join(self.stored_dir, "formula.json")          # tuned on /tune
+        self.formula_history = os.path.join(self.stored_dir, "formula_history.jsonl")
+        self.sunshine_file = os.path.join(self.stored_dir, "sunshine.csv")         # real sun (archive)
+        self.archive_url = g("weather", "archive_url", fallback="https://archive-api.open-meteo.com/v1/archive")

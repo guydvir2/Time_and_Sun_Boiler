@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boiler · Tune</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1c2330;--mute:#6b7585;--line:#e3e7ed;--green:#1a9850;--yellow:#c99700;--red:#d73027;--bar:#3b7ddd;--old:#a7b0bf;--sun:#f2b705;--btn:#eef2f8}
+@media (prefers-color-scheme:dark){:root{--bg:#10141b;--card:#1a212c;--fg:#e8ecf2;--mute:#93a0b3;--line:#2a3342;--green:#3fbf74;--yellow:#e3b53a;--red:#ff6a5f;--bar:#6aa3f0;--old:#5b6677;--sun:#e3b53a;--btn:#232c3a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px}
+.top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.top b{font-size:18px}.top a{color:var(--bar);text-decoration:none;font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:0 0 8px}
+.big{font-size:26px;font-weight:700}.big small{font-size:15px;color:var(--mute);font-weight:500}
+.note{color:var(--mute);font-size:14px}
+.msg{font-size:14px;margin:4px 0}
+svg{width:100%;height:auto;display:block}
+.axis{stroke:var(--line);stroke-width:1}.lbl{fill:var(--mute);font-size:10px}
+.sl{display:grid;grid-template-columns:100px 1fr 72px;gap:10px;align-items:center;padding:3px 0;font-size:15px}
+.sl span{white-space:nowrap}.sl span:last-child{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.sl.changed span:last-child{color:var(--bar)}
+input[type=range]{width:100%;accent-color:var(--bar)}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.btn{appearance:none;border:1px solid var(--line);background:var(--btn);color:var(--fg);border-radius:10px;padding:10px 14px;font-size:15px;font-weight:600;cursor:pointer}
+.btn.go{background:var(--bar);border-color:var(--bar);color:#fff}.btn:disabled{opacity:.5;cursor:default}
+input.pw{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:min(220px,100%)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:15px;max-width:90vw;display:none;z-index:9}
+</style></head><body><main>
+<div class="top"><b>Tune the formula</b><a href="/">← Boiler</a></div>
+
+<div class="card"><h2>Effect on your saved days</h2>
+  <div id="sum" class="note">Loading…</div>
+  <div id="probs"></div>
+  <div id="chart"></div>
+  <div class="legend"><span><i style="background:var(--old)"></i>now</span><span><i style="background:var(--bar)"></i>with your changes</span><span id="sunleg" style="display:none"><i style="background:var(--sun);height:8px;opacity:.4"></i>real sunshine %</span></div>
+  <div id="save"></div>
+</div>
+
+<div class="card"><h2>Temperature → minutes</h2>
+  <div id="curve"></div>
+  <div id="lut"></div>
+</div>
+
+<div class="card"><h2>Clouds &amp; limits</h2><div id="params"></div>
+  <div class="note" style="margin-top:6px"><b>Clouds</b> = extra time on a fully cloudy day. Ignored below "Sun from", full effect from "Sun full". Start / End = which daylight hours are averaged.</div>
+</div>
+
+<div class="card"><h2>Clouds vs real sunshine</h2>
+  <div id="sv" class="note">Loading…</div>
+  <div id="scatter"></div>
+  <div id="misses"></div>
+  <div class="row"><button class="btn" id="fetch">☀️ Fetch sunshine data</button></div>
+  <div class="note" style="margin-top:6px">Real sunshine comes from the Open-Meteo archive (about 5 days behind). Only missing days are downloaded.</div>
+</div>
+</main>
+<div id="toast" role="status"></div>
+<script>
+const $ = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs = {}, text) => { const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]); if (text !== undefined) e.textContent = text; return e; };
+const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text; return e; };
+const DOT = {green: "🟢", yellow: "🟡", red: "🔴", grey: "⚪"};
+let D = null, saved = null, cur = null, newDays = null, timer = null;
+
+async function post(path, body) {
+  try {
+    const r = await fetch(path, {method: "POST", headers: {"Content-Type": "application/json", "X-Requested-With": "boiler-ui"}, body: JSON.stringify(body || {})});
+    let j = {}; try { j = await r.json(); } catch (e) {}
+    return Object.assign({ok: r.ok && j.ok !== false, message: j.message || ("Error " + r.status)}, j, {ok: r.ok && j.ok !== false});
+  } catch (e) { return {ok: false, message: "Can't reach the boiler service"}; }
+}
+let tt; function toast(m) { const t = $("toast"); t.textContent = m; t.style.display = "block"; clearTimeout(tt); tt = setTimeout(() => t.style.display = "none", 6000); }
+const copy = o => JSON.parse(JSON.stringify(o));
+const lutPts = f => Object.entries(f.temp_lut).map(([k, v]) => [Number(k), Number(v)]).sort((a, b) => a[0] - b[0]);
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+/* ---------- sliders ---------- */
+function slider(label, min, max, step, get, set, fmt, isChanged) {
+  const row = h("div", "sl"); const inp = h("input"); Object.assign(inp, {type: "range", min, max, step}); inp.value = get();
+  const val = h("span", "", fmt(get())); row.append(h("span", "", label), inp, val);
+  const mark = () => row.classList.toggle("changed", isChanged());
+  inp.oninput = () => { set(Number(inp.value)); val.textContent = fmt(Number(inp.value)); mark(); changed(); };
+  mark(); return row;
+}
+function buildSliders() {
+  const lut = $("lut"); lut.replaceChildren();
+  const keys = Object.keys(cur.temp_lut).sort((a, b) => Number(a) - Number(b));
+  for (const k of keys) lut.append(slider(`${Number(k)}°C`, 0, cur.max_on, 5, () => cur.temp_lut[k], v => cur.temp_lut[k] = v,
+                                          v => `${Math.round(v)} min`, () => cur.temp_lut[k] !== saved.temp_lut[k]));
+  const p = $("params"); p.replaceChildren();
+  const P = (label, key, min, max, step, fmt) => p.append(slider(label, min, max, step, () => cur[key], v => { cur[key] = v; if (key === "max_on") buildSliders(); }, fmt, () => cur[key] !== saved[key]));
+  P("Clouds", "cloud_k", 0, 1.5, 0.05, v => `+${Math.round(v * 100)}%`);
+  P("Sun from", "sun_min_temp", 0, 30, 1, v => `${v}°C`);
+  P("Sun full", "sun_max_temp", 0, 35, 1, v => `${v}°C`);
+  P("Max/day", "max_on", 60, 300, 10, v => `${v} min`);
+  P("Start: rise +", "window_start_offset", 0, 4, 1, v => `${v} h`);
+  P("End: set −", "window_end_offset", 0, 4, 1, v => `${v} h`);
+}
+
+/* ---------- preview ---------- */
+function changed() { clearTimeout(timer); timer = setTimeout(preview, 150); drawCurve(); }
+async function preview() {
+  const r = await post("/api/tune/preview", {formula: cur});
+  if (!r.ok) { $("probs").replaceChildren(h("div", "msg", "🔴 " + r.message)); return; }
+  newDays = r.days; renderSummary(r); drawChart(); renderSave(r.blocking || []);
+}
+function renderSummary(r) {
+  const s = r.summary, box = $("sum"); box.replaceChildren(); box.className = "";
+  if (!s.days) { box.className = "note"; box.textContent = "No saved days yet: they are saved at every daily run."; return; }
+  const diff = s.avg_new - s.avg_current, big = h("div", "big");
+  big.append(document.createTextNode(`${s.avg_current} → ${s.avg_new} `), h("small", "", `min/day avg (${diff >= 0 ? "+" : ""}${diff})`));
+  box.append(big, h("div", "note", s.changed ? `${s.changed} of ${s.days} days change · ${s.more} more (up to +${s.max_up}) · ${s.less} less (down to ${s.max_down})` : `No change on any of the ${s.days} saved days`));
+  const pb = $("probs"); pb.replaceChildren();
+  for (const p of r.problems) pb.append(h("div", "msg", ((r.blocking || []).includes(p) ? "🔴 " : "🟡 ") + p));
+}
+
+/* ---------- charts ---------- */
+function drawChart() {
+  const box = $("chart"); box.replaceChildren();
+  const days = D.days; if (!days.length) return;
+  const W = 600, H = 170, x0 = 26, maxY = Math.max(cur.max_on, saved.max_on, ...days.map(d => d.minutes), ...(newDays || []).map(d => d.minutes));
+  const X = i => x0 + (i / Math.max(days.length - 1, 1)) * (W - x0 - 6), Y = v => H - (v / maxY) * (H - 12);
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H + 18}`, role: "img", "aria-label": "Minutes per saved day, now vs with changes"});
+  const anySun = days.some(d => d.sun_pct !== undefined); $("sunleg").style.display = anySun ? "" : "none";
+  if (anySun) { const bw = (W - x0) / days.length;
+    days.forEach((d, i) => { if (d.sun_pct === undefined) return; const bh = (d.sun_pct / 100) * (H - 12);
+      svg.append(el("rect", {x: X(i) - bw / 2, y: H - bh, width: bw * 0.9, height: bh, fill: "var(--sun)", opacity: .22})); }); }
+  for (const v of [0, Math.round(maxY / 2), maxY]) { svg.append(el("line", {x1: x0, x2: W, y1: Y(v), y2: Y(v), class: "axis"})); svg.append(el("text", {x: 0, y: Y(v) + 3, class: "lbl"}, v)); }
+  const line = (vals, color, w) => svg.append(el("polyline", {points: vals.map((v, i) => `${X(i)},${Y(v)}`).join(" "), fill: "none", stroke: color, "stroke-width": w, "stroke-linejoin": "round"}));
+  line(days.map(d => d.minutes), "var(--old)", 2);
+  if (newDays && newDays.length === days.length) line(newDays.map(d => d.minutes), "var(--bar)", 2.5);
+  svg.append(el("text", {x: x0, y: H + 14, class: "lbl"}, days[0].date.slice(5)));
+  svg.append(el("text", {x: W - 4, y: H + 14, class: "lbl", "text-anchor": "end"}, days[days.length - 1].date.slice(5)));
+  box.append(svg);
+}
+function drawCurve() {
+  const box = $("curve"); box.replaceChildren();
+  const a = lutPts(saved), b = lutPts(cur), W = 600, H = 140, x0 = 30;
+  const tmin = Math.min(a[0][0], b[0][0]), tmax = Math.max(a[a.length - 1][0], b[b.length - 1][0]), maxY = Math.max(cur.max_on, saved.max_on);
+  const X = t => x0 + ((t - tmin) / ((tmax - tmin) || 1)) * (W - x0 - 8), Y = v => H - (Math.min(v, maxY) / maxY) * (H - 12);
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H + 18}`, role: "img", "aria-label": "Temperature to minutes curve"});
+  svg.append(el("line", {x1: x0, x2: W, y1: H, y2: H, class: "axis"}));
+  for (const d of D.days) svg.append(el("circle", {cx: X(Math.min(Math.max(d.temp, tmin), tmax)), cy: H + 5, r: 2, fill: "var(--mute)", opacity: .5}));
+  svg.append(el("polyline", {points: a.map(p => `${X(p[0])},${Y(p[1])}`).join(" "), fill: "none", stroke: "var(--old)", "stroke-width": 2}));
+  svg.append(el("polyline", {points: b.map(p => `${X(p[0])},${Y(p[1])}`).join(" "), fill: "none", stroke: "var(--bar)", "stroke-width": 2.5}));
+  svg.append(el("text", {x: x0, y: H + 16, class: "lbl"}, `${tmin}°C`)); svg.append(el("text", {x: W - 8, y: H + 16, class: "lbl", "text-anchor": "end"}, `${tmax}°C`));
+  svg.append(el("text", {x: 0, y: 10, class: "lbl"}, maxY));
+  box.append(svg, h("div", "note", "Dots under the line = the temperatures of your saved days."));
+}
+
+/* ---------- save ---------- */
+function renderSave(blocking) {
+  const box = $("save"); box.replaceChildren(); const c = D.controls, dirty = !same(cur, saved);
+  const row = h("div", "row");
+  const undo = h("button", "btn", "↩ Undo changes"); undo.disabled = !dirty; undo.onclick = () => { cur = copy(saved); buildSliders(); changed(); };
+  const def = h("button", "btn", "Defaults"); def.disabled = same(cur, D.default); def.onclick = () => { cur = copy(D.default); buildSliders(); changed(); };
+  if (!c.password_set) { row.append(undo, def); box.append(row, h("div", "note", "🔒 Saving needs the dashboard password (config.local.ini). You can still try changes here.")); return; }
+  if (!c.logged_in) {
+    const pw = h("input", "pw"); pw.type = "password"; pw.placeholder = "Password to save";
+    const go = h("button", "btn go", "Unlock"); go.onclick = async () => { const r = await post("/api/login", {password: pw.value}); toast((r.ok ? "🔓 " : "🔒 ") + r.message); if (r.ok) { D.controls.logged_in = true; renderSave(blocking); } };
+    pw.addEventListener("keydown", e => { if (e.key === "Enter") go.click(); });
+    row.append(pw, go, undo, def); box.append(row); return;
+  }
+  const save = h("button", "btn go", "💾 Save formula"); save.disabled = !dirty || blocking.length > 0;
+  save.onclick = async () => {
+    if (!confirm("Save this formula? It applies from the next daily run.")) return;
+    const r = await post("/api/formula", {formula: cur}); toast((r.ok ? "✅ " : "❌ ") + r.message); if (r.ok) load();
+  };
+  row.append(save, undo, def); box.append(row);
+  if (!dirty) box.append(h("div", "note", "Move a slider to try a change. Nothing is saved until you press Save."));
+}
+
+/* ---------- sunshine ---------- */
+function renderSun() {
+  const v = D.sunshine, box = $("sv"); box.replaceChildren(); box.className = "";
+  box.append(h("div", "msg", `${DOT[v.level]} ${v.text}` + (v.r !== undefined ? ` (r = ${v.r}, ${v.n} days)` : "")));
+  const sc = $("scatter"); sc.replaceChildren(); const ms = $("misses"); ms.replaceChildren();
+  if (!v.points) return;
+  const W = 600, H = 200, x0 = 30, X = c => x0 + (c / 100) * (W - x0 - 8), Y = p => H - (p / 100) * (H - 10);
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H + 20}`, role: "img", "aria-label": "Forecast clouds vs measured sunshine"});
+  svg.append(el("line", {x1: X(0), y1: Y(100), x2: X(100), y2: Y(0), stroke: "var(--mute)", "stroke-dasharray": "4 4", "stroke-width": 1}));
+  svg.append(el("line", {x1: x0, x2: W, y1: H, y2: H, class: "axis"}));
+  for (const [c, p] of v.points) svg.append(el("circle", {cx: X(c), cy: Y(p), r: 4, fill: "var(--sun)", opacity: .8}));
+  svg.append(el("text", {x: x0, y: H + 14, class: "lbl"}, "0% clouds")); svg.append(el("text", {x: W - 8, y: H + 14, class: "lbl", "text-anchor": "end"}, "100% clouds"));
+  svg.append(el("text", {x: 0, y: 10, class: "lbl"}, "100% sun"));
+  sc.append(svg, h("div", "note", "Each dot = one day. On the dashed line, clouds predicted the sun exactly."));
+  if (v.misses && v.misses.length) { ms.append(h("div", "note", "Biggest misses:"));
+    for (const m of v.misses) ms.append(h("div", "msg", `${m.date}: forecast ${m.clouds}% clouds, real sun ${m.sun_pct}% (${m.gap > 0 ? "sunnier" : "darker"} than expected)`)); }
+}
+$("fetch").onclick = async () => { const b = $("fetch"); b.disabled = true; toast("Downloading…");
+  const r = await post("/api/sunshine"); toast((r.ok ? "✅ " : "❌ ") + r.message); b.disabled = false; if (r.ok) load(); };
+
+async function load() {
+  try { const r = await fetch("/api/tune", {cache: "no-store"}); D = await r.json(); if (D.error) throw new Error(D.error); }
+  catch (e) { $("sum").textContent = "🔴 Can't load the saved days"; return; }
+  saved = copy(D.saved); cur = copy(D.saved); newDays = null;
+  buildSliders(); drawCurve(); drawChart(); renderSun(); preview();
+}
+load();
+</script></body></html>

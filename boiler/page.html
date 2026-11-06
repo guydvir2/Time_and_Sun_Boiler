@@ -42,7 +42,7 @@ input.wide{width:min(260px,100%)}
 .wxline{display:flex;justify-content:space-between;gap:8px;padding:3px 0;font-size:15px}.wxline span:last-child{color:var(--mute);text-align:right;white-space:nowrap}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:15px;max-width:90vw;display:none;z-index:9}
 </style></head><body><main>
-<div class="top"><b>Boiler</b><span id="meta"></span></div>
+<div class="top"><b>Boiler</b><span><span id="meta"></span> · <a href="/tune" style="color:var(--bar);text-decoration:none">Tune formula</a></span></div>
 <noscript>This page needs JavaScript.</noscript>
 
 <div id="status" class="card status"><span class="dot">⏳</span><span class="t">Loading…</span></div>
@@ -62,6 +62,7 @@ input.wide{width:min(260px,100%)}
 <div class="card"><details><summary>Details</summary>
   <div class="kv" id="kv"></div>
   <h2 style="margin-top:14px">Formula · temperature → minutes</h2><div id="fx"></div>
+  <a href="/tune" style="color:var(--bar);font-size:15px">Tune the formula →</a>
 </details></div>
 </main>
 <div id="toast" role="status"></div>

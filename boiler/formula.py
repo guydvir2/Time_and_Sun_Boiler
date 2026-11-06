@@ -23,7 +23,7 @@ class Formula:
 
     def to_dict(self) -> dict:
         d = asdict(self)
-        d["temp_lut"] = {str(k): v for k, v in self.temp_lut.items()}
+        d["temp_lut"] = {f"{float(k):g}": v for k, v in self.temp_lut.items()}   # 6.0 -> "6"
         return d
 
     @classmethod
@@ -50,6 +50,10 @@ class Formula:
         if self.sun_min_temp >= self.sun_max_temp:
             problems.append("Sun-sensitivity range is empty (min temp must be below max temp).")
         return problems
+
+    def blocking_problems(self) -> list:
+        """Problems that must stop a save (the 'above cap' note is only a warning)."""
+        return [p for p in self.validate() if "will be cut" not in p]
 
 
 def base_minutes(T: float, f: Formula) -> float:
@@ -102,3 +106,64 @@ def daily_mean(data, sunrise: int, sunset: int, f: Formula = None):
     if not rows:
         return None, None
     return mean(d["temp"] for d in rows), mean(d["clouds"] for d in rows)
+
+
+# ----------------------------------------------------------------------------- saved formula
+# The tuned formula lives in stored_data/formula.json (written by the /tune page).
+# The engine reads it at every daily run, so a saved change applies from the next run, no restart.
+
+LIMITS = {"cloud_k": (0, 2), "sun_min_temp": (-10, 40), "sun_max_temp": (-10, 45), "max_on": (0, 600),
+          "window_start_offset": (0, 6), "window_end_offset": (0, 6)}
+
+
+def parse_formula(d) -> "Formula":
+    """Build a Formula from untrusted input (the web page). Raises ValueError with a readable message."""
+    if not isinstance(d, dict):
+        raise ValueError("formula must be an object")
+    out = Formula().to_dict()
+    for k, (lo, hi) in LIMITS.items():
+        if k in d:
+            v = d[k]
+            if isinstance(v, bool) or not isinstance(v, (int, float)) or not lo <= v <= hi:
+                raise ValueError(f"{k} must be a number from {lo} to {hi}")
+            out[k] = int(v) if k in ("max_on", "window_start_offset", "window_end_offset") else float(v)
+    if "temp_lut" in d:
+        lut = d["temp_lut"]
+        if not isinstance(lut, dict) or not 2 <= len(lut) <= 40:
+            raise ValueError("temp_lut must have 2 to 40 points")
+        clean = {}
+        for k, v in lut.items():
+            t = float(k)
+            if not -20 <= t <= 50 or isinstance(v, bool) or not isinstance(v, (int, float)) or not 0 <= v <= 600:
+                raise ValueError("temp_lut: temperatures -20..50, minutes 0..600")
+            clean[f"{t:g}"] = round(float(v), 1)
+        out["temp_lut"] = clean
+    return Formula.from_dict(out)
+
+
+def load_formula(s) -> "Formula":
+    """The saved formula, or the built-in default if none is saved (or the file is broken)."""
+    import json
+    try:
+        with open(s.formula_file) as f:
+            return parse_formula(json.load(f))
+    except FileNotFoundError:
+        return Formula()
+    except (ValueError, OSError) as e:
+        print(f"⚠️  {s.formula_file} is unreadable ({e}); using the default formula")
+        return Formula()
+
+
+def save_formula(s, f: "Formula", who="dashboard"):
+    """Write the formula and append the previous one to formula_history.jsonl (so any change can be undone)."""
+    import json, os
+    from datetime import datetime
+    os.makedirs(os.path.dirname(s.formula_file), exist_ok=True)
+    old = load_formula(s)
+    with open(s.formula_history, "a") as h:
+        h.write(json.dumps({"time": datetime.now().isoformat(timespec="seconds"), "who": who,
+                            "old": old.to_dict(), "new": f.to_dict()}) + "\n")
+    tmp = s.formula_file + ".tmp"
+    with open(tmp, "w") as fh:
+        json.dump(f.to_dict(), fh, indent=1)
+    os.replace(tmp, s.formula_file)
