@@ -12,7 +12,15 @@ python3 -m venv .venv
 .venv/bin/python dashboard.py      # dashboard only (view history, nothing is switched)
 ```
 
-Dashboard: `http://<this-machine>:8080` (read-only, shows no secrets).
+Dashboard: `http://<this-machine>:8080`. Anyone on your network can LOOK (it shows no secrets).
+The **Run / Stop buttons need a password**: add it to `config.local.ini` (git-ignored) and restart:
+
+```
+[dashboard]
+password = something-long
+```
+
+With no password set the buttons stay locked. `dashboard.py` is view-only (no driver attached).
 
 ## Config
 

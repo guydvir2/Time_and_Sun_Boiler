@@ -1,13 +1,12 @@
-"""Small persistent bits: 'was today done?' and the log of every decision."""
+"""Small persistent bits: 'was today done?', the latest attempt, 'boiler running until', and the
+log of every decision. The service and the dashboard share this process, so writes are locked."""
 import os
 import csv
 import json
-from datetime import datetime
+import threading
+from datetime import datetime, timedelta
 
-
-def load_last_update(s):
-    """Date string (YYYY-MM-DD) of the last successful update, or None."""
-    return _read_state(s).get("last_update_date")
+_lock = threading.RLock()
 
 
 def _read_state(s):
@@ -26,22 +25,57 @@ def _write_state(s, data):
         print(f"⚠️  Could not save state: {e}")
 
 
+def _update(s, **changes):
+    with _lock:
+        data = _read_state(s)
+        for k, v in changes.items():
+            if v is None:
+                data.pop(k, None)
+            else:
+                data[k] = v
+        _write_state(s, data)
+
+
+def load_last_update(s):
+    """Date string (YYYY-MM-DD) of the last successful update, or None."""
+    return _read_state(s).get("last_update_date")
+
+
 def save_last_update(s, day):
-    data = _read_state(s)
-    data["last_update_date"] = str(day)
-    _write_state(s, data)
+    _update(s, last_update_date=str(day))
 
 
 def save_attempt(s, ok, message):
     """Remember the latest attempt (success or failure) so the dashboard can show problems."""
-    data = _read_state(s)
-    data["last_attempt"] = {"time": datetime.now().isoformat(timespec="seconds"),
-                            "ok": bool(ok), "message": message}
-    _write_state(s, data)
+    _update(s, last_attempt={"time": datetime.now().isoformat(timespec="seconds"),
+                             "ok": bool(ok), "message": message})
 
 
 def load_attempt(s):
     return _read_state(s).get("last_attempt")
+
+
+def save_running(s, minutes, source):
+    """The boiler was told to run `minutes` from now. (The device times itself out; this is for display.)"""
+    until = datetime.now() + timedelta(minutes=minutes)
+    _update(s, running={"until": until.isoformat(timespec="seconds"), "minutes": minutes, "source": source})
+
+
+def clear_running(s):
+    _update(s, running=None)
+
+
+def load_running(s, now=None):
+    """{'until','minutes','source'} while the run is still in progress, else None."""
+    r = _read_state(s).get("running")
+    if not r:
+        return None
+    try:
+        if datetime.fromisoformat(r["until"]) > (now or datetime.now()):
+            return r
+    except (KeyError, ValueError):
+        pass
+    return None
 
 
 DECISION_COLUMNS = ["timestamp", "mean_temp", "mean_clouds", "duration_min", "driver", "ok"]

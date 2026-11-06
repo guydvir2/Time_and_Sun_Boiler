@@ -69,8 +69,12 @@ class Settings:
         self.dashboard_enabled = _bool(g("dashboard", "enabled", fallback="True"))
         self.dashboard_host = g("dashboard", "host", fallback="0.0.0.0")   # 127.0.0.1 = this machine only
         self.dashboard_port = int(g("dashboard", "port", fallback="8080"))
+        # Manual buttons (Run/Stop) only work when a password is set. Keep it in config.local.ini or env.
+        self.dashboard_password = env.get("DASHBOARD_PASSWORD") or g("dashboard", "password", fallback="")
+        self.max_manual_minutes = int(g("dashboard", "max_manual_minutes", fallback="180"))
 
         # --- paths ---
         self.state_file = os.path.join(BASE_DIR, "state.json")
         self.stored_dir = os.path.join(BASE_DIR, "stored_data")
         self.decisions_file = os.path.join(self.stored_dir, "decisions.csv")
+        self.activity_file = os.path.join(self.stored_dir, "activity.jsonl")

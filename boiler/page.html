@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boiler</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1c2330;--mute:#6b7585;--line:#e3e7ed;--green:#1a9850;--yellow:#c99700;--red:#d73027;--bar:#3b7ddd;--btn:#eef2f8}
+@media (prefers-color-scheme:dark){:root{--bg:#10141b;--card:#1a212c;--fg:#e8ecf2;--mute:#93a0b3;--line:#2a3342;--green:#3fbf74;--yellow:#e3b53a;--red:#ff6a5f;--bar:#6aa3f0;--btn:#232c3a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px}
+.top{display:flex;justify-content:space-between;align-items:baseline;color:var(--mute);font-size:13px;margin-bottom:10px}
+.top b{color:var(--fg);font-size:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+.status{display:flex;gap:12px;align-items:center;border-left:8px solid var(--yellow)}
+.status.green{border-left-color:var(--green)}.status.yellow{border-left-color:var(--yellow)}.status.red{border-left-color:var(--red)}
+.status .dot{font-size:26px}.status .t{font-size:17px;font-weight:600}
+.hero{text-align:center}
+.hero .on{display:inline-block;background:var(--yellow);color:#111;font-weight:700;border-radius:999px;padding:4px 12px;margin-bottom:10px;font-size:14px}
+.hero .n{font-size:64px;font-weight:700;line-height:1}
+.hero .n small{font-size:22px;color:var(--mute);font-weight:500}
+.hero .s{color:var(--mute);margin-top:6px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:0 0 8px}
+svg{width:100%;height:auto;display:block}
+.axis{stroke:var(--line);stroke-width:1}.lbl{fill:var(--mute);font-size:10px}
+.bar{fill:var(--bar)}.bar.bad{fill:var(--red)}
+details summary{cursor:pointer;color:var(--mute);font-size:14px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:10px 0;font-size:14px}.kv span:nth-child(odd){color:var(--mute)}
+.empty{color:var(--mute);text-align:center;padding:18px 0}
+.note{color:var(--mute);font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.btn{appearance:none;border:1px solid var(--line);background:var(--btn);color:var(--fg);border-radius:10px;padding:10px 14px;font-size:15px;font-weight:600;cursor:pointer;min-width:64px}
+.btn:hover{border-color:var(--bar)}.btn:disabled{opacity:.5;cursor:wait}
+.btn.go{background:var(--bar);border-color:var(--bar);color:#fff}
+.btn.stop{background:var(--red);border-color:var(--red);color:#fff}
+.btn.quiet{background:none;font-weight:500;color:var(--mute)}
+input{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:110px}
+input.wide{width:min(260px,100%)}
+.ev{display:flex;gap:8px;font-size:14px;padding:5px 0;border-top:1px solid var(--line)}
+.ev:first-child{border-top:0}.ev .when{color:var(--mute);min-width:84px;font-variant-numeric:tabular-nums}
+.wxline{display:flex;justify-content:space-between;gap:8px;padding:3px 0;font-size:15px}.wxline span:last-child{color:var(--mute);text-align:right;white-space:nowrap}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:15px;max-width:90vw;display:none;z-index:9}
+</style></head><body><main>
+<div class="top"><b>Boiler</b><span id="meta"></span></div>
+<noscript>This page needs JavaScript.</noscript>
+
+<div id="status" class="card status"><span class="dot">⏳</span><span class="t">Loading…</span></div>
+<div class="card hero" id="hero"></div>
+<div class="card" id="controls"></div>
+
+<div class="card"><h2>Weather · expected run</h2>
+  <div id="fnow" class="note">Loading forecast…</div>
+  <div id="fdays"></div>
+  <div id="wx" style="margin-top:8px"></div>
+</div>
+
+<div class="card"><h2>Last 30 days · minutes</h2><div id="hist"></div></div>
+<div class="card"><h2>Activity</h2><div id="act"></div></div>
+
+<div class="card"><details><summary>Details</summary>
+  <div class="kv" id="kv"></div>
+  <h2 style="margin-top:14px">Formula · temperature → minutes</h2><div id="fx"></div>
+</details></div>
+</main>
+<div id="toast" role="status"></div>
+<script>
+const $ = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs = {}, text) => { const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]); if (text !== undefined) e.textContent = text; return e; };
+const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text; return e; };
+const DOT = {green: "🟢", yellow: "🟡", red: "🔴"};
+let LAST = null, ctlKey = "";
+
+async function post(path, body) {
+  try {
+    const r = await fetch(path, {method: "POST", headers: {"Content-Type": "application/json", "X-Requested-With": "boiler-ui"},
+                                 body: JSON.stringify(body || {})});
+    let j = {}; try { j = await r.json(); } catch (e) {}
+    return {ok: r.ok && j.ok !== false, message: j.message || ("Error " + r.status)};
+  } catch (e) { return {ok: false, message: "Can't reach the boiler service"}; }
+}
+let toastTimer;
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.style.display = "block";
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.style.display = "none", 6000); }
+
+/* ---------- status + hero ---------- */
+function renderStatus(d) {
+  const s = $("status"); s.className = "card status " + d.health.level;
+  s.replaceChildren(h("span", "dot", DOT[d.health.level]), h("span", "t", d.health.text));
+}
+function renderHero(d) {
+  const box = $("hero"); box.replaceChildren();
+  if (d.running) box.append(h("div", "on", `🔥 ON until ${d.running.until.slice(11, 16)} (${d.running.source})`));
+  const t = d.today, shown = t || d.last;
+  if (!shown) { box.append(h("div", "empty", "No runs recorded yet")); return; }
+  const n = h("div", "n"); n.append(document.createTextNode(shown.minutes), h("small", "", " min")); box.append(n);
+  const via = shown.driver ? ` · via ${shown.driver}` : "";
+  box.append(h("div", "s", `${shown.temp.toFixed(1)}°C · ${shown.clouds.toFixed(0)}% clouds${via}`));
+  if (!t) box.append(h("div", "s", `Last auto run: ${shown.date}. Nothing yet today.`));
+  else if (!t.ok) box.append(h("div", "s", "⚠️ Not accepted by the driver"));
+}
+
+/* ---------- controls ---------- */
+function note(text) { return h("div", "note", text); }
+function setBusy(box, busy) { box.querySelectorAll("button,input").forEach(x => x.disabled = busy); }
+
+async function doRun(box, minutes) {
+  const m = Math.round(Number(minutes));
+  const c = LAST.controls;
+  if (!(m >= 1 && m <= c.max_minutes)) { toast(`Enter 1 to ${c.max_minutes} minutes`); return; }
+  const on = LAST.running ? `\nIt is already ON until ${LAST.running.until.slice(11, 16)}; this restarts the timer.` : "";
+  if (!confirm(`Run the boiler for ${m} minutes now?${on}`)) return;
+  setBusy(box, true); toast("Sending… (up to 30 s)");
+  const r = await post("/api/run", {minutes: m}); toast((r.ok ? "✅ " : "❌ ") + r.message);
+  ctlKey = ""; await refresh();
+}
+async function doStop(box) {
+  if (!confirm("Switch the boiler OFF now?")) return;
+  setBusy(box, true); toast("Sending… (up to 30 s)");
+  const r = await post("/api/stop"); toast((r.ok ? "✅ " : "❌ ") + r.message);
+  ctlKey = ""; await refresh();
+}
+async function doLogin(box, input) {
+  const r = await post("/api/login", {password: input.value}); input.value = "";
+  toast((r.ok ? "🔓 " : "🔒 ") + r.message); ctlKey = ""; await refresh();
+}
+function renderControls(d) {
+  const c = d.controls, key = JSON.stringify(c);
+  if (key === ctlKey) return; ctlKey = key;
+  const box = $("controls"); box.replaceChildren(h("h2", "", "Control"));
+  if (!c.available) { box.append(note("View-only mode: no driver is attached to this page.")); return; }
+  if (!c.password_set) { box.append(note("🔒 Locked. No dashboard password is set. Add a [dashboard] password to config.local.ini and restart to enable the buttons.")); return; }
+  if (!c.logged_in) {
+    const pw = h("input", "wide"); pw.type = "password"; pw.placeholder = "Dashboard password"; pw.autocomplete = "current-password";
+    const go = h("button", "btn go", "Unlock"); go.onclick = () => doLogin(box, pw);
+    pw.addEventListener("keydown", e => { if (e.key === "Enter") go.click(); });
+    const row = h("div", "row"); row.append(pw, go); box.append(note("🔒 Locked. Enter the password to run or stop the boiler."), row); return;
+  }
+  const row = h("div", "row");
+  for (const m of [30, 60, 90, 120].filter(m => m <= c.max_minutes)) {
+    const b = h("button", "btn", m + " min"); b.onclick = () => doRun(box, m); row.append(b);
+  }
+  const row2 = h("div", "row");
+  const inp = h("input"); inp.type = "number"; inp.min = 1; inp.max = c.max_minutes; inp.placeholder = "minutes"; inp.inputMode = "numeric";
+  const run = h("button", "btn go", "Run"); run.onclick = () => doRun(box, inp.value);
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") run.click(); });
+  row2.append(inp, run);
+  if (c.can_stop) { const st = h("button", "btn stop", "Stop"); st.onclick = () => doStop(box); row2.append(st); }
+  const lock = h("button", "btn quiet", "🔓 Lock"); lock.onclick = async () => { await post("/api/logout"); ctlKey = ""; refresh(); };
+  row2.append(lock);
+  box.append(note("Run the boiler now:"), row, row2);
+}
+
+/* ---------- weather ---------- */
+function spark(values, label, color) {
+  const W = 600, H = 56; const min = Math.min(...values), max = Math.max(...values), span = (max - min) || 1;
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H + 14}`});
+  const pts = values.map((v, i) => `${(i / Math.max(values.length - 1, 1)) * (W - 8) + 4},${H - ((v - min) / span) * (H - 8) - 2}`).join(" ");
+  svg.append(el("polyline", {points: pts, fill: "none", stroke: color, "stroke-width": 2.5, "stroke-linejoin": "round"}));
+  svg.append(el("text", {x: 4, y: H + 12, class: "lbl"}, `${label}: ${min.toFixed(0)} – ${max.toFixed(0)}`));
+  return svg;
+}
+function renderWeather(d) {
+  const box = $("wx"); box.replaceChildren();
+  const hrs = d.weather;
+  if (!hrs.length) { box.append(note("No weather saved for today yet (it is saved at the daily run).")); return; }
+  box.append(spark(hrs.map(r => r.temp), `Today °C, ${hrs[0].hour}:00–${hrs[hrs.length - 1].hour}:00`, "var(--bar)"),
+             spark(hrs.map(r => r.clouds), "Clouds %", "var(--mute)"));
+}
+function renderForecast(f) {
+  const now = $("fnow"), days = $("fdays"); days.replaceChildren();
+  if (f.error) { now.textContent = f.error; return; }
+  now.textContent = f.now ? `Now ${Math.round(f.now.temp)}°C · ${Math.round(f.now.clouds)}% clouds` + (f.stale ? " (older data)" : "") : "";
+  const today = LAST ? LAST.now.slice(0, 10) : "";
+  for (const day of f.days) {
+    const name = day.date === today ? "Today" : "Tomorrow";
+    const row = h("div", "wxline"); row.append(h("span", "", `${name} ≈ ${day.minutes} min`),
+      h("span", "", `${day.mean_temp}°C · ${day.mean_clouds}% clouds`)); days.append(row);
+  }
+}
+async function refreshForecast() {
+  try { const r = await fetch("/api/forecast", {cache: "no-store"}); renderForecast(await r.json()); }
+  catch (e) { $("fnow").textContent = "Forecast unavailable"; }
+}
+
+/* ---------- history, activity, details ---------- */
+function renderHistory(d) {
+  const box = $("hist"); box.replaceChildren();
+  const rows = d.history;
+  if (!rows.length) { box.append(h("div", "empty", "History appears after the first run")); return; }
+  const W = 600, H = 150, pad = 18, top = d.formula.max_on;
+  const maxY = Math.max(top, ...rows.map(r => r.minutes));
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H + 18}`, role: "img", "aria-label": "Minutes per day"});
+  for (const v of [0, maxY / 2, maxY]) {
+    const y = H - (v / maxY) * (H - pad); svg.append(el("line", {x1: 0, x2: W, y1: y, y2: y, class: "axis"}));
+    svg.append(el("text", {x: 2, y: y - 3, class: "lbl"}, Math.round(v)));
+  }
+  const slot = (W - 18) / Math.max(rows.length, 30), bw = slot * 0.7;
+  rows.forEach((r, i) => {
+    const bh = (r.minutes / maxY) * (H - pad), x = i * slot + (slot - bw) / 2 + 14;
+    const rect = el("rect", {x: x, y: H - bh, width: bw - 1, height: Math.max(bh, 1), rx: 2, class: "bar" + (r.ok ? "" : " bad")});
+    rect.append(el("title", {}, `${r.date}: ${r.minutes} min, ${r.temp.toFixed(1)}°C, ${r.clouds.toFixed(0)}% clouds` + (r.ok ? "" : " (failed)")));
+    svg.append(rect);
+  });
+  svg.append(el("text", {x: 14, y: H + 13, class: "lbl"}, rows[0].date.slice(5)));
+  svg.append(el("text", {x: W - 2, y: H + 13, class: "lbl", "text-anchor": "end"}, rows[rows.length - 1].date.slice(5)));
+  box.append(svg);
+}
+function renderActivity(d) {
+  const box = $("act"); box.replaceChildren();
+  if (!d.activity.length) { box.append(h("div", "empty", "Nothing yet")); return; }
+  const today = d.now.slice(0, 10);
+  for (const e of d.activity.slice(0, 12)) {
+    const when = e.time.slice(0, 10) === today ? e.time.slice(11, 16) : e.time.slice(5, 10) + " " + e.time.slice(11, 16);
+    const row = h("div", "ev"); row.append(h("span", "when", when), h("span", "", e.ok ? "🟢" : "🔴"), h("span", "", e.message)); box.append(row);
+  }
+}
+function renderFormula(d) {
+  const box = $("fx"); box.replaceChildren();
+  const pts = d.formula.points; if (!pts.length) return;
+  const W = 600, H = 150, x0 = 30, maxY = d.formula.max_on;
+  const tmin = pts[0][0], tmax = pts[pts.length - 1][0];
+  const X = t => x0 + ((t - tmin) / ((tmax - tmin) || 1)) * (W - x0 - 10), Y = v => H - (v / maxY) * (H - 14);
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H + 18}`});
+  svg.append(el("line", {x1: x0, x2: W, y1: H, y2: H, class: "axis"}));
+  svg.append(el("polyline", {points: pts.map(p => `${X(p[0])},${Y(p[1])}`).join(" "), fill: "none", stroke: "var(--bar)", "stroke-width": 2.5}));
+  svg.append(el("text", {x: x0, y: H + 13, class: "lbl"}, `${tmin}°C`));
+  svg.append(el("text", {x: W - 10, y: H + 13, class: "lbl", "text-anchor": "end"}, `${tmax}°C`));
+  svg.append(el("text", {x: 2, y: 6, class: "lbl"}, maxY + " min"));
+  if (d.today) {
+    const cx = Math.min(Math.max(X(d.today.temp), x0), W - 10), cy = Y(d.today.minutes);
+    svg.append(el("circle", {cx: cx, cy: cy, r: 5, fill: "var(--red)"}));
+    svg.append(el("text", {x: Math.min(cx + 8, W - 60), y: cy - 6, class: "lbl"}, "today"));
+  }
+  box.append(svg, h("div", "note", `Line = temperature only. The dot sits above it when clouds add time (cloud factor ${d.formula.cloud_k}).`));
+}
+function renderDetails(d) {
+  const kv = $("kv"); kv.replaceChildren();
+  const rows = [["Drivers", d.drivers.join(" → ") || "none"], ["Next auto run", d.next_run],
+                ["Checks every", d.check_every_min + " min"], ["Version", d.version]];
+  if (d.base) rows.splice(1, 0, ["Today's math", `${d.base.base_min} min base, clouds +${(d.base.cloud_alpha * 100).toFixed(0)}% → ${d.base.result_min} min`]);
+  for (const [k, v] of rows) kv.append(h("span", "", k), h("span", "", String(v)));
+}
+
+async function refresh() {
+  try {
+    const r = await fetch("/api/status", {cache: "no-store"}); if (!r.ok) throw new Error(r.status);
+    const d = await r.json(); LAST = d;
+    renderStatus(d); renderHero(d); renderControls(d); renderWeather(d); renderHistory(d);
+    renderActivity(d); renderFormula(d); renderDetails(d);
+    $("meta").textContent = "updated " + d.now.slice(11, 16);
+  } catch (e) {
+    $("status").className = "card status red";
+    $("status").replaceChildren(h("span", "dot", "🔴"), h("span", "t", "Can't reach the boiler service"));
+  }
+}
+refresh().then(refreshForecast); setInterval(refresh, 30000); setInterval(refreshForecast, 600000);
+</script></body></html>

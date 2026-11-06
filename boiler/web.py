@@ -1,18 +1,31 @@
-"""Read-only dashboard: one page + one JSON endpoint. Standard library only.
+"""Dashboard: one page (page.html) + a small JSON API. Standard library only.
 
-Runs as a thread inside the service (so one process), or alone:  python -m boiler.web
-It never exposes secrets (no tokens/passwords), and it cannot change anything.
+Runs as a thread inside the service (so one process), or alone:  python dashboard.py  (view-only)
+Reading is open on your network. Anything that SWITCHES the boiler (Run / Stop) needs the dashboard
+password (config.local.ini or env DASHBOARD_PASSWORD); with no password set, controls are off.
+The API never exposes secrets.
 """
 import csv
+import hmac
 import json
 import os
+import secrets
 import threading
+import time as _time
 from datetime import datetime, date, time, timedelta
+from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import APP_VERSION
 from .formula import Formula, explain
-from .state import load_last_update, load_attempt
+from .state import load_last_update, load_attempt, load_running, save_running, clear_running
+from .activity import log_event, read_events
+from .drivers import start_boiler
+
+PAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "page.html")
+COOKIE = "boiler_session"
+CSRF_HEADER = ("X-Requested-With", "boiler-ui")      # a cross-site page cannot send this without our consent
+FORECAST_TTL = 1800                                  # seconds
 
 
 # ----------------------------------------------------------------------------- data
@@ -104,233 +117,250 @@ def build_status(s, driver_names, formula=None, now=None):
         "version": APP_VERSION,
         "now": now.isoformat(timespec="seconds"),
         "health": {"level": level, "text": text},
+        "running": load_running(s, now),
         "today": todays, "base": base,
         "last": hist[-1] if hist else None,
         "next_run": nxt, "update_after": s.update_after, "check_every_min": s.sleep_minutes,
         "drivers": list(driver_names),
         "history": hist,
         "weather": _today_weather(s, today),
+        "activity": read_events(s, 15),
         "formula": {"points": sorted([float(k), v] for k, v in formula.temp_lut.items()),
                     "cloud_k": formula.cloud_k, "max_on": formula.max_on},
     }
 
 
+# ----------------------------------------------------------------------------- auth
+
+class Auth:
+    """Password -> random session token (kept in memory, 12 h). Failed logins are rate-limited."""
+    TTL = 12 * 3600
+    MAX_FAILS, WINDOW = 5, 60
+
+    def __init__(self, password):
+        self.password = password or ""
+        self.sessions = {}
+        self.fails = []
+        self.lock = threading.Lock()
+
+    @property
+    def enabled(self):
+        return bool(self.password)
+
+    def login(self, supplied):
+        """Returns (token or None, http_status, message)."""
+        with self.lock:
+            now = _time.time()
+            self.fails = [t for t in self.fails if now - t < self.WINDOW]
+            if len(self.fails) >= self.MAX_FAILS:
+                return None, 429, "Too many wrong attempts. Wait a minute."
+            if not hmac.compare_digest(str(supplied).encode(), self.password.encode()):
+                self.fails.append(now)
+                return None, 401, "Wrong password"
+            token = secrets.token_urlsafe(32)
+            self.sessions[token] = now + self.TTL
+            return token, 200, "ok"
+
+    def valid(self, token):
+        with self.lock:
+            now = _time.time()
+            self.sessions = {t: e for t, e in self.sessions.items() if e > now}
+            return bool(token) and token in self.sessions
+
+    def logout(self, token):
+        with self.lock:
+            self.sessions.pop(token, None)
+
+
+class Ctx:
+    def __init__(self, s, drivers, formula):
+        self.s = s
+        self.drivers = list(drivers)
+        self.formula = formula or Formula()
+        self.auth = Auth(s.dashboard_password)
+        self.action_lock = threading.Lock()          # one switch command at a time
+        self.fc_lock = threading.Lock()
+        self.fc = {"t": 0.0, "value": None}
+
+    @property
+    def names(self):
+        return [d.name for d in self.drivers]
+
+    def forecast(self):
+        from .weather import forecast_prediction
+        with self.fc_lock:
+            if self.fc["value"] is not None and _time.time() - self.fc["t"] < FORECAST_TTL:
+                return self.fc["value"]
+            try:
+                self.fc = {"t": _time.time(), "value": forecast_prediction(self.s, self.formula)}
+                return self.fc["value"]
+            except Exception as e:
+                if self.fc["value"] is not None:     # serve the last good one, marked stale
+                    return dict(self.fc["value"], stale=True)
+                return {"error": f"Forecast unavailable ({type(e).__name__})"}
+
+
 # ----------------------------------------------------------------------------- server
 
 class _Handler(BaseHTTPRequestHandler):
-    ctx = None   # (settings, driver_names, formula), set by make_server
+    ctx = None   # set by make_server
 
-    def _send(self, code, body, ctype):
+    # -- helpers
+    def _send(self, code, body, ctype="application/json", headers=None):
         data = body if isinstance(body, bytes) else body.encode()
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "no-store")
+        for k, v in (headers or {}).items():
+            self.send_header(k, v)
         self.end_headers()
         self.wfile.write(data)
 
+    def _json(self, code, obj, headers=None):
+        self._send(code, json.dumps(obj), "application/json", headers)
+
+    def _token(self):
+        try:
+            c = SimpleCookie(self.headers.get("Cookie", ""))
+            return c[COOKIE].value if COOKIE in c else ""
+        except Exception:
+            return ""
+
+    def _controls(self):
+        c = self.ctx
+        return {"available": bool(c.drivers), "password_set": c.auth.enabled,
+                "logged_in": c.auth.valid(self._token()), "max_minutes": c.s.max_manual_minutes,
+                "can_stop": any(d.supports_stop for d in c.drivers)}
+
+    # -- GET
     def do_GET(self):
         path = self.path.split("?")[0]
+        c = self.ctx
         if path in ("/", "/index.html"):
-            self._send(200, PAGE, "text/html; charset=utf-8")
+            with open(PAGE_FILE, "rb") as f:
+                self._send(200, f.read(), "text/html; charset=utf-8")
         elif path == "/api/status":
             try:
-                body = json.dumps(build_status(*self.ctx))
+                st = build_status(c.s, c.names, c.formula)
+                st["controls"] = self._controls()
+                self._json(200, st)
             except Exception as e:                      # never crash the thread on bad data
-                self._send(500, json.dumps({"error": str(e)}), "application/json")
-                return
-            self._send(200, body, "application/json")
+                self._json(500, {"error": str(e)})
+        elif path == "/api/forecast":
+            self._json(200, c.forecast())
         elif path == "/healthz":
             self._send(200, "ok", "text/plain")
         else:
             self._send(404, "not found", "text/plain")
 
+    # -- POST (switching things): CSRF header + password session
+    def do_POST(self):
+        path = self.path.split("?")[0]
+        c = self.ctx
+        if self.headers.get(CSRF_HEADER[0]) != CSRF_HEADER[1]:
+            return self._json(403, {"ok": False, "message": "Forbidden"})
+        try:
+            n = int(self.headers.get("Content-Length", "0"))
+            body = json.loads(self.rfile.read(min(n, 2048)) or b"{}") if n > 0 else {}
+            if not isinstance(body, dict):
+                body = {}
+        except (ValueError, OSError):
+            return self._json(400, {"ok": False, "message": "Bad request"})
+
+        if path == "/api/login":
+            if not c.auth.enabled:
+                return self._json(403, {"ok": False, "message": "Controls are off: no dashboard password is set"})
+            token, code, msg = c.auth.login(body.get("password", ""))
+            if token is None:
+                return self._json(code, {"ok": False, "message": msg})
+            cookie = f"{COOKIE}={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age={Auth.TTL}"
+            return self._json(200, {"ok": True, "message": "Unlocked"}, {"Set-Cookie": cookie})
+
+        if path == "/api/logout":
+            c.auth.logout(self._token())
+            return self._json(200, {"ok": True, "message": "Locked"},
+                              {"Set-Cookie": f"{COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0"})
+
+        if path not in ("/api/run", "/api/stop"):
+            return self._json(404, {"ok": False, "message": "Not found"})
+        if not c.auth.enabled:
+            return self._json(403, {"ok": False, "message": "Controls are off: no dashboard password is set"})
+        if not c.auth.valid(self._token()):
+            return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
+        if not c.drivers:
+            return self._json(503, {"ok": False, "message": "View-only mode: no driver is attached"})
+        if not c.action_lock.acquire(blocking=False):
+            return self._json(409, {"ok": False, "message": "Another command is still in progress"})
+        try:
+            if path == "/api/run":
+                self._run(body)
+            else:
+                self._stop()
+        finally:
+            c.action_lock.release()
+
+    def _run(self, body):
+        c, s = self.ctx, self.ctx.s
+        m = body.get("minutes")
+        if isinstance(m, bool) or not isinstance(m, (int, float)) or int(m) != m or not 1 <= int(m) <= s.max_manual_minutes:
+            return self._json(400, {"ok": False, "message": f"Minutes must be a whole number from 1 to {s.max_manual_minutes}"})
+        m = int(m)
+        ok, used = start_boiler(c.drivers, m)
+        if ok:
+            save_running(s, m, "manual")
+            log_event(s, "manual", f"Manual run {m} min via {used}", True)
+            return self._json(200, {"ok": True, "message": f"Running for {m} min (via {used})"})
+        log_event(s, "manual", f"Manual run {m} min FAILED: no driver accepted it", False)
+        return self._json(502, {"ok": False, "message": "No driver accepted the run. Check the connection."})
+
+    def _stop(self):
+        c, s = self.ctx, self.ctx.s
+        capable = [d for d in c.drivers if d.supports_stop]
+        if not capable:
+            return self._json(501, {"ok": False, "message": "None of the active drivers can stop the boiler"})
+        for d in capable:
+            if d.stop():
+                clear_running(s)
+                log_event(s, "manual", f"Manual stop via {d.name}", True)
+                return self._json(200, {"ok": True, "message": f"Stopped (via {d.name})"})
+        log_event(s, "manual", "Manual stop FAILED", False)
+        return self._json(502, {"ok": False, "message": "Stop was not confirmed. Check the boiler!"})
+
     def log_message(self, *args):                       # keep the service log clean
         pass
 
 
-def make_server(s, driver_names, formula=None):
-    handler = type("Handler", (_Handler,), {"ctx": (s, list(driver_names), formula or Formula())})
+def make_server(s, drivers, formula=None):
+    handler = type("Handler", (_Handler,), {"ctx": Ctx(s, drivers, formula)})
     srv = ThreadingHTTPServer((s.dashboard_host, s.dashboard_port), handler)
     srv.daemon_threads = True
+    srv.ctx = handler.ctx
     return srv
 
 
-def start_in_thread(s, driver_names, formula=None):
-    srv = make_server(s, driver_names, formula)
+def _shown_host(s):
+    return "localhost" if s.dashboard_host in ("0.0.0.0", "") else s.dashboard_host
+
+
+def start_in_thread(s, drivers, formula=None):
+    srv = make_server(s, drivers, formula)
     threading.Thread(target=srv.serve_forever, name="dashboard", daemon=True).start()
-    shown = "localhost" if s.dashboard_host in ("0.0.0.0", "") else s.dashboard_host
-    print(f"🖥️  Dashboard: http://{shown}:{s.dashboard_port}  (read-only)")
+    mode = "controls ON (password)" if srv.ctx.auth.enabled else "read-only (no dashboard password set)"
+    print(f"🖥️  Dashboard: http://{_shown_host(s)}:{s.dashboard_port}  ({mode})")
     return srv
 
 
 def main():
-    """View-only mode: python -m boiler.web  (does not run the boiler job)."""
+    """View-only mode: python dashboard.py  (no drivers attached, so nothing can be switched)."""
     from .settings import Settings
     s = Settings()
-    srv = make_server(s, s.driver_names)
-    shown = "localhost" if s.dashboard_host in ("0.0.0.0", "") else s.dashboard_host
-    print(f"🖥️  Dashboard: http://{shown}:{s.dashboard_port}  (Ctrl+C to stop)")
+    srv = make_server(s, [])
+    print(f"🖥️  Dashboard: http://{_shown_host(s)}:{s.dashboard_port}  (view-only, Ctrl+C to stop)")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
         pass
-
-
-# ----------------------------------------------------------------------------- page
-
-PAGE = r"""<!doctype html>
-<html lang="en"><head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Boiler</title>
-<style>
-:root{--bg:#f6f7f9;--card:#fff;--fg:#1c2330;--mute:#6b7585;--line:#e3e7ed;--green:#1a9850;--yellow:#c99700;--red:#d73027;--bar:#3b7ddd}
-@media (prefers-color-scheme:dark){:root{--bg:#10141b;--card:#1a212c;--fg:#e8ecf2;--mute:#93a0b3;--line:#2a3342;--green:#3fbf74;--yellow:#e3b53a;--red:#ff6a5f;--bar:#6aa3f0}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-main{max-width:640px;margin:0 auto;padding:16px}
-.top{display:flex;justify-content:space-between;align-items:baseline;color:var(--mute);font-size:13px;margin-bottom:10px}
-.top b{color:var(--fg);font-size:18px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
-.status{display:flex;gap:12px;align-items:center;border-left:8px solid var(--yellow)}
-.status.green{border-left-color:var(--green)}.status.yellow{border-left-color:var(--yellow)}.status.red{border-left-color:var(--red)}
-.status .dot{font-size:26px}.status .t{font-size:17px;font-weight:600}
-.hero{text-align:center}
-.hero .n{font-size:64px;font-weight:700;line-height:1}
-.hero .n small{font-size:22px;color:var(--mute);font-weight:500}
-.hero .s{color:var(--mute);margin-top:6px}
-h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:0 0 8px}
-svg{width:100%;height:auto;display:block}
-.axis{stroke:var(--line);stroke-width:1}.lbl{fill:var(--mute);font-size:10px}
-.bar{fill:var(--bar)}.bar.bad{fill:var(--red)}
-details summary{cursor:pointer;color:var(--mute);font-size:14px}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:10px 0;font-size:14px}.kv span:nth-child(odd){color:var(--mute)}
-.empty{color:var(--mute);text-align:center;padding:18px 0}
-</style></head><body><main>
-<div class="top"><b>Boiler</b><span id="meta"></span></div>
-<noscript>This page needs JavaScript.</noscript>
-
-<div id="status" class="card status"><span class="dot">⏳</span><span class="t">Loading…</span></div>
-
-<div class="card hero" id="hero"></div>
-
-<div class="card"><h2>Last 30 days · minutes</h2><div id="hist"></div></div>
-
-<div class="card"><details><summary>Details</summary>
-  <div class="kv" id="kv"></div>
-  <h2 style="margin-top:14px">Today's weather</h2><div id="wx"></div>
-  <h2 style="margin-top:14px">Formula · temperature → minutes</h2><div id="fx"></div>
-</details></div>
-</main>
-<script>
-const $ = id => document.getElementById(id);
-const NS = "http://www.w3.org/2000/svg";
-const el = (tag, attrs = {}, text) => { const e = document.createElementNS(NS, tag);
-  for (const k in attrs) e.setAttribute(k, attrs[k]); if (text !== undefined) e.textContent = text; return e; };
-const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls;
-  if (text !== undefined) e.textContent = text; return e; };
-const DOT = {green: "🟢", yellow: "🟡", red: "🔴"};
-
-function renderStatus(d) {
-  const s = $("status"); s.className = "card status " + d.health.level;
-  s.replaceChildren(h("span", "dot", DOT[d.health.level]), h("span", "t", d.health.text));
-}
-
-function renderHero(d) {
-  const box = $("hero"); box.replaceChildren();
-  const t = d.today, shown = t || d.last;
-  if (!shown) { box.append(h("div", "empty", "No runs recorded yet")); return; }
-  const n = h("div", "n"); n.append(document.createTextNode(shown.minutes), h("small", "", " min")); box.append(n);
-  const via = shown.driver ? ` · via ${shown.driver}` : "";
-  box.append(h("div", "s", `${shown.temp.toFixed(1)}°C · ${shown.clouds.toFixed(0)}% clouds${via}`));
-  if (!t) box.append(h("div", "s", `Last run: ${shown.date}. Nothing yet today.`));
-  else if (!t.ok) box.append(h("div", "s", "⚠️ Not accepted by the driver"));
-}
-
-function renderHistory(d) {
-  const box = $("hist"); box.replaceChildren();
-  const rows = d.history;
-  if (!rows.length) { box.append(h("div", "empty", "History appears after the first run")); return; }
-  const W = 600, H = 150, pad = 18, top = d.formula.max_on;
-  const maxY = Math.max(top, ...rows.map(r => r.minutes));
-  const svg = el("svg", {viewBox: `0 0 ${W} ${H + 18}`, role: "img", "aria-label": "Minutes per day"});
-  for (const v of [0, maxY / 2, maxY]) {
-    const y = H - (v / maxY) * (H - pad) ; svg.append(el("line", {x1: 0, x2: W, y1: y, y2: y, class: "axis"}));
-    svg.append(el("text", {x: 2, y: y - 3, class: "lbl"}, Math.round(v)));
-  }
-  const slot = (W - 18) / Math.max(rows.length, 30), bw = slot * 0.7;
-  rows.forEach((r, i) => {
-    const bh = (r.minutes / maxY) * (H - pad), x = i * slot + (slot - bw) / 2 + 14;
-    const rect = el("rect", {x: x, y: H - bh, width: bw - 1, height: Math.max(bh, 1), rx: 2, class: "bar" + (r.ok ? "" : " bad")});
-    rect.append(el("title", {}, `${r.date}: ${r.minutes} min, ${r.temp.toFixed(1)}°C, ${r.clouds.toFixed(0)}% clouds` + (r.ok ? "" : " (failed)")));
-    svg.append(rect);
-  });
-  svg.append(el("text", {x: 14, y: H + 13, class: "lbl"}, rows[0].date.slice(5)));
-  svg.append(el("text", {x: W - 2, y: H + 13, class: "lbl", "text-anchor": "end"}, rows[rows.length - 1].date.slice(5)));
-  box.append(svg);
-}
-
-function spark(values, label, color) {
-  const W = 600, H = 56; const min = Math.min(...values), max = Math.max(...values), span = (max - min) || 1;
-  const svg = el("svg", {viewBox: `0 0 ${W} ${H + 14}`});
-  const pts = values.map((v, i) => `${(i / Math.max(values.length - 1, 1)) * (W - 8) + 4},${H - ((v - min) / span) * (H - 8) - 2}`).join(" ");
-  svg.append(el("polyline", {points: pts, fill: "none", stroke: color, "stroke-width": 2.5, "stroke-linejoin": "round"}));
-  svg.append(el("text", {x: 4, y: H + 12, class: "lbl"}, `${label}: ${min.toFixed(0)} – ${max.toFixed(0)}`));
-  return svg;
-}
-
-function renderWeather(d) {
-  const box = $("wx"); box.replaceChildren();
-  if (!d.weather.length) { box.append(h("div", "empty", "No weather saved for today yet")); return; }
-  const hrs = d.weather;
-  box.append(spark(hrs.map(r => r.temp), `Temperature °C, ${hrs[0].hour}:00–${hrs[hrs.length - 1].hour}:00`, "var(--bar)"),
-             spark(hrs.map(r => r.clouds), "Clouds %", "var(--mute)"));
-}
-
-function renderFormula(d) {
-  const box = $("fx"); box.replaceChildren();
-  const pts = d.formula.points; if (!pts.length) return;
-  const W = 600, H = 150, x0 = 30, maxY = d.formula.max_on;
-  const tmin = pts[0][0], tmax = pts[pts.length - 1][0];
-  const X = t => x0 + ((t - tmin) / ((tmax - tmin) || 1)) * (W - x0 - 10), Y = v => H - (v / maxY) * (H - 14);
-  const svg = el("svg", {viewBox: `0 0 ${W} ${H + 18}`});
-  svg.append(el("line", {x1: x0, x2: W, y1: H, y2: H, class: "axis"}));
-  svg.append(el("polyline", {points: pts.map(p => `${X(p[0])},${Y(p[1])}`).join(" "), fill: "none", stroke: "var(--bar)", "stroke-width": 2.5}));
-  svg.append(el("text", {x: x0, y: H + 13, class: "lbl"}, `${tmin}°C`));
-  svg.append(el("text", {x: W - 10, y: H + 13, class: "lbl", "text-anchor": "end"}, `${tmax}°C`));
-  svg.append(el("text", {x: 2, y: 6, class: "lbl"}, maxY + " min"));
-  if (d.today) {
-    const cx = Math.min(Math.max(X(d.today.temp), x0), W - 10), cy = Y(d.today.minutes);
-    svg.append(el("circle", {cx: cx, cy: cy, r: 5, fill: "var(--red)"}));
-    svg.append(el("text", {x: Math.min(cx + 8, W - 60), y: cy - 6, class: "lbl"}, "today"));
-  }
-  box.append(svg, h("div", "s", `Line = temperature only. The dot sits above it when clouds add time (cloud factor ${d.formula.cloud_k}).`));
-  box.lastChild.style.cssText = "color:var(--mute);font-size:12px;margin-top:4px";
-}
-
-function renderDetails(d) {
-  const kv = $("kv"); kv.replaceChildren();
-  const rows = [["Drivers", d.drivers.join(" → ") || "none"], ["Next run", d.next_run],
-                ["Checks every", d.check_every_min + " min"], ["Version", d.version]];
-  if (d.base) rows.splice(1, 0, ["Today's math", `${d.base.base_min} min base, clouds +${(d.base.cloud_alpha * 100).toFixed(0)}% → ${d.base.result_min} min`]);
-  for (const [k, v] of rows) kv.append(h("span", "", k), h("span", "", String(v)));
-}
-
-async function refresh() {
-  try {
-    const r = await fetch("/api/status", {cache: "no-store"}); if (!r.ok) throw new Error(r.status);
-    const d = await r.json();
-    renderStatus(d); renderHero(d); renderHistory(d); renderWeather(d); renderFormula(d); renderDetails(d);
-    $("meta").textContent = "updated " + d.now.slice(11, 16);
-  } catch (e) {
-    $("status").className = "card status red";
-    $("status").replaceChildren(h("span", "dot", "🔴"), h("span", "t", "Can't reach the boiler service"));
-  }
-}
-refresh(); setInterval(refresh, 60000);
-</script></body></html>
-"""
 
 
 if __name__ == "__main__":
