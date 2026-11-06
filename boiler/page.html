@@ -282,9 +282,9 @@ function drawStrip(d) {
   else line("sun", "Sky: forecast not loaded yet.");
   const parts = d.segments.map(s => `${hm(s.start)} to ${hm(s.end)} (${s.source})`);
   if (parts.length) line("", "Boiler ran: " + parts.join(", ") + " (blue = preset, red = auto, dark = manual).");
-  else if (d.running) line(""), `Boiler on now until ${hm(d.running.until)}.`);
-  else if (d.today && d.today.ok && !d.today.replay) line(""), `Boiler ran ${d.today.minutes} min earlier today (before the run log existed, so not drawn).`);
-  else line(""), "Boiler: has not run yet today.");
+  else if (d.running) line("", `Boiler on now until ${hm(d.running.until)}.`);
+  else if (d.today && d.today.ok && !d.today.replay) line("", `Boiler ran ${d.today.minutes} min earlier today (before the run log existed, so not drawn).`);
+  else line("", "Boiler: has not run yet today.");
   if (p && p.status === "planned") line("", `Planned: ${hm(p.start_at)} to ${hm(p.ready_at)} (dashed), ${p.minutes} min.`);
   cap.append(h("div", "capl", `Thin vertical line = now (${hm(d.now)}).`));
   box.append(cap);
