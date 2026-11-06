@@ -170,7 +170,6 @@ input[type=time]{width:128px}.pcard input{width:100%}
 <section class="tab" id="t-history">
   <div class="card"><h2>Minutes run<small>last 14 days</small></h2><div id="ranchart"></div>
     <div class="chips" style="justify-content:flex-start;margin-top:8px"><span class="chip"><i class="sw auto"></i>auto</span><span class="chip"><i class="sw preset"></i>preset</span><span class="chip"><i class="sw manual"></i>manual</span></div></div>
-  <div class="card"><h2>Daily decisions<small>last 30 days, faded = replayed</small></h2><div id="hist"></div></div>
   <div class="card"><h2>Weather</h2><div id="fnow" class="note">Loading forecast…</div><div id="fdays"></div><div id="wx" style="margin-top:8px"></div></div>
   <div class="card"><h2>All activity</h2><div id="actall"></div></div>
   <div class="card"><h2>Details</h2><div class="kv" id="kv"></div><h2 style="margin-top:16px">Temperature to minutes</h2><div id="fx"></div></div>
@@ -451,7 +450,6 @@ function spark(vals, label, color) {
 }
 function renderHistory(d) {
   bars($("ranchart"), d.totals.per_day, ["auto", "preset", "manual"], [() => "var(--heat)", () => "var(--water)", () => "var(--ink)"], 60, "Minutes run per day");
-  bars($("hist"), d.history, ["minutes"], [r => r.ok ? "var(--heat)" : "var(--bad)"], d.formula.max_on, "Daily decisions");
   const wx = $("wx"); wx.replaceChildren();
   if (d.weather.length) wx.append(spark(d.weather.map(r => r.temp), "Today °C", "var(--heat)"), spark(d.weather.map(r => r.clouds), "Clouds %", "var(--mute)"));
   events($("actall"), d.activity, 15, d.now.slice(0, 10));
