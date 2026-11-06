@@ -17,7 +17,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import APP_VERSION
-from .formula import Formula, explain, load_formula
+from .formula import Formula, explain, load_formula, compute_duration, base_minutes
 from .state import load_last_update, load_attempt, load_running, load_auto, set_auto, load_plan
 from .activity import log_event, read_events
 from .drivers import start_boiler
@@ -139,6 +139,7 @@ def build_status(s, driver_names, formula=None, now=None):
         "totals": runs.totals(s, now),
         "upcoming": schedule.upcoming(schedule.load(s), now, load_plan(s)),
         "ready_by": schedule.load(s)["ready_by"],
+        "segments": runs.segments(s, today, now),
         "today": todays, "base": base,
         "last": hist[-1] if hist else None,
         "next_run": nxt, "update_after": s.update_after, "check_every_min": s.sleep_minutes,
@@ -147,7 +148,7 @@ def build_status(s, driver_names, formula=None, now=None):
         "weather": _today_weather(s, today),
         "activity": read_events(s, 15),
         "formula": {"points": sorted([float(k), v] for k, v in formula.temp_lut.items()),
-                    "cloud_k": formula.cloud_k, "max_on": formula.max_on},
+                    "cloud_k": formula.cloud_k, "max_on": formula.max_on, "full": formula.to_dict()},
     }
 
 
@@ -349,7 +350,8 @@ class _Handler(BaseHTTPRequestHandler):
             return self._save_schedule(body)
         if not c.drivers:
             return self._json(503, {"ok": False, "message": "View-only mode: no driver is attached"})
-        if not c.action_lock.acquire(blocking=False):
+        # short wait: the previous request may have answered but not yet released the lock
+        if not c.action_lock.acquire(timeout=0.5):
             return self._json(409, {"ok": False, "message": "Another command is still in progress"})
         try:
             if path == "/api/run":
@@ -391,7 +393,13 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(400, {"ok": False, "message": str(e)})
         s = self.ctx.s
         current, new = tune.replay(s, self.ctx.formula), tune.replay(s, f)
+        fc = self.ctx.forecast()
+        ahead = [{"date": d["date"], "minutes": compute_duration(d["mean_temp"], d["mean_clouds"], f),
+                  "now": compute_duration(d["mean_temp"], d["mean_clouds"], self.ctx.formula),
+                  "base": round(base_minutes(d["mean_temp"], f)), "temp": d["mean_temp"], "clouds": d["mean_clouds"]}
+                 for d in (fc.get("days") or [])]
         return self._json(200, {"ok": True, "days": [{"date": r["date"], "minutes": r["minutes"]} for r in new],
+                                "forecast": ahead,
                                 "summary": tune.compare(current, new), "problems": f.validate(),
                                 "blocking": f.blocking_problems()})
 

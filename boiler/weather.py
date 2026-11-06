@@ -110,5 +110,7 @@ def forecast_prediction(s, formula):
         t, cc = daily_mean(rows, rise, sets, formula)
         if t is not None:
             out["days"].append({"date": day, "mean_temp": round(t, 1), "mean_clouds": round(cc),
-                                "minutes": compute_duration(t, cc, formula)})
+                                "minutes": compute_duration(t, cc, formula),
+                                "sunrise": sr[11:16], "sunset": ss[11:16],
+                                "hours": [{"h": h["time"].hour, "t": h["temp"], "c": h["clouds"]} for h in rows]})
     return out
