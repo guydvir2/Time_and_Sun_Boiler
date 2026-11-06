@@ -1,15 +1,26 @@
+import os
+import sys
 import csv
+import json
 import requests
 import configparser
 from time import sleep
 from statistics import mean
 from datetime import datetime, timedelta, time, date
 
-config = configparser.ConfigParser()
-config.read('config.ini')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Read base values from config
-TOKEN = config['homeassistant']['token']
+config = configparser.ConfigParser()
+# config.ini holds non-secret settings (tracked in git).
+# config.local.ini is optional, git-ignored, and overrides config.ini (put the token here).
+config.read([os.path.join(BASE_DIR, 'config.ini'), os.path.join(BASE_DIR, 'config.local.ini')])
+
+# Read base values from config. The token never lives in git:
+# environment variable HA_TOKEN wins, otherwise config.local.ini [homeassistant] token.
+TOKEN = os.environ.get("HA_TOKEN") or config.get('homeassistant', 'token', fallback="")
+if not TOKEN:
+    sys.exit("❌ No Home Assistant token. Set env var HA_TOKEN or add it to config.local.ini "
+             "(see config.local.ini.example).")
 HA_IP = config['homeassistant']['ip']
 HA_PORT = config['homeassistant']['port']
 BOILER_1ST_ON_ENTITY_ID = config["homeassistant"]["BOILER_1ST_ON_ENTITY_ID"]
@@ -27,7 +38,13 @@ READ_DATA_FROM_FILE = config["parameters"]["READ_DATA_FROM_FILE"].lower() == "tr
 debug_mode_ignore_update_time = config["parameters"]["debug_mode_ignore_update_time"].lower() == "true"
 DAYS_BACK_WEATHER_DATA = int(config["parameters"]["DAYS_BACK_WEATHER_DATA"])
 
-APP_VERSION = "1.0.1"
+APP_VERSION = "1.1.0"
+
+REQUEST_TIMEOUT = 15          # seconds; no network call may hang forever
+HA_RETRIES = 3                # attempts per Home Assistant call
+HA_RETRY_DELAY = 5            # seconds between attempts
+STATE_FILE = os.path.join(BASE_DIR, "state.json")           # survives restarts
+DECISIONS_FILE = os.path.join(BASE_DIR, "stored_data", "decisions.csv")  # what was set, and why
 
 
 # Build URLs in Python (where f-strings work)
@@ -73,7 +90,8 @@ def get_weather(location, start_hour, end_hour, days_back=0):
                 "hourly": "temperature_2m,cloudcover",
                 "past_days": days_back,
                 "timezone": "auto"
-            }
+            },
+            timeout=REQUEST_TIMEOUT
         )
 
         r.raise_for_status()
@@ -149,7 +167,8 @@ def get_sun_times(location, days_back=0, default_sunrise=7, default_sunset=17):
                 "daily": "sunrise,sunset",
                 "timezone": "auto",
                 "past_days": days_back
-            }
+            },
+            timeout=REQUEST_TIMEOUT
         )
 
         r.raise_for_status()
@@ -209,6 +228,7 @@ def save_weather_to_csv(weather, filename):
         return
 
     try:
+        os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
         with open(filename, "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["time", "temp", "clouds"])  # header
@@ -260,8 +280,7 @@ def load_weather_from_csv(filename):
 
 def generate_filename_csv(date_back):
     """Generate CSV filename based on date."""
-    filename = "stored_data/" + f"{date.today() - timedelta(days=date_back)}.csv"
-    return filename
+    return os.path.join(BASE_DIR, "stored_data", f"{date.today() - timedelta(days=date_back)}.csv")
 
 
 def get_entity_state(entity_id):
@@ -271,7 +290,7 @@ def get_entity_state(entity_id):
     url = HA_URL_STATES + f"/{entity_id}"
 
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
 
         if response.status_code != 200:
             print(f"❌ Error: {response.status_code} - {response.text}")
@@ -311,31 +330,34 @@ def set_slide_value(entity_id, value=5, min_value=0, max_value=MAX_DURATION_MINU
         print(f"⚠️  Invalid value '{value}'. Using min_value={min_value}. Error: {e}")
         value = min_value
 
-    entity_json = {"entity_id": entity_id, "value": value if min_value <= value <= max_value else min_value}
+    entity_json = {"entity_id": entity_id, "value": value}
 
-    try:
-        response = requests.post(HA_URL_SERVICES + f"/input_number/set_value", headers=headers, json=entity_json)
+    return _ha_post(HA_URL_SERVICES + "/input_number/set_value", entity_json,
+                    f"slider {entity_id} -> {value}")
 
-        # Check response
-        if response.ok:
-            print(f"✅ Slider updated to {value}")
-            return True
-        else:
-            print(f"❌ Failed to update slider: {response.text}")
-            return False
 
-    except Exception as e:
-        print(f"❌ Error updating slider: {e}")
-        return False
+def _ha_post(url, payload, what):
+    """POST to Home Assistant with timeout and a few retries. Returns True on success."""
+    for attempt in range(1, HA_RETRIES + 1):
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=REQUEST_TIMEOUT)
+            if response.ok:
+                print(f"✅ {what} (attempt {attempt})")
+                return True
+            print(f"❌ {what} failed (attempt {attempt}): {response.status_code} {response.text}")
+            if response.status_code in (401, 403, 404):
+                return False  # retrying will not help (bad token / wrong entity)
+        except Exception as e:
+            print(f"❌ {what} error (attempt {attempt}): {e}")
+        if attempt < HA_RETRIES:
+            sleep(HA_RETRY_DELAY)
+    return False
 
 
 def run_ha_script(script_name):
-    response = requests.post(
-        f"{HA_URL}/api/services/script/turn_on",
-        headers=headers,
-        json={"entity_id": f"script.{script_name}"}
-    )
-    return response.ok
+    return _ha_post(f"{HA_URL}/api/services/script/turn_on",
+                    {"entity_id": f"script.{script_name}"},
+                    f"run script {script_name}")
 
 
 def daily_mean_T_CC(data, sunrise, sunset, start_offset=2, end_offset=1):
@@ -429,7 +451,7 @@ def boiler_duration(T: float, CC: float, k: float = 0.6, MAX_ON=180) -> int:
     print(f"📐 Base duration (temp only): {base:.0f} minutes")
 
     # === 2) CLOUD CORRECTION α(CC, T) ===
-    # Temperature sensitivity: 0 at <=10°C, 1 at >=24°C
+    # Temperature sensitivity: 0 at <=10°C, 1 at >=20°C (MIN/MAX_TEMP_SUN_RELEVANT)
     ST = (T - MIN_TEMP_SUN_RELEVANT) / (MAX_TEMP_SUN_RELEVANT - MIN_TEMP_SUN_RELEVANT)
     ST = max(0.0, min(1.0, ST))  # clamp 0..1
 
@@ -465,15 +487,53 @@ def update_homeassistant(dur, entity1, entity2):
     else:
         print(f"   Boiler 2: 0 minutes")
 
-    a = set_slide_value(entity1, dur - remaining) and set_slide_value(entity2, remaining)
-    if a:
-        run_ha_script(RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID)
-        print("✅ First Boiler duration set and activated")
-    else:
-        print("❌ Failed to set Boiler durations")
+    ok = set_slide_value(entity1, dur - remaining) and set_slide_value(entity2, remaining)
+    if ok:
+        ok = run_ha_script(RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID)
+        if ok:
+            print("✅ First Boiler duration set and activated")
+        # The 2nd run is only needed when the total exceeds one boiler cycle.
+        if ok and remaining > 0:
+            ok = run_ha_script(RUN_SCRIPT_2ND_START_BOILER_ENTITY_ID)
+            if ok:
+                print("✅ Second Boiler activated")
+    if not ok:
+        print("❌ Failed to set/activate Boiler durations")
 
     print("=" * 60)
-    return a
+    return ok
+
+
+def load_state():
+    """Return the date (YYYY-MM-DD) of the last successful update, or None."""
+    try:
+        with open(STATE_FILE) as f:
+            return json.load(f).get("last_update_date")
+    except (FileNotFoundError, ValueError):
+        return None
+
+
+def save_state(day):
+    try:
+        with open(STATE_FILE, "w") as f:
+            json.dump({"last_update_date": str(day)}, f)
+    except OSError as e:
+        print(f"⚠️  Could not save state: {e}")
+
+
+def log_decision(mean_t, mean_cc, duration, ha_ok):
+    """Append what was decided (inputs + result) so the formula can be reviewed later."""
+    try:
+        os.makedirs(os.path.dirname(DECISIONS_FILE), exist_ok=True)
+        new_file = not os.path.exists(DECISIONS_FILE)
+        with open(DECISIONS_FILE, "a", newline="") as f:
+            writer = csv.writer(f)
+            if new_file:
+                writer.writerow(["timestamp", "mean_temp", "mean_clouds", "duration_min", "ha_ok"])
+            writer.writerow([datetime.now().isoformat(timespec="seconds"),
+                             round(mean_t, 1), round(mean_cc, 1), duration, ha_ok])
+    except OSError as e:
+        print(f"⚠️  Could not write decision log: {e}")
 
 
 def download_data(days):
@@ -504,69 +564,67 @@ def main_header():
     print(f"⏰ Sleep interval: {SLEEP_MINUTES} minutes")
     print("=" * 60)
 
+def run_daily_update():
+    """One full update attempt. Returns True only if Home Assistant was updated."""
+    print("\n" + "=" * 30)
+    print("STARTING DAILY UPDATE CYCLE")
+    print("=" * 30)
+    print(f"⏰ Trigger time: {datetime.now().strftime('%H:%M:%S')}")
+    print(f"📅 Date: {date.today()}")
+
+    sun_time = get_sun_times((latitude, longitude), DAYS_BACK_WEATHER_DATA)
+    file_name_csv = generate_filename_csv(DAYS_BACK_WEATHER_DATA)
+
+    if READ_DATA_FROM_FILE:
+        w, got_weather_flag = load_weather_from_csv(file_name_csv)
+    else:
+        w, got_weather_flag = get_weather((latitude, longitude), sun_time["sunrise"], sun_time["sunset"],
+                                          DAYS_BACK_WEATHER_DATA)
+        if got_weather_flag and SAVE_DATA:
+            save_weather_to_csv(w, file_name_csv)
+
+    if not got_weather_flag:
+        print("\n❌ DAILY UPDATE FAILED - NO WEATHER DATA (will retry)")
+        return False
+
+    daily_t, daily_cc = daily_mean_T_CC(w, sun_time["sunrise"], sun_time["sunset"])
+    if daily_t is None or daily_cc is None:
+        print("\n❌ DAILY UPDATE FAILED - INSUFFICIENT DATA (will retry)")
+        return False
+
+    duration = boiler_duration(daily_t, daily_cc)
+    ha_ok = update_homeassistant(duration, BOILER_1ST_ON_ENTITY_ID, BOILER_2ND_ON_ENTITY_ID)
+    log_decision(daily_t, daily_cc, duration, ha_ok)
+
+    if ha_ok:
+        print("\n" + "=" * 40)
+        print("DAILY UPDATE COMPLETED SUCCESSFULLY")
+        print("=" * 40)
+    else:
+        print("\n❌ DAILY UPDATE FAILED - HOME ASSISTANT NOT UPDATED (will retry)")
+    return ha_ok
+
+
 # Main execution
 if __name__ == "__main__":
     main_header()
 
-
     while True:
-        current_time = datetime.now().time()
+        now = datetime.now()
+        # "Done today" is kept on disk, so a restart after 17:01 does not repeat the update.
+        done_today = load_state() == str(date.today())
+        due = now.time() >= time(17, 1) or debug_mode_ignore_update_time
 
-        # Daily update check
-        if (current_time >= time(17, 1) or debug_mode_ignore_update_time) and not update_for_today:
-            print("\n" + "=" * 30)
-            print("STARTING DAILY UPDATE CYCLE")
-            print("=" * 30)
-            print(f"⏰ Trigger time: {datetime.now().strftime('%H:%M:%S')}")
-            print(f"📅 Date: {date.today()}")
-
-            sun_time = get_sun_times((latitude, longitude), DAYS_BACK_WEATHER_DATA)
-            # Load from file
-            if READ_DATA_FROM_FILE:
-                file_name_csv = generate_filename_csv(DAYS_BACK_WEATHER_DATA)
-                read_weather_flag, succeed_read_file = load_weather_from_csv(file_name_csv)
-                if read_weather_flag:
-                    w, got_weather_flag = load_weather_from_csv(file_name_csv)
-                else:
-                    print(f"❌ Failed to load weather from file {file_name_csv}")
-                    break
-            # Fetch from API
-            else:
-                w, got_weather_flag = get_weather((latitude, longitude), sun_time["sunrise"], sun_time["sunset"],
-                                                  DAYS_BACK_WEATHER_DATA)
-                if got_weather_flag and SAVE_DATA:
-                    file_name_csv = generate_filename_csv(DAYS_BACK_WEATHER_DATA)
-                    save_weather_to_csv(w, file_name_csv)
-
-            daily_t, daily_cc = daily_mean_T_CC(w, sun_time["sunrise"], sun_time["sunset"])
-
-            # Calculate boiler duration and update Home Assistant
-            if daily_t is not None and daily_cc is not None:
-                duration = boiler_duration(daily_t, daily_cc)
-                update_homeassistant(duration, BOILER_1ST_ON_ENTITY_ID, BOILER_2ND_ON_ENTITY_ID)
-                update_for_today = True
-
-                print("\n" + "=" * 40)
-                print("DAILY UPDATE COMPLETED SUCCESSFULLY")
-                print("=" * 40)
-            # Insufficient data case - do not update
-            else:
-                print("\n" + "=" * 40)
-                print("DAILY UPDATE FAILED - INSUFFICIENT DATA")
-                print("=" * 40)
-                sleep(60 * SLEEP_MINUTES)
-        # Reset update flag at start of new day
-        elif (time(7, 0) <= current_time < time(17, 0) and update_for_today) and not debug_mode_ignore_update_time:
-            update_for_today = False
-            print("\n" + "=" * 30)
-            print("🌅 NEW DAY - RESETTING UPDATE FLAG")
-            print(f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}")
-            print("=" * 30)
-
+        if due and (not done_today or debug_mode_ignore_update_time):
+            if run_daily_update():
+                save_state(date.today())
+                if debug_mode_ignore_update_time:
+                    break  # debug: one run, then stop
+            # on failure: fall through to the sleep below and try again next cycle
         else:
-            print(f"\n⏸️  [{datetime.now().strftime('%H:%M:%S')}] Waiting... (next check in {SLEEP_MINUTES} min)")
-            print(f"   Current time: {current_time.strftime('%H:%M')}")
-            print(f"   Update window: 17:00+")
-            print(f"   Updated today: {update_for_today}")
+            print(f"\n⏸️  [{now.strftime('%H:%M:%S')}] Waiting... (next check in {SLEEP_MINUTES} min)")
+            print(f"   Update window: 17:01+")
+            print(f"   Updated today: {done_today}")
             print(f"   Debug mode: {debug_mode_ignore_update_time}")
-            sleep(60 * SLEEP_MINUTES)
+
+        sleep(60 * SLEEP_MINUTES)
