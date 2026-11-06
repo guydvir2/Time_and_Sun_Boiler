@@ -167,36 +167,40 @@ class Engine:
 
 
 def main():
-    s = Settings()
-    drivers, problems = build_drivers(s)
-    for p in problems:
+    from .app import App
+    app = App()
+    s = app.s
+    for p in app.problems:
         print(f"⚠️  {p}")
-    if not drivers:
-        sys.exit("❌ No usable driver. Fix the config above (or set [output] drivers = dryrun to test).")
-    f = load_formula(s)
-    if f.blocking_problems():
-        print("⚠️  Saved formula has problems (" + "; ".join(f.blocking_problems()) + "); using the default")
-
     trim(s)
-    log_event(s, "service", f"Service started v{APP_VERSION}, drivers: {', '.join(d.name for d in drivers)}")
+    log_event(s, "service", f"Service started v{APP_VERSION}" + (f", drivers: {', '.join(d.name for d in app.drivers)}"
+                                                                 if app.drivers else ", waiting for setup"))
     if s.dashboard_enabled:
         try:                                    # a UI problem must never stop the boiler job
             from .web import start_in_thread
-            start_in_thread(s, drivers)
+            start_in_thread(s, app.drivers, app=app)
         except Exception as e:
             print(f"⚠️  Dashboard could not start: {e}")
+    elif not app.drivers:
+        sys.exit("❌ No usable driver and the dashboard is off. Fix config.ini (or set [output] drivers = dryrun).")
 
     print("=" * 60)
-    print(f"🚀 BOILER CONTROL v{APP_VERSION}  drivers: {', '.join(d.name for d in drivers)}")
-    print(f"   decide after {s.update_after}, ready-by '{schedule.load(s)['ready_by'] or 'right away'}', "
-          f"{len(schedule.load(s)['presets'])} preset(s), debug={s.debug_ignore_time}")
+    print(f"🚀 BoilerMind v{APP_VERSION}  drivers: {', '.join(d.name for d in app.drivers) or 'none yet'}")
+    if s.needs_setup or not app.drivers:
+        print(f"   👉 Finish setup in the dashboard: http://<this-machine>:{s.dashboard_port}/#setup")
     print("=" * 60)
 
-    eng = Engine(s, drivers)
-    last_note = None
+    eng = Engine(s, app.drivers)
+    last_note, seen = None, app.version
     while True:
         try:
-            state = eng.tick()
+            app.maybe_reload()
+            if app.version != seen:              # settings saved on the dashboard: use them now
+                seen = app.version
+                eng = Engine(app.s, app.drivers)
+                eng.next_decision_try = 0.0
+                print(f"🔄 settings reloaded, drivers: {', '.join(d.name for d in app.drivers) or 'none'}")
+            state = eng.tick() if app.drivers else "waiting for setup"
         except Exception as e:                   # one bad tick must not kill the engine
             print(f"❌ tick error: {e}")
             state = "error"

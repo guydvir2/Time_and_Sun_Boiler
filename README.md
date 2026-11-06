@@ -1,4 +1,4 @@
-# Time & Sun Boiler
+# BoilerMind (Time & Sun Boiler)
 
 Decides each day how long the boiler should run, from the day's temperature and cloud cover,
 and tells a driver (MQTT/Tasmota, Home Assistant, or dry-run) to run it.
@@ -8,22 +8,17 @@ and tells a driver (MQTT/Tasmota, Home Assistant, or dry-run) to run it.
 ```
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-.venv/bin/python main.py          # job + dashboard
-.venv/bin/python dashboard.py      # dashboard only (view history, nothing is switched)
+.venv/bin/python main.py          # engine + dashboard
 ```
 
-Dashboard: `http://<this-machine>:8080`. Anyone on your network can LOOK (it shows no secrets).
-The **Run / Stop buttons need a password**: add it to `config.local.ini` (git-ignored) and restart:
+Open `http://<this-machine>:8080`. On a fresh install a **setup wizard** opens: create a password, pick your town,
+choose how the boiler is switched (Tasmota over MQTT, Home Assistant, or test mode), and the "hot by" time.
+Everything can be changed later on the **Settings** tab (saved to `settings.json`, git-ignored, applied live).
 
-```
-[dashboard]
-password = something-long
-```
+Tabs: **Home** (status, today's minutes, Run/Stop, pause, cloud boost, services) · **Schedule** ("hot by" time and
+weekly presets) · **History** (charts, weather, activity) · **Settings** · **Tune** (formula sliders).
 
-With no password set the buttons stay locked.
-**Pause auto-run** (holiday mode) is in the same card; manual Run still works while paused.
-The **Services** card shows 🟢/🔴 for the engine, weather, MQTT broker, the Tasmota plug and Home Assistant
-(checks only read; they never switch anything). "spare" = configured but not in `[output] drivers`. `dashboard.py` is view-only (no driver attached).
+`dashboard.py` runs the page alone, view-only (it never switches anything).
 
 ## Tune the formula
 

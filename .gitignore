@@ -12,3 +12,5 @@ stored_data/sunshine.csv
 *.tmp
 stored_data/runs.jsonl
 stored_data/schedule.json
+settings.json
+settings.json.tmp

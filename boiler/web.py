@@ -20,7 +20,7 @@ from . import APP_VERSION
 from .formula import Formula, explain, load_formula, compute_duration, base_minutes
 from .state import load_last_update, load_attempt, load_running, load_auto, set_auto, load_plan
 from .activity import log_event, read_events
-from .drivers import start_boiler
+from .drivers import start_boiler, REGISTRY
 from . import runs, schedule
 
 PAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "page.html")
@@ -160,10 +160,26 @@ class Auth:
     MAX_FAILS, WINDOW = 5, 60
 
     def __init__(self, password):
-        self.password = password or ""
+        self._pw = password if callable(password) else (lambda: password or "")   # callable: follows Settings
+        self._last = self._pw() or ""
         self.sessions = {}
         self.fails = []
         self.lock = threading.Lock()
+
+    @property
+    def password(self):
+        pw = self._pw() or ""
+        if pw != self._last:                  # password changed: everyone has to log in again
+            self._last, self.sessions = pw, {}
+        return pw
+
+    def grant(self):
+        """A session without a password check (right after the first password was created)."""
+        self.password                             # sync to the new password first (else it clears this session)
+        with self.lock:
+            token = secrets.token_urlsafe(32)
+            self.sessions[token] = _time.time() + self.TTL
+            return token
 
     @property
     def enabled(self):
@@ -176,7 +192,7 @@ class Auth:
             self.fails = [t for t in self.fails if now - t < self.WINDOW]
             if len(self.fails) >= self.MAX_FAILS:
                 return None, 429, "Too many wrong attempts. Wait a minute."
-            if not hmac.compare_digest(str(supplied).encode(), self.password.encode()):
+            if not self.password or not hmac.compare_digest(str(supplied).encode(), self.password.encode()):
                 self.fails.append(now)
                 return None, 401, "Wrong password"
             token = secrets.token_urlsafe(32)
@@ -184,6 +200,7 @@ class Auth:
             return token, 200, "ok"
 
     def valid(self, token):
+        self.password                             # clears sessions if the password changed
         with self.lock:
             now = _time.time()
             self.sessions = {t: e for t, e in self.sessions.items() if e > now}
@@ -195,15 +212,32 @@ class Auth:
 
 
 class Ctx:
-    def __init__(self, s, drivers, formula):
-        self.s = s
-        self.drivers = list(drivers)
-        self.auth = Auth(s.dashboard_password)
+    def __init__(self, s, drivers, formula, app=None):
+        self.app = app                                  # live settings + drivers (see app.py), or fixed ones
+        self._s, self._drivers = s, list(drivers)
+        self.auth = Auth(lambda: self.s.dashboard_password)
         self.action_lock = threading.Lock()          # one switch command at a time
         self.fc_lock = threading.Lock()
         self.fc = {"t": 0.0, "value": None}
         self.sv_lock = threading.Lock()
         self.sv = {"t": 0.0, "value": None}
+
+    @property
+    def s(self):
+        if self.app:
+            self.app.maybe_reload()
+            return self.app.s
+        return self._s
+
+    @property
+    def drivers(self):
+        return list(self.app.drivers) if self.app else self._drivers
+
+    def settings_changed(self):
+        """Called after a save: reload now and drop cached checks."""
+        if self.app:
+            self.app.reload()
+        self.fc["t"] = self.sv["t"] = 0.0
 
     def services(self):
         from .services import check_all
@@ -224,6 +258,8 @@ class Ctx:
 
     def forecast(self):
         from .weather import forecast_prediction
+        if self.s.latitude is None:
+            return {"error": "Set your location in Settings"}
         with self.fc_lock:
             if self.fc["value"] is not None and _time.time() - self.fc["t"] < FORECAST_TTL:
                 return self.fc["value"]
@@ -265,7 +301,7 @@ class _Handler(BaseHTTPRequestHandler):
 
     def _controls(self):
         c = self.ctx
-        return {"available": bool(c.drivers), "password_set": c.auth.enabled,
+        return {"available": bool(c.drivers), "password_set": c.auth.enabled, "needs_setup": c.s.needs_setup,
                 "logged_in": c.auth.valid(self._token()), "max_minutes": c.s.max_manual_minutes,
                 "can_stop": any(d.supports_stop for d in c.drivers)}
 
@@ -293,6 +329,19 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(200, {"services": c.services(), "checked": datetime.now().isoformat(timespec="seconds")})
             except Exception as e:
                 self._json(500, {"error": str(e)})
+        elif path == "/api/settings":
+            if c.auth.enabled and not c.auth.valid(self._token()):
+                return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
+            from . import setup
+            self._json(200, dict(setup.values(c.s), controls=self._controls()))
+        elif path == "/api/geocode":
+            from urllib.parse import urlparse, parse_qs
+            from . import setup
+            try:
+                q = parse_qs(urlparse(self.path).query).get("q", [""])[0]
+                self._json(200, {"results": setup.geocode(q)})
+            except Exception as e:
+                self._json(502, {"results": [], "error": f"City search unavailable ({type(e).__name__})"})
         elif path == "/api/schedule":
             self._json(200, {"schedule": schedule.load(c.s), "max_minutes": c.s.max_manual_minutes,
                              "update_after": c.s.update_after, "controls": self._controls()})
@@ -331,12 +380,15 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True, "message": "Locked"},
                               {"Set-Cookie": f"{COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0"})
 
+        if path == "/api/setup/password":             # first run only: create the dashboard password
+            return self._first_password(body)
         if path == "/api/tune/preview":               # read-only what-if: no password needed
             return self._preview(body)
         if path == "/api/sunshine":                   # fetch public data into the cache: no password needed
             return self._sunshine()
 
-        if path not in ("/api/run", "/api/stop", "/api/auto", "/api/formula", "/api/schedule"):
+        if path not in ("/api/run", "/api/stop", "/api/auto", "/api/formula", "/api/schedule",
+                        "/api/settings", "/api/settings/test"):
             return self._json(404, {"ok": False, "message": "Not found"})
         if not c.auth.enabled:
             return self._json(403, {"ok": False, "message": "Controls are off: no dashboard password is set"})
@@ -348,6 +400,10 @@ class _Handler(BaseHTTPRequestHandler):
             return self._save_formula(body)
         if path == "/api/schedule":
             return self._save_schedule(body)
+        if path == "/api/settings":
+            return self._save_settings(body)
+        if path == "/api/settings/test":
+            return self._test_settings(body)
         if not c.drivers:
             return self._json(503, {"ok": False, "message": "View-only mode: no driver is attached"})
         # short wait: the previous request may have answered but not yet released the lock
@@ -421,6 +477,55 @@ class _Handler(BaseHTTPRequestHandler):
         log_event(s, "manual", "Formula changed on /tune (applies from the next daily run)", True)
         return self._json(200, {"ok": True, "message": "Saved. Applies from the next daily run."})
 
+    # -- settings + setup
+    def _first_password(self, body):
+        from . import setup
+        c = self.ctx
+        if c.auth.enabled:
+            return self._json(403, {"ok": False, "message": "A password is already set. Log in instead."})
+        try:
+            cleaned = setup.clean({"dashboard.password": body.get("password")})
+            setup.save(c.s, cleaned)
+        except ValueError as e:
+            return self._json(400, {"ok": False, "message": "Password: " + str(e).split(": ", 1)[-1]})
+        except OSError as e:
+            return self._json(500, {"ok": False, "message": f"Could not save: {e}"})
+        c.settings_changed()
+        log_event(c.s, "manual", "Dashboard password created", True)
+        cookie = f"{COOKIE}={c.auth.grant()}; HttpOnly; SameSite=Strict; Path=/; Max-Age={Auth.TTL}"
+        return self._json(200, {"ok": True, "message": "Password created"}, {"Set-Cookie": cookie})
+
+    def _save_settings(self, body):
+        from . import setup
+        c = self.ctx
+        try:
+            cleaned = setup.clean(body.get("changes"))
+            if not cleaned:
+                return self._json(400, {"ok": False, "message": "Nothing to save"})
+            setup.save(c.s, cleaned)
+        except ValueError as e:
+            return self._json(400, {"ok": False, "message": str(e)})
+        except OSError as e:
+            return self._json(500, {"ok": False, "message": f"Could not save: {e}"})
+        c.settings_changed()
+        names = ", ".join(sorted({k.split(".")[0] for k in body["changes"]}))
+        log_event(c.s, "manual", f"Settings changed ({names})", True)
+        s = c.s
+        msg = "Saved" + ("" if not s.needs_setup else ". Setup still needs a location and a way to switch the boiler.")
+        return self._json(200, {"ok": True, "message": msg, "needs_setup": s.needs_setup,
+                                "problems": c.app.problems if c.app else []})
+
+    def _test_settings(self, body):
+        """Run the link checks with the unsaved values (nothing is saved, nothing is switched)."""
+        from . import setup
+        from .services import _link_rows
+        try:
+            t = setup.preview_settings(self.ctx.s, setup.clean(body.get("changes") or {}))
+        except ValueError as e:
+            return self._json(400, {"ok": False, "message": str(e)})
+        rows = [r for n in t.driver_names if n in REGISTRY for r in _link_rows(t, n)]
+        return self._json(200, {"ok": True, "services": rows})
+
     def _save_schedule(self, body):
         s = self.ctx.s
         try:
@@ -481,8 +586,8 @@ class _Handler(BaseHTTPRequestHandler):
         pass
 
 
-def make_server(s, drivers, formula=None):
-    handler = type("Handler", (_Handler,), {"ctx": Ctx(s, drivers, formula)})
+def make_server(s, drivers, formula=None, app=None):
+    handler = type("Handler", (_Handler,), {"ctx": Ctx(s, drivers, formula, app)})
     srv = ThreadingHTTPServer((s.dashboard_host, s.dashboard_port), handler)
     srv.daemon_threads = True
     srv.ctx = handler.ctx
@@ -493,10 +598,11 @@ def _shown_host(s):
     return "localhost" if s.dashboard_host in ("0.0.0.0", "") else s.dashboard_host
 
 
-def start_in_thread(s, drivers, formula=None):
-    srv = make_server(s, drivers, formula)
+def start_in_thread(s, drivers, formula=None, app=None):
+    srv = make_server(s, drivers, formula, app)
     threading.Thread(target=srv.serve_forever, name="dashboard", daemon=True).start()
-    mode = "controls ON (password)" if srv.ctx.auth.enabled else "read-only (no dashboard password set)"
+    mode = ("setup needed: open this page" if s.needs_setup else
+            "controls ON (password)" if srv.ctx.auth.enabled else "open the page to create a password")
     print(f"🖥️  Dashboard: http://{_shown_host(s)}:{s.dashboard_port}  ({mode})")
     return srv
 
@@ -504,8 +610,10 @@ def start_in_thread(s, drivers, formula=None):
 def main():
     """View-only mode: python dashboard.py  (no drivers attached, so nothing can be switched)."""
     from .settings import Settings
-    s = Settings()
-    srv = make_server(s, [])
+    from .app import App
+    app = App(view_only=True)
+    s = app.s
+    srv = make_server(s, [], app=app)
     print(f"🖥️  Dashboard: http://{_shown_host(s)}:{s.dashboard_port}  (view-only, Ctrl+C to stop)")
     try:
         srv.serve_forever()

@@ -103,6 +103,16 @@ input[type=time]{width:128px}.pcard input{width:100%}
 .switch{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--mute)}
 .switch input{width:20px;height:20px;accent-color:var(--water)}
 
+.field{display:grid;gap:4px;margin-top:10px}.field label{font-size:14px;font-weight:600}
+.field input{width:100%}.field .hint{font-size:13px;color:var(--mute)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.choice{display:grid;gap:8px;margin-top:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer}
+.opt.on{border-color:var(--water);background:var(--soft)}.opt input{margin-top:3px;accent-color:var(--water);width:18px;height:18px}
+.opt b{display:block}.opt span{font-size:13.5px;color:var(--mute)}
+.steps{display:flex;gap:6px;margin:2px 0 14px}.steps i{flex:1;height:5px;border-radius:3px;background:var(--line)}.steps i.on{background:var(--water)}
+.wiz h1{font-size:26px;letter-spacing:-.02em;margin:0 0 6px}
+.res{display:grid;gap:6px;margin-top:8px}.res button{text-align:left}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;font-size:14px}.kv span:nth-child(odd){color:var(--mute)}
 .wxl{display:flex;justify-content:space-between;gap:8px;padding:4px 0;font-size:15px}.wxl span:last-child{color:var(--mute)}
 #toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);background:var(--ink);color:var(--card);padding:11px 16px;border-radius:12px;font-size:15px;max-width:90vw;display:none;z-index:9}
@@ -117,6 +127,7 @@ input[type=time]{width:128px}.pcard input{width:100%}
   <a href="#home" data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
   <a href="#schedule" data-tab="schedule"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Schedule</a>
   <a href="#history" data-tab="history"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>History</a>
+  <a href="#settings" data-tab="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</a>
   <a href="/tune"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Tune</a>
 </nav>
 <noscript>This page needs JavaScript.</noscript>
@@ -162,6 +173,11 @@ input[type=time]{width:128px}.pcard input{width:100%}
   <div class="card"><h2>All activity</h2><div id="actall"></div></div>
   <div class="card"><h2>Details</h2><div class="kv" id="kv"></div><h2 style="margin-top:16px">Temperature to minutes</h2><div id="fx"></div></div>
 </section>
+<!-- ============ SETTINGS ============ -->
+<section class="tab" id="t-settings"><div id="settings-body"><div class="card note">Loading…</div></div></section>
+
+<!-- ============ SETUP WIZARD ============ -->
+<section class="tab" id="t-setup"><div id="setup-body"></div></section>
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -173,7 +189,7 @@ const h = (t, c, x) => { const e = document.createElement(t); if (c) e.className
 const hm = iso => iso ? iso.slice(11, 16) : "";
 const mins = iso => { const d = new Date(iso); return d.getHours() * 60 + d.getMinutes(); };
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-let S = null, FC = null, ctlKey = "", SCH = null, SCH0 = "";
+let S = null, FC = null, ctlKey = "", SCH = null, SCH0 = "", WIZ_SEEN = false;
 
 async function post(path, body) {
   try {
@@ -187,10 +203,13 @@ let tt; function toast(m) { const t = $("toast"); t.textContent = m; t.style.dis
 /* ---------- tabs ---------- */
 function showTab() {
   const name = (location.hash || "#home").slice(1);
-  const id = ["home", "schedule", "history"].includes(name) ? name : "home";
+  const id = ["home", "schedule", "history", "settings", "setup"].includes(name) ? name : "home";
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.id === "t-" + id));
   document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("on", a.dataset.tab === id));
   if (id === "schedule" && !SCH) loadSchedule();
+  if (id === "settings") loadSettings();
+  if (id === "setup") startWizard();
+  document.querySelector("nav").style.display = id === "setup" ? "none" : "";
 }
 addEventListener("hashchange", showTab);
 
@@ -442,10 +461,147 @@ function renderForecast() {
   for (const d of FC.days) { const r = h("div", "wxl"); r.append(h("span", "", `${d.date === today ? "Today" : "Tomorrow"}: about ${d.minutes} min`), h("span", "", `${d.mean_temp}°C, ${d.mean_clouds}% clouds, sun ${d.sunrise} to ${d.sunset}`)); days.append(r); }
 }
 
+/* ---------- settings (shared by the Settings tab and the wizard) ---------- */
+let SET = null, CHG = {};
+const fld = (label, key, opt = {}) => {
+  const w = h("div", "field"), id = "f-" + key.replace(/\W/g, "_"); const l = h("label", "", label); l.htmlFor = id;
+  const inp = h("input"); inp.id = id; inp.type = opt.type || "text"; if (opt.ph) inp.placeholder = opt.ph;
+  const v = SET[key];
+  if (opt.secret) inp.placeholder = v && v.set ? "Saved. Type to replace it" : (opt.ph || "Not set");
+  else if (v !== null && v !== undefined) inp.value = Array.isArray(v) ? v.join(",") : v;
+  if (key in CHG && !opt.secret) inp.value = CHG[key];
+  inp.oninput = () => { let x = inp.value; if (opt.type === "number") x = x === "" ? "" : Number(x);
+    if (opt.secret && !x) delete CHG[key]; else CHG[key] = x; onChange(); };
+  w.append(l, inp); if (opt.hint) w.append(h("div", "hint", opt.hint)); return w;
+};
+let onChange = () => {};
+function connChoice(box) {
+  const cur = (CHG.drivers || SET.drivers || [])[0] || "";
+  const ch = h("div", "choice");
+  for (const [k, label, desc] of [["mqtt_tasmota", "Tasmota plug or relay", "Over MQTT. The plug keeps its own off-timer, so it switches off on time even if this app stops."],
+                                  ["homeassistant", "Home Assistant", "Uses your HA sliders and scripts."],
+                                  ["dryrun", "Test mode", "Does everything except switch the boiler."]]) {
+    const o = h("label", "opt" + (cur === k ? " on" : "")); const r = h("input"); r.type = "radio"; r.name = "drv"; r.checked = cur === k;
+    r.onchange = () => { CHG.drivers = [k]; onChange(true); };
+    const t = h("div"); t.append(h("b", "", label), h("span", "", desc)); o.append(r, t); ch.append(o);
+  }
+  box.append(ch);
+  const d = cur;
+  if (d === "mqtt_tasmota") {
+    const g = h("div", "grid2"); g.append(fld("Broker address", "mqtt.host", {ph: "192.168.1.10"}), fld("Port", "mqtt.port", {type: "number"})); box.append(g);
+    const g2 = h("div", "grid2"); g2.append(fld("Broker user", "mqtt.username", {ph: "optional"}), fld("Broker password", "mqtt.password", {type: "password", secret: true, ph: "optional"})); box.append(g2);
+    box.append(fld("Device topic", "tasmota.topic", {ph: "e.g. WaterHeater", hint: "Tasmota > Configuration > MQTT > Topic"}),
+               fld("Full topic", "tasmota.full_topic", {hint: "Copy it from the same page. Default %prefix%/%topic%/"}));
+  } else if (d === "homeassistant") {
+    const g = h("div", "grid2"); g.append(fld("HA address", "ha.ip", {ph: "192.168.1.20"}), fld("Port", "ha.port", {type: "number"})); box.append(g);
+    box.append(fld("Long-lived token", "ha.token", {type: "password", secret: true, hint: "HA > your profile > Security > Long-lived access tokens"}),
+               fld("Minutes slider (1st)", "ha.slider_1"), fld("Minutes slider (2nd)", "ha.slider_2"),
+               fld("Start script (1st)", "ha.script_1"), fld("Start script (2nd)", "ha.script_2"));
+  }
+  if (d && d !== "dryrun") {
+    const res = h("div"); const b = h("button", "btn sm", "Test connection");
+    b.onclick = async () => { b.disabled = true; res.replaceChildren(h("div", "note", "Testing…"));
+      const r = await post("/api/settings/test", {changes: CHG}); b.disabled = false; res.replaceChildren();
+      if (!r.ok) { res.append(h("div", "note", r.message)); return; }
+      for (const x of r.services) { const row = h("div", "sv"); row.append(h("i", x.level), h("b", "", x.name), h("span", "", x.text)); res.append(row); } };
+    const row = h("div", "row"); row.append(b); box.append(row, res);
+  }
+}
+function placeSearch(box, done) {
+  const cur = SET["location.name"] || (SET["location.latitude"] != null ? `${SET["location.latitude"].toFixed(3)}, ${SET["location.longitude"].toFixed(3)}` : "");
+  const now = h("div", "note", cur ? "Now: " + (CHG["location.name"] || cur) : "Not set yet"); box.append(now);
+  const row = h("div", "row"); const q = h("input", "wide"); q.type = "text"; q.placeholder = "Town or city"; q.setAttribute("aria-label", "Town or city");
+  const go = h("button", "btn", "Search"); row.append(q, go); const res = h("div", "res"); box.append(row, res);
+  q.addEventListener("keydown", e => { if (e.key === "Enter") go.click(); });
+  go.onclick = async () => { res.replaceChildren(h("div", "note", "Searching…"));
+    let j; try { j = await (await fetch("/api/geocode?q=" + encodeURIComponent(q.value))).json(); } catch (e) { j = {results: [], error: "City search unavailable"}; }
+    res.replaceChildren(); if (j.error) res.append(h("div", "note", j.error + ". You can type the coordinates instead."));
+    if (!j.results.length && !j.error) res.append(h("div", "note", "No match. Try a nearby bigger town."));
+    for (const x of j.results) { const name = [x.name, x.admin, x.country].filter(Boolean).join(", ");
+      const b = h("button", "btn", name); b.onclick = () => { CHG["location.name"] = name; CHG["location.latitude"] = x.lat; CHG["location.longitude"] = x.lon;
+        now.textContent = "Now: " + name; res.replaceChildren(); onChange(); if (done) done(); }; res.append(b); } };
+  const det = h("details"); det.append(h("summary", "note", "Type coordinates instead"));
+  const g = h("div", "grid2"); g.append(fld("Latitude", "location.latitude", {type: "number"}), fld("Longitude", "location.longitude", {type: "number"})); det.append(g); box.append(det);
+}
+async function fetchSettings() {
+  const r = await fetch("/api/settings", {cache: "no-store"});
+  if (r.status === 401) return null; SET = await r.json(); return SET;
+}
+async function saveChanges() {
+  if (!Object.keys(CHG).length) return {ok: true, message: "Nothing changed"};
+  const r = await post("/api/settings", {changes: CHG}); if (r.ok) { CHG = {}; await fetchSettings(); ctlKey = ""; refresh(); refreshServices(); } return r;
+}
+async function loadSettings() {
+  const body = $("settings-body");
+  if (S && S.controls.password_set && !S.controls.logged_in) { const c = h("div", "card"); c.append(h("h2", "", "Settings"), h("div", "note", lockedNote(S.controls)), unlockRow(loadSettings)); body.replaceChildren(c); return; }
+  if (!await fetchSettings()) return; CHG = {}; renderSettings();
+}
+function renderSettings() {
+  const body = $("settings-body"); body.replaceChildren();
+  const card = (title, fill) => { const c = h("div", "card"); c.append(h("h2", "", title)); fill(c); body.append(c); return c; };
+  card("Location", c => placeSearch(c));
+  const conn = card("Boiler connection", c => connChoice(c));
+  card("Timing", c => { c.append(fld("Decide each day after", "decide_after", {type: "time", hint: "Weather of the day is read after this time. The Schedule tab sets when the water should be hot."}),
+                                 fld("Longest manual run (minutes)", "max_manual_minutes", {type: "number"})); });
+  card("Password", c => { c.append(fld("New dashboard password", "dashboard.password", {type: "password", secret: true, hint: "At least 6 characters. Everyone is logged out after a change."})); });
+  const bar = h("div", "card"); const save = h("button", "btn go", "Save settings"); const undo = h("button", "btn ghost", "Undo changes");
+  const st = h("div", "note"); const row = h("div", "row"); row.style.marginTop = "0"; row.append(save, undo); bar.append(row, st); body.append(bar);
+  onChange = (redraw) => { if (redraw) { const y = scrollY; renderSettings(); scrollTo(0, y); return; } save.disabled = undo.disabled = !Object.keys(CHG).length; st.textContent = Object.keys(CHG).length ? "You have unsaved changes." : "All saved."; };
+  undo.onclick = () => { CHG = {}; renderSettings(); };
+  save.onclick = async () => { save.disabled = true; const r = await saveChanges(); toast(r.message); if (r.ok) renderSettings(); else save.disabled = false; };
+  onChange();
+}
+
+/* ---------- first-run wizard ---------- */
+let STEP = 0;
+async function startWizard() {
+  const c = S ? S.controls : null; STEP = 0;
+  if (c && c.password_set && !c.logged_in) { const b = $("setup-body"); const k = h("div", "card wiz"); k.append(h("h1", "", "Welcome back"), h("div", "note", "Enter the dashboard password to continue setup."), unlockRow(startWizard)); b.replaceChildren(k); return; }
+  if (c && c.password_set) { await fetchSettings(); STEP = 1; } else SET = null;
+  CHG = {}; renderWizard();
+}
+function renderWizard() {
+  const box = $("setup-body"); box.replaceChildren(); const k = h("div", "card wiz"); box.append(k);
+  const steps = h("div", "steps"); for (let i = 0; i < 4; i++) steps.append(h("i", i <= STEP ? "on" : "")); k.append(steps);
+  const nav = h("div", "row"); const back = h("button", "btn ghost", "Back"); back.onclick = () => { STEP--; renderWizard(); };
+  const next = h("button", "btn go", "Next"); if (STEP > 1) nav.append(back); nav.append(next);
+  onChange = (redraw) => { if (redraw) renderWizard(); };
+  if (STEP === 0) {
+    k.append(h("h1", "", "Welcome to BoilerMind"), h("div", "note", "It reads the weather each day and runs your electric boiler only as long as the sun did not heat the water. First, protect this page with a password."));
+    const pw = h("input", "wide"); pw.type = "password"; pw.placeholder = "Choose a password"; pw.autocomplete = "new-password";
+    const pw2 = h("input", "wide"); pw2.type = "password"; pw2.placeholder = "Type it again"; pw2.autocomplete = "new-password";
+    const f = h("div", "field"); f.append(pw, pw2, h("div", "hint", "At least 6 characters. Needed to switch the boiler and change settings."));
+    k.append(f, nav); next.textContent = "Create password";
+    next.onclick = async () => { if (pw.value !== pw2.value) { toast("The two passwords are different"); return; }
+      const r = await post("/api/setup/password", {password: pw.value}); toast(r.message);
+      if (r.ok) { await refresh(); await fetchSettings(); STEP = 1; renderWizard(); } };
+  } else if (STEP === 1) {
+    k.append(h("h1", "", "Where is the boiler?"), h("div", "note", "Used for the local weather and sunrise times."));
+    placeSearch(k); k.append(nav);
+    next.onclick = () => { if (SET["location.latitude"] == null && CHG["location.latitude"] == null) { toast("Pick a place first"); return; } STEP = 2; renderWizard(); };
+  } else if (STEP === 2) {
+    k.append(h("h1", "", "How do we switch it?"), h("div", "note", "Choose what turns the boiler on. You can change this later in Settings."));
+    connChoice(k); k.append(nav);
+    next.onclick = () => { if (!(CHG.drivers || SET.drivers || []).length) { toast("Choose one"); return; } STEP = 3; renderWizard(); };
+  } else {
+    k.append(h("h1", "", "When should the water be hot?"));
+    const f = h("div", "field"); const t = h("input"); t.type = "time"; t.value = "18:30"; t.setAttribute("aria-label", "Hot by");
+    f.append(h("label", "", "Hot by"), t, h("div", "hint", "BoilerMind starts early enough to finish at this time. Change it any day on the Schedule tab."));
+    k.append(f, fld("Decide each day after", "decide_after", {type: "time", hint: "The day's weather is read after this time."}), nav);
+    next.textContent = "Finish setup";
+    next.onclick = async () => { next.disabled = true; const r = await saveChanges();
+      if (!r.ok) { toast(r.message); next.disabled = false; return; }
+      const sc = await (await fetch("/api/schedule", {cache: "no-store"})).json();
+      await post("/api/schedule", {schedule: Object.assign({}, sc.schedule, {ready_by: t.value || ""})});
+      toast("Setup done"); SCH = null; WIZ_SEEN = true; location.hash = "#home"; refresh(); };
+  }
+}
+
 /* ---------- loop ---------- */
 async function refresh() {
   try {
     const r = await fetch("/api/status", {cache: "no-store"}); if (!r.ok) throw 0; const d = await r.json(); S = d;
+    if ((d.controls.needs_setup || !d.controls.password_set) && !WIZ_SEEN && location.hash !== "#setup") { WIZ_SEEN = true; location.hash = "#setup"; }
     renderHero(d); renderControls(d); renderCloud(d); renderNext(d); events($("act"), d.activity, 5, d.now.slice(0, 10)); renderHistory(d); renderForecast();
   } catch (e) { const p = $("pill"); p.className = "pill red"; p.querySelector("span").textContent = "Can't reach the boiler service"; }
 }

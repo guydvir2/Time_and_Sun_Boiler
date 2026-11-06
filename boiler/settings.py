@@ -1,9 +1,11 @@
 """All configuration in one place. Nothing else in the package reads files or env directly.
 
-Precedence (later wins): config.ini  <  config.local.ini (git-ignored, secrets)  <  environment.
+Precedence (later wins): config.ini  <  config.local.ini (git-ignored, secrets)  <  settings.json
+(written by the Settings tab / setup wizard, git-ignored)  <  environment.
 Secrets: HA_TOKEN (Home Assistant), MQTT_PASSWORD (broker).
 """
 import os
+import json
 import configparser
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -14,12 +16,22 @@ def _bool(v) -> bool:
 
 
 class Settings:
-    def __init__(self, ini_paths=None, environ=None):
+    def __init__(self, ini_paths=None, environ=None, json_path=None):
         env = os.environ if environ is None else environ
         # interpolation=None: '%' is literal (Tasmota topics use %topic%, and passwords may contain '%')
         cp = configparser.ConfigParser(interpolation=None)
         cp.read(ini_paths or [os.path.join(BASE_DIR, "config.ini"),
                               os.path.join(BASE_DIR, "config.local.ini")])
+        # the UI's settings file: default location only when using the default ini files (tests pass their own)
+        self.settings_json = json_path or (None if ini_paths else os.path.join(BASE_DIR, "settings.json"))
+        if self.settings_json:
+            try:
+                with open(self.settings_json) as f:
+                    cp.read_dict({sec: {k: str(v) for k, v in vals.items()} for sec, vals in json.load(f).items()})
+            except FileNotFoundError:
+                pass
+            except (ValueError, OSError, AttributeError) as e:
+                print(f"⚠️  {self.settings_json} unreadable ({e}); ignoring it")
         self._cp = cp
 
         g = cp.get
@@ -33,12 +45,14 @@ class Settings:
         self.request_timeout = int(g("parameters", "REQUEST_TIMEOUT", fallback="15"))
 
         # --- location / weather ---
-        self.latitude = float(g("location", "latitude"))
-        self.longitude = float(g("location", "longitude"))
+        lat, lon = g("location", "latitude", fallback=""), g("location", "longitude", fallback="")
+        self.latitude = float(lat) if lat.strip() else None          # None = not set up yet (wizard)
+        self.longitude = float(lon) if lon.strip() else None
+        self.place_name = g("location", "name", fallback="")
         self.weather_url = g("weather", "weather_url", fallback="https://api.open-meteo.com/v1/forecast")
 
         # --- output: ordered list of drivers; the next one is tried only if the previous failed ---
-        names = g("output", "drivers", fallback="homeassistant")
+        names = g("output", "drivers", fallback="")
         self.driver_names = [n.strip() for n in names.split(",") if n.strip()]
 
         # --- Home Assistant driver ---
@@ -84,3 +98,8 @@ class Settings:
         self.formula_history = os.path.join(self.stored_dir, "formula_history.jsonl")
         self.sunshine_file = os.path.join(self.stored_dir, "sunshine.csv")         # real sun (archive)
         self.archive_url = g("weather", "archive_url", fallback="https://archive-api.open-meteo.com/v1/archive")
+
+    @property
+    def needs_setup(self):
+        """True until there is a location and at least one driver (the first-run wizard does both)."""
+        return self.latitude is None or self.longitude is None or not self.driver_names
