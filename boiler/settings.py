@@ -16,7 +16,8 @@ def _bool(v) -> bool:
 class Settings:
     def __init__(self, ini_paths=None, environ=None):
         env = os.environ if environ is None else environ
-        cp = configparser.ConfigParser()
+        # interpolation=None: '%' is literal (Tasmota topics use %topic%, and passwords may contain '%')
+        cp = configparser.ConfigParser(interpolation=None)
         cp.read(ini_paths or [os.path.join(BASE_DIR, "config.ini"),
                               os.path.join(BASE_DIR, "config.local.ini")])
         self._cp = cp
@@ -58,6 +59,8 @@ class Settings:
         self.mqtt_user = g("mqtt", "username", fallback="")
         self.mqtt_password = env.get("MQTT_PASSWORD") or g("mqtt", "password", fallback="")
         self.tasmota_topic = g("tasmota", "topic", fallback="")        # the device's %topic%
+        # Tasmota's own "Full Topic" field (Configuration > MQTT). Default is Tasmota's default.
+        self.tasmota_full_topic = g("tasmota", "full_topic", fallback="%prefix%/%topic%/")
         self.tasmota_relay = int(g("tasmota", "relay", fallback="1"))
         self.tasmota_confirm = _bool(g("tasmota", "confirm", fallback="True"))
         self.tasmota_confirm_timeout = int(g("tasmota", "confirm_timeout", fallback="10"))

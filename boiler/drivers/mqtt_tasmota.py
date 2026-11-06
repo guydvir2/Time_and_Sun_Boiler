@@ -28,8 +28,19 @@ class TasmotaMqttDriver(Driver):
     def __init__(self, s):
         self.s = s
 
+    def topic(self, prefix, suffix):
+        """Build a topic the way Tasmota does: Full Topic with %prefix% and %topic% filled in.
+        Default layout  cmnd/<topic>/Power1 ; with Full Topic '%topic%/%prefix%/' it is <topic>/cmnd/Power1."""
+        full = self.s.tasmota_full_topic.replace("%prefix%", prefix).replace("%topic%", self.s.tasmota_topic)
+        if not full.endswith("/"):
+            full += "/"
+        return full + suffix
+
     def problems(self):
         p = []
+        if "%topic%" not in self.s.tasmota_full_topic or "%prefix%" not in self.s.tasmota_full_topic:
+            p.append("Tasmota: full_topic must contain both %prefix% and %topic% (copy it from the device's "
+                     "Configuration > MQTT > Full Topic)")
         if not self.s.mqtt_host:
             p.append("MQTT: no [mqtt] host in config")
         if not self.s.tasmota_topic:
@@ -53,8 +64,8 @@ class TasmotaMqttDriver(Driver):
             return True
 
         n = s.tasmota_relay
-        t = s.tasmota_topic
-        cmd_pulse, cmd_power = f"cmnd/{t}/PulseTime{n}", f"cmnd/{t}/Power{n}"
+        cmd_pulse, cmd_power = self.topic("cmnd", f"PulseTime{n}"), self.topic("cmnd", f"Power{n}")
+        stat_all = self.topic("stat", "#")
         value = pulsetime_value(minutes)
         print(f"📡 MQTT {s.mqtt_host}:{s.mqtt_port}: {cmd_pulse} {value} ({minutes} min), then {cmd_power} ON")
 
@@ -66,7 +77,7 @@ class TasmotaMqttDriver(Driver):
             else:
                 ok = rc == 0
             if ok:
-                c.subscribe(f"stat/{t}/#", qos=1)
+                c.subscribe(stat_all, qos=1)
                 connected.set()
             else:
                 print(f"❌ MQTT: broker refused connection ({rc})")
