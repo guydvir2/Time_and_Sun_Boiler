@@ -123,6 +123,71 @@ class TasmotaMqttDriver(Driver):
             except Exception:
                 pass
 
+    def check(self, wait=4):
+        """Two lights: the broker, and the plug. The plug is asked for its relay state with an empty
+        Power<n> command (a query in Tasmota: it reports, it does not switch). Also reads the retained LWT."""
+        s = self.s
+        issues = self.problems()
+        if issues:
+            return [{"name": "MQTT broker", "level": "red", "text": issues[0].split(": ", 1)[-1]}]
+        n = s.tasmota_relay
+        lwt_topic = self.topic("tele", "LWT")
+        connected, replied = threading.Event(), threading.Event()
+        seen = {"lwt": None, "power": None}
+
+        def on_connect(c, userdata, flags, rc, *extra):
+            ok = (not rc.is_failure) if getattr(rc, "is_failure", None) is not None else rc == 0
+            if ok:
+                c.subscribe([(self.topic("stat", "#"), 0), (lwt_topic, 0)])
+                connected.set()
+            else:
+                seen["refused"] = str(rc)
+                connected.set()
+
+        def on_subscribe(c, userdata, mid, *extra):
+            c.publish(self.topic("cmnd", f"Power{n}"), "", qos=0)      # empty payload = query only
+
+        def on_message(c, userdata, msg):
+            body = msg.payload.decode(errors="replace").strip()
+            t = msg.topic.upper()
+            if msg.topic == lwt_topic:
+                seen["lwt"] = body
+            elif t.endswith(("/POWER", f"/POWER{n}")):
+                seen["power"] = body.upper(); replied.set()
+            elif t.endswith("/RESULT"):
+                flat = body.upper().replace(" ", "")
+                for key in (f'"POWER{n}":"', '"POWER":"'):
+                    if key in flat:
+                        seen["power"] = flat.split(key, 1)[1].split('"', 1)[0]; replied.set()
+
+        c = self._client()
+        c.on_connect, c.on_subscribe, c.on_message = on_connect, on_subscribe, on_message
+        broker = f"{s.mqtt_host}:{s.mqtt_port}"
+        try:
+            c.connect(s.mqtt_host, s.mqtt_port, keepalive=15)
+            c.loop_start()
+            if not connected.wait(wait) or seen.get("refused"):
+                why = f"refused ({seen['refused']})" if seen.get("refused") else "no answer"
+                return [{"name": "MQTT broker", "level": "red", "text": f"{broker}: {why}"}]
+            replied.wait(wait)
+        except Exception as e:
+            return [{"name": "MQTT broker", "level": "red", "text": f"{broker}: not reachable ({type(e).__name__})"}]
+        finally:
+            c.loop_stop()
+            try:
+                c.disconnect()
+            except Exception:
+                pass
+        rows = [{"name": "MQTT broker", "level": "green", "text": f"Connected ({broker})"}]
+        plug = f"Plug {s.tasmota_topic}"
+        if seen["power"]:
+            rows.append({"name": plug, "level": "green", "text": f"Online · relay {seen['power']}", "relay": seen["power"]})
+        elif (seen["lwt"] or "").lower() == "offline":
+            rows.append({"name": plug, "level": "red", "text": "Offline (device reports Offline)"})
+        else:
+            rows.append({"name": plug, "level": "red", "text": "No reply (check topic / power to the plug)"})
+        return rows
+
     def start(self, minutes: int) -> bool:
         s = self.s
         if minutes <= 0:

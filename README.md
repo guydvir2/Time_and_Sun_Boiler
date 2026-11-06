@@ -20,7 +20,10 @@ The **Run / Stop buttons need a password**: add it to `config.local.ini` (git-ig
 password = something-long
 ```
 
-With no password set the buttons stay locked. `dashboard.py` is view-only (no driver attached).
+With no password set the buttons stay locked.
+**Pause auto-run** (holiday mode) is in the same card; manual Run still works while paused.
+The **Services** card shows 🟢/🔴 for the engine, weather, MQTT broker, the Tasmota plug and Home Assistant
+(checks only read; they never switch anything). "spare" = configured but not in `[output] drivers`. `dashboard.py` is view-only (no driver attached).
 
 ## History from saved weather
 

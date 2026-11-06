@@ -9,6 +9,11 @@ class Driver:
         """Configuration problems that make this driver unusable (empty list = OK)."""
         return []
 
+    def check(self) -> list:
+        """Live link check for the dashboard: list of {'name','level','text'} (level green/yellow/red).
+        Must be quick (a few seconds) and must never switch anything."""
+        return []
+
     def start(self, minutes: int) -> bool:
         """Run the boiler for `minutes` starting now. Return True only if it was accepted."""
         raise NotImplementedError

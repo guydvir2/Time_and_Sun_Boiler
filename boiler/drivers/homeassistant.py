@@ -30,6 +30,25 @@ class HomeAssistantDriver(Driver):
                 p.append(f"Home Assistant: {label} missing in config")
         return p
 
+    def check(self):
+        """Is HA up, is the token accepted, and does the boiler slider exist? (read-only GETs)"""
+        name, root = "Home Assistant", f"http://{self.s.ha_ip}:{self.s.ha_port}/api"
+        issues = self.problems()
+        if issues:
+            return [{"name": name, "level": "red", "text": issues[0].replace("Home Assistant: ", "")}]
+        try:
+            r = requests.get(f"{root}/", headers=self.headers, timeout=5)
+            if r.status_code == 401:
+                return [{"name": name, "level": "red", "text": "Reachable, but the token is rejected"}]
+            if not r.ok:
+                return [{"name": name, "level": "red", "text": f"Error {r.status_code}"}]
+            e = requests.get(f"{root}/states/{self.s.ha_slider_1}", headers=self.headers, timeout=5)
+            if e.status_code == 404:
+                return [{"name": name, "level": "red", "text": f"Connected, but {self.s.ha_slider_1} not found"}]
+            return [{"name": name, "level": "green", "text": f"Connected ({self.s.ha_ip})"}]
+        except requests.RequestException as ex:
+            return [{"name": name, "level": "red", "text": f"Not reachable at {self.s.ha_ip}:{self.s.ha_port} ({type(ex).__name__})"}]
+
     def _post(self, path, payload, what):
         s = self.s
         for attempt in range(1, s.ha_retries + 1):

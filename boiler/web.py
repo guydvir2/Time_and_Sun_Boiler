@@ -18,7 +18,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import APP_VERSION
 from .formula import Formula, explain
-from .state import load_last_update, load_attempt, load_running, save_running, clear_running
+from .state import load_last_update, load_attempt, load_running, save_running, clear_running, load_auto, set_auto
 from .activity import log_event, read_events
 from .drivers import start_boiler
 
@@ -26,6 +26,7 @@ PAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "page.html"
 COOKIE = "boiler_session"
 CSRF_HEADER = ("X-Requested-With", "boiler-ui")      # a cross-site page cannot send this without our consent
 FORECAST_TTL = 1800                                  # seconds
+SERVICES_TTL = 60                                    # seconds between live link checks
 
 
 # ----------------------------------------------------------------------------- data
@@ -77,6 +78,9 @@ def health(s, now, last_update, attempt):
             pass
     failed_today = bool(attempt) and not attempt.get("ok") and str(attempt.get("time", ""))[:10] == today
 
+    auto = load_auto(s)
+    if not auto["enabled"]:
+        return "yellow", "Auto-run is paused" + (f" (since {auto['since'][5:10]})" if auto.get("since") else "")
     if done_today:
         return "green", "Today's run is done" + (f": {attempt['message']}" if attempt and attempt.get("ok") else "")
     if failed_today:
@@ -119,6 +123,7 @@ def build_status(s, driver_names, formula=None, now=None):
         "now": now.isoformat(timespec="seconds"),
         "health": {"level": level, "text": text},
         "running": load_running(s, now),
+        "auto": load_auto(s),
         "today": todays, "base": base,
         "last": hist[-1] if hist else None,
         "next_run": nxt, "update_after": s.update_after, "check_every_min": s.sleep_minutes,
@@ -182,6 +187,15 @@ class Ctx:
         self.action_lock = threading.Lock()          # one switch command at a time
         self.fc_lock = threading.Lock()
         self.fc = {"t": 0.0, "value": None}
+        self.sv_lock = threading.Lock()
+        self.sv = {"t": 0.0, "value": None}
+
+    def services(self):
+        from .services import check_all
+        with self.sv_lock:                            # one check round at a time, cached for a minute
+            if self.sv["value"] is None or _time.time() - self.sv["t"] > SERVICES_TTL:
+                self.sv = {"t": _time.time(), "value": check_all(self.s, self.forecast())}
+            return self.sv["value"]
 
     @property
     def names(self):
@@ -248,6 +262,11 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(200, st)
             except Exception as e:                      # never crash the thread on bad data
                 self._json(500, {"error": str(e)})
+        elif path == "/api/services":
+            try:
+                self._json(200, {"services": c.services(), "checked": datetime.now().isoformat(timespec="seconds")})
+            except Exception as e:
+                self._json(500, {"error": str(e)})
         elif path == "/api/forecast":
             self._json(200, c.forecast())
         elif path == "/healthz":
@@ -283,12 +302,14 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True, "message": "Locked"},
                               {"Set-Cookie": f"{COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0"})
 
-        if path not in ("/api/run", "/api/stop"):
+        if path not in ("/api/run", "/api/stop", "/api/auto"):
             return self._json(404, {"ok": False, "message": "Not found"})
         if not c.auth.enabled:
             return self._json(403, {"ok": False, "message": "Controls are off: no dashboard password is set"})
         if not c.auth.valid(self._token()):
             return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
+        if path == "/api/auto":                       # pause/resume needs no driver
+            return self._auto(body)
         if not c.drivers:
             return self._json(503, {"ok": False, "message": "View-only mode: no driver is attached"})
         if not c.action_lock.acquire(blocking=False):
@@ -314,6 +335,16 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True, "message": f"Running for {m} min (via {used})"})
         log_event(s, "manual", f"Manual run {m} min FAILED: no driver accepted it", False)
         return self._json(502, {"ok": False, "message": "No driver accepted the run. Check the connection."})
+
+    def _auto(self, body):
+        s, en = self.ctx.s, body.get("enabled")
+        if not isinstance(en, bool):
+            return self._json(400, {"ok": False, "message": "enabled must be true or false"})
+        set_auto(s, en)
+        self.ctx.sv["t"] = 0.0                         # refresh the lights now
+        msg = "Auto-run resumed" if en else "Auto-run paused (manual Run still works)"
+        log_event(s, "manual", msg, True)
+        return self._json(200, {"ok": True, "message": msg})
 
     def _stop(self):
         c, s = self.ctx, self.ctx.s

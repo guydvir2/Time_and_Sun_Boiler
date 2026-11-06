@@ -78,6 +78,28 @@ def load_running(s, now=None):
     return None
 
 
+def save_heartbeat(s):
+    """The service loop is alive (written every loop)."""
+    _update(s, heartbeat=datetime.now().isoformat(timespec="seconds"))
+
+
+def load_heartbeat(s):
+    return _read_state(s).get("heartbeat")
+
+
+def auto_enabled(s):
+    """Automatic daily runs on/off (holiday mode). Default on."""
+    return _read_state(s).get("auto", {}).get("enabled", True)
+
+
+def set_auto(s, enabled):
+    _update(s, auto={"enabled": bool(enabled), "since": datetime.now().isoformat(timespec="seconds")})
+
+
+def load_auto(s):
+    return dict({"enabled": True, "since": None}, **_read_state(s).get("auto", {}))
+
+
 DECISION_COLUMNS = ["timestamp", "mean_temp", "mean_clouds", "duration_min", "driver", "ok"]
 
 

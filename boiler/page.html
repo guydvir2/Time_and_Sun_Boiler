@@ -37,6 +37,7 @@ details summary{cursor:pointer;color:var(--mute);font-size:14px}
 input{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:110px}
 input.wide{width:min(260px,100%)}
 .ev{display:flex;gap:8px;font-size:14px;padding:5px 0;border-top:1px solid var(--line)}
+.sv{display:flex;gap:8px;font-size:15px;padding:4px 0}.sv b{font-weight:600;min-width:118px}.sv span:last-child{color:var(--mute)}
 .ev:first-child{border-top:0}.ev .when{color:var(--mute);min-width:84px;font-variant-numeric:tabular-nums}
 .wxline{display:flex;justify-content:space-between;gap:8px;padding:3px 0;font-size:15px}.wxline span:last-child{color:var(--mute);text-align:right;white-space:nowrap}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:15px;max-width:90vw;display:none;z-index:9}
@@ -46,6 +47,7 @@ input.wide{width:min(260px,100%)}
 
 <div id="status" class="card status"><span class="dot">⏳</span><span class="t">Loading…</span></div>
 <div class="card hero" id="hero"></div>
+<div class="card"><h2>Services <span id="svwhen" style="text-transform:none;letter-spacing:0"></span></h2><div id="sv" class="note">Checking…</div></div>
 <div class="card" id="controls"></div>
 
 <div class="card"><h2>Weather · expected run</h2>
@@ -70,7 +72,7 @@ const el = (tag, attrs = {}, text) => { const e = document.createElementNS(NS, t
   for (const k in attrs) e.setAttribute(k, attrs[k]); if (text !== undefined) e.textContent = text; return e; };
 const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls;
   if (text !== undefined) e.textContent = text; return e; };
-const DOT = {green: "🟢", yellow: "🟡", red: "🔴"};
+const DOT = {green: "🟢", yellow: "🟡", red: "🔴", grey: "⚪"};
 let LAST = null, ctlKey = "";
 
 async function post(path, body) {
@@ -128,10 +130,9 @@ async function doLogin(box, input) {
   toast((r.ok ? "🔓 " : "🔒 ") + r.message); ctlKey = ""; await refresh();
 }
 function renderControls(d) {
-  const c = d.controls, key = JSON.stringify(c);
+  const c = d.controls, key = JSON.stringify([c, d.auto.enabled]);
   if (key === ctlKey) return; ctlKey = key;
   const box = $("controls"); box.replaceChildren(h("h2", "", "Control"));
-  if (!c.available) { box.append(note("View-only mode: no driver is attached to this page.")); return; }
   if (!c.password_set) { box.append(note("🔒 Locked. No dashboard password is set. Add a [dashboard] password to config.local.ini and restart to enable the buttons.")); return; }
   if (!c.logged_in) {
     const pw = h("input", "wide"); pw.type = "password"; pw.placeholder = "Dashboard password"; pw.autocomplete = "current-password";
@@ -139,6 +140,17 @@ function renderControls(d) {
     pw.addEventListener("keydown", e => { if (e.key === "Enter") go.click(); });
     const row = h("div", "row"); row.append(pw, go); box.append(note("🔒 Locked. Enter the password to run or stop the boiler."), row); return;
   }
+  const auto = d.auto.enabled;
+  const tg = h("button", "btn" + (auto ? "" : " go"), auto ? "⏸ Pause auto-run" : "▶ Resume auto-run");
+  tg.onclick = async () => {
+    if (auto && !confirm("Pause the daily automatic run? (Manual Run still works.)")) return;
+    setBusy(box, true); const r = await post("/api/auto", {enabled: !auto});
+    toast((r.ok ? "✅ " : "❌ ") + r.message); ctlKey = ""; await refresh(); refreshServices();
+  };
+  const lock = h("button", "btn quiet", "🔓 Lock"); lock.onclick = async () => { await post("/api/logout"); ctlKey = ""; refresh(); };
+  const autoRow = h("div", "row"); autoRow.append(tg, lock);
+  box.append(note(auto ? "Auto-run is ON." : "⏸ Auto-run is PAUSED: the daily run is skipped."), autoRow);
+  if (!c.available) { box.append(note("View-only mode: no driver attached, so Run/Stop are not here.")); return; }
   const row = h("div", "row");
   for (const m of [30, 60, 90, 120].filter(m => m <= c.max_minutes)) {
     const b = h("button", "btn", m + " min"); b.onclick = () => doRun(box, m); row.append(b);
@@ -149,9 +161,19 @@ function renderControls(d) {
   inp.addEventListener("keydown", e => { if (e.key === "Enter") run.click(); });
   row2.append(inp, run);
   if (c.can_stop) { const st = h("button", "btn stop", "Stop"); st.onclick = () => doStop(box); row2.append(st); }
-  const lock = h("button", "btn quiet", "🔓 Lock"); lock.onclick = async () => { await post("/api/logout"); ctlKey = ""; refresh(); };
-  row2.append(lock);
   box.append(note("Run the boiler now:"), row, row2);
+}
+
+/* ---------- services ---------- */
+async function refreshServices() {
+  const box = $("sv");
+  try {
+    const r = await fetch("/api/services", {cache: "no-store"}); const j = await r.json();
+    if (j.error) throw new Error(j.error);
+    box.replaceChildren(); box.className = "";
+    for (const x of j.services) { const row = h("div", "sv"); row.append(h("span", "", DOT[x.level] || "⚪"), h("b", "", x.name), h("span", "", x.text)); box.append(row); }
+    $("svwhen").textContent = "· checked " + j.checked.slice(11, 16);
+  } catch (e) { box.className = "note"; box.textContent = "🔴 Can't check services"; }
 }
 
 /* ---------- weather ---------- */
@@ -257,5 +279,6 @@ async function refresh() {
     $("status").replaceChildren(h("span", "dot", "🔴"), h("span", "t", "Can't reach the boiler service"));
   }
 }
-refresh().then(refreshForecast); setInterval(refresh, 30000); setInterval(refreshForecast, 600000);
+refresh().then(refreshForecast).then(refreshServices);
+setInterval(refresh, 30000); setInterval(refreshForecast, 600000); setInterval(refreshServices, 60000);
 </script></body></html>

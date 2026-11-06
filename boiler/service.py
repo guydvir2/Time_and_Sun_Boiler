@@ -7,7 +7,8 @@ from . import APP_VERSION
 from .settings import Settings
 from .formula import Formula, daily_mean, explain
 from .weather import get_weather, get_sun_times, csv_path, save_csv, load_csv
-from .state import load_last_update, save_last_update, save_attempt, save_running, log_decision
+from .state import (load_last_update, save_last_update, save_attempt, save_running, log_decision,
+                    save_heartbeat, auto_enabled)
 from .activity import log_event, trim
 from .drivers import build_drivers, start_boiler
 
@@ -87,6 +88,11 @@ def main():
     debug_pending = s.debug_ignore_time         # debug: run once right now, then behave normally
     while True:
         now = datetime.now()
+        save_heartbeat(s)                        # the dashboard shows "Engine: running" from this
+        if not auto_enabled(s):
+            print(f"⏸️  [{now:%H:%M:%S}] auto-run is PAUSED (dashboard) — not running today's update")
+            sleep(60 * s.sleep_minutes)
+            continue
         # "done today" lives on disk, so a restart after the update time does not repeat it
         done_today = load_last_update(s) == str(date.today())
         due = now.time() >= time(hh, mm) or debug_pending
