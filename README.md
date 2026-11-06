@@ -22,6 +22,11 @@ password = something-long
 
 With no password set the buttons stay locked. `dashboard.py` is view-only (no driver attached).
 
+## History from saved weather
+
+`python backfill.py` fills the history chart from the weather files already in `stored_data/`
+(what the current formula would have decided). Those days show faded, marked "replayed". Safe to repeat.
+
 ## Config
 
 - `config.ini`: settings (tracked). Pick drivers under `[output] drivers = ...`

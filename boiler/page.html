@@ -23,7 +23,7 @@ main{max-width:640px;margin:0 auto;padding:16px}
 h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:0 0 8px}
 svg{width:100%;height:auto;display:block}
 .axis{stroke:var(--line);stroke-width:1}.lbl{fill:var(--mute);font-size:10px}
-.bar{fill:var(--bar)}.bar.bad{fill:var(--red)}
+.bar{fill:var(--bar)}.bar.bad{fill:var(--red)}.bar.replay{opacity:.45}
 details summary{cursor:pointer;color:var(--mute);font-size:14px}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:10px 0;font-size:14px}.kv span:nth-child(odd){color:var(--mute)}
 .empty{color:var(--mute);text-align:center;padding:18px 0}
@@ -54,7 +54,7 @@ input.wide{width:min(260px,100%)}
   <div id="wx" style="margin-top:8px"></div>
 </div>
 
-<div class="card"><h2>Last 30 days · minutes</h2><div id="hist"></div></div>
+<div class="card"><h2>Last 30 days · minutes <span style="text-transform:none;letter-spacing:0">(faded = replayed)</span></h2><div id="hist"></div></div>
 <div class="card"><h2>Activity</h2><div id="act"></div></div>
 
 <div class="card"><details><summary>Details</summary>
@@ -96,9 +96,10 @@ function renderHero(d) {
   const t = d.today, shown = t || d.last;
   if (!shown) { box.append(h("div", "empty", "No runs recorded yet")); return; }
   const n = h("div", "n"); n.append(document.createTextNode(shown.minutes), h("small", "", " min")); box.append(n);
-  const via = shown.driver ? ` · via ${shown.driver}` : "";
+  const via = shown.driver && !shown.replay ? ` · via ${shown.driver}` : "";
   box.append(h("div", "s", `${shown.temp.toFixed(1)}°C · ${shown.clouds.toFixed(0)}% clouds${via}`));
-  if (!t) box.append(h("div", "s", `Last auto run: ${shown.date}. Nothing yet today.`));
+  if (shown.replay) box.append(h("div", "s", `Replayed from saved weather (${shown.date}). Not a real run.`));
+  else if (!t) box.append(h("div", "s", `Last auto run: ${shown.date}. Nothing yet today.`));
   else if (!t.ok) box.append(h("div", "s", "⚠️ Not accepted by the driver"));
 }
 
@@ -200,8 +201,8 @@ function renderHistory(d) {
   const slot = (W - 18) / Math.max(rows.length, 30), bw = slot * 0.7;
   rows.forEach((r, i) => {
     const bh = (r.minutes / maxY) * (H - pad), x = i * slot + (slot - bw) / 2 + 14;
-    const rect = el("rect", {x: x, y: H - bh, width: bw - 1, height: Math.max(bh, 1), rx: 2, class: "bar" + (r.ok ? "" : " bad")});
-    rect.append(el("title", {}, `${r.date}: ${r.minutes} min, ${r.temp.toFixed(1)}°C, ${r.clouds.toFixed(0)}% clouds` + (r.ok ? "" : " (failed)")));
+    const rect = el("rect", {x: x, y: H - bh, width: bw - 1, height: Math.max(bh, 1), rx: 2, class: "bar" + (r.ok ? "" : " bad") + (r.replay ? " replay" : "")});
+    rect.append(el("title", {}, `${r.date}: ${r.minutes} min, ${r.temp.toFixed(1)}°C, ${r.clouds.toFixed(0)}% clouds` + (r.ok ? "" : " (failed)") + (r.replay ? " (replayed, not a real run)" : "")));
     svg.append(rect);
   });
   svg.append(el("text", {x: 14, y: H + 13, class: "lbl"}, rows[0].date.slice(5)));

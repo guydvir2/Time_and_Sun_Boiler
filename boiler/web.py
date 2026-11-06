@@ -46,7 +46,8 @@ def _history(s, days=30):
             per_day[r["timestamp"][:10]] = {
                 "date": r["timestamp"][:10], "minutes": int(float(r["duration_min"])),
                 "temp": float(r["mean_temp"]), "clouds": float(r["mean_clouds"]),
-                "driver": r.get("driver", ""), "ok": r.get("ok", "").strip().lower() == "true"}
+                "driver": r.get("driver", ""), "ok": r.get("ok", "").strip().lower() == "true",
+                "replay": r.get("driver", "") == "replay"}
         except (KeyError, ValueError):
             continue
     return [per_day[d] for d in sorted(per_day)][-days:]
