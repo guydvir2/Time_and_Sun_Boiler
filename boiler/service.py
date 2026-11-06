@@ -7,7 +7,7 @@ from . import APP_VERSION
 from .settings import Settings
 from .formula import Formula, daily_mean, explain
 from .weather import get_weather, get_sun_times, csv_path, save_csv, load_csv
-from .state import load_last_update, save_last_update, log_decision
+from .state import load_last_update, save_last_update, save_attempt, log_decision
 from .drivers import build_drivers, start_boiler
 
 
@@ -27,11 +27,13 @@ def run_daily_update(s, drivers, formula):
             save_csv(rows, path)
     if not ok:
         print("❌ No weather data — will retry")
+        save_attempt(s, False, "No weather data (will retry)")
         return False
 
     t, cc = daily_mean(rows, sun["sunrise"], sun["sunset"], formula)
     if t is None:
         print("❌ No weather points inside the analysis window — will retry")
+        save_attempt(s, False, "No weather points in the analysis window (will retry)")
         return False
 
     info = explain(t, cc, formula)
@@ -41,6 +43,7 @@ def run_daily_update(s, drivers, formula):
 
     ok, used = start_boiler(drivers, minutes)
     log_decision(s, t, cc, minutes, used, ok)
+    save_attempt(s, ok, f"{minutes} min via {used}" if ok else "No driver accepted the run (will retry)")
     print("✅ DAILY UPDATE COMPLETED" if ok else "❌ No driver accepted the run — will retry")
     return ok
 
@@ -59,6 +62,14 @@ def main():
         sys.exit("❌ Formula problems: " + "; ".join(bad))
 
     hh, mm = (int(x) for x in s.update_after.split(":"))
+
+    if s.dashboard_enabled:
+        try:                                    # a UI problem must never stop the boiler job
+            from .web import start_in_thread
+            start_in_thread(s, [d.name for d in drivers], formula)
+        except Exception as e:
+            print(f"⚠️  Dashboard could not start: {e}")
+
     print("=" * 60)
     print(f"🚀 BOILER CONTROL v{APP_VERSION}  drivers: {', '.join(d.name for d in drivers)}")
     print(f"   update after {s.update_after}, check every {s.sleep_minutes} min, debug={s.debug_ignore_time}")

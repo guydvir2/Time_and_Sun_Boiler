@@ -7,19 +7,41 @@ from datetime import datetime
 
 def load_last_update(s):
     """Date string (YYYY-MM-DD) of the last successful update, or None."""
+    return _read_state(s).get("last_update_date")
+
+
+def _read_state(s):
     try:
         with open(s.state_file) as f:
-            return json.load(f).get("last_update_date")
+            return json.load(f)
     except (FileNotFoundError, ValueError):
-        return None
+        return {}
+
+
+def _write_state(s, data):
+    try:
+        with open(s.state_file, "w") as f:
+            json.dump(data, f)
+    except OSError as e:
+        print(f"⚠️  Could not save state: {e}")
 
 
 def save_last_update(s, day):
-    try:
-        with open(s.state_file, "w") as f:
-            json.dump({"last_update_date": str(day)}, f)
-    except OSError as e:
-        print(f"⚠️  Could not save state: {e}")
+    data = _read_state(s)
+    data["last_update_date"] = str(day)
+    _write_state(s, data)
+
+
+def save_attempt(s, ok, message):
+    """Remember the latest attempt (success or failure) so the dashboard can show problems."""
+    data = _read_state(s)
+    data["last_attempt"] = {"time": datetime.now().isoformat(timespec="seconds"),
+                            "ok": bool(ok), "message": message}
+    _write_state(s, data)
+
+
+def load_attempt(s):
+    return _read_state(s).get("last_attempt")
 
 
 DECISION_COLUMNS = ["timestamp", "mean_temp", "mean_clouds", "duration_min", "driver", "ok"]

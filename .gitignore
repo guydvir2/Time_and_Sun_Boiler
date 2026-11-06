@@ -4,3 +4,4 @@ __pycache__/
 state.json
 config.local.ini
 *.pyc
+.venv/
