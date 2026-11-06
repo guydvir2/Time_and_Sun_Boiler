@@ -78,6 +78,8 @@ class Settings:
         self.stored_dir = os.path.join(BASE_DIR, "stored_data")
         self.decisions_file = os.path.join(self.stored_dir, "decisions.csv")
         self.activity_file = os.path.join(self.stored_dir, "activity.jsonl")
+        self.schedule_file = os.path.join(self.stored_dir, "schedule.json")        # ready-by + presets
+        self.runs_file = os.path.join(self.stored_dir, "runs.jsonl")               # minutes really run
         self.formula_file = os.path.join(self.stored_dir, "formula.json")          # tuned on /tune
         self.formula_history = os.path.join(self.stored_dir, "formula_history.jsonl")
         self.sunshine_file = os.path.join(self.stored_dir, "sunshine.csv")         # real sun (archive)

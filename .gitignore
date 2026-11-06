@@ -10,3 +10,5 @@ stored_data/formula.json
 stored_data/formula_history.jsonl
 stored_data/sunshine.csv
 *.tmp
+stored_data/runs.jsonl
+stored_data/schedule.json

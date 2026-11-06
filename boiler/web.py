@@ -18,9 +18,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import APP_VERSION
 from .formula import Formula, explain, load_formula
-from .state import load_last_update, load_attempt, load_running, save_running, clear_running, load_auto, set_auto
+from .state import load_last_update, load_attempt, load_running, load_auto, set_auto, load_plan
 from .activity import log_event, read_events
 from .drivers import start_boiler
+from . import runs, schedule
 
 PAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "page.html")
 TUNE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tune.html")
@@ -81,7 +82,16 @@ def health(s, now, last_update, attempt):
 
     auto = load_auto(s)
     if not auto["enabled"]:
-        return "yellow", "Auto-run is paused" + (f" (since {auto['since'][5:10]})" if auto.get("since") else "")
+        return "yellow", "Schedule is paused" + (f" (since {auto['since'][5:10]})" if auto.get("since") else "")
+    plan = load_plan(s)
+    if plan and plan.get("status") == "planned":
+        return "green", f"Planned {plan['minutes']} min: starts {plan['start_at'][11:16]}, hot by {plan['ready_at'][11:16]}"
+    if plan and plan.get("date") == today:
+        st = plan.get("status")
+        if st == "missed":
+            return "red", f"Today's planned run ({plan['start_at'][11:16]}) could not start"
+        if st == "skipped":
+            return "green", "No run needed today (warm and sunny)"
     if done_today:
         return "green", "Today's run is done" + (f": {attempt['message']}" if attempt and attempt.get("ok") else "")
     if failed_today:
@@ -125,6 +135,10 @@ def build_status(s, driver_names, formula=None, now=None):
         "health": {"level": level, "text": text},
         "running": load_running(s, now),
         "auto": load_auto(s),
+        "plan": load_plan(s),
+        "totals": runs.totals(s, now),
+        "upcoming": schedule.upcoming(schedule.load(s), now, load_plan(s)),
+        "ready_by": schedule.load(s)["ready_by"],
         "today": todays, "base": base,
         "last": hist[-1] if hist else None,
         "next_run": nxt, "update_after": s.update_after, "check_every_min": s.sleep_minutes,
@@ -278,6 +292,9 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(200, {"services": c.services(), "checked": datetime.now().isoformat(timespec="seconds")})
             except Exception as e:
                 self._json(500, {"error": str(e)})
+        elif path == "/api/schedule":
+            self._json(200, {"schedule": schedule.load(c.s), "max_minutes": c.s.max_manual_minutes,
+                             "update_after": c.s.update_after, "controls": self._controls()})
         elif path == "/api/forecast":
             self._json(200, c.forecast())
         elif path == "/healthz":
@@ -318,7 +335,7 @@ class _Handler(BaseHTTPRequestHandler):
         if path == "/api/sunshine":                   # fetch public data into the cache: no password needed
             return self._sunshine()
 
-        if path not in ("/api/run", "/api/stop", "/api/auto", "/api/formula"):
+        if path not in ("/api/run", "/api/stop", "/api/auto", "/api/formula", "/api/schedule"):
             return self._json(404, {"ok": False, "message": "Not found"})
         if not c.auth.enabled:
             return self._json(403, {"ok": False, "message": "Controls are off: no dashboard password is set"})
@@ -328,6 +345,8 @@ class _Handler(BaseHTTPRequestHandler):
             return self._auto(body)
         if path == "/api/formula":
             return self._save_formula(body)
+        if path == "/api/schedule":
+            return self._save_schedule(body)
         if not c.drivers:
             return self._json(503, {"ok": False, "message": "View-only mode: no driver is attached"})
         if not c.action_lock.acquire(blocking=False):
@@ -348,7 +367,7 @@ class _Handler(BaseHTTPRequestHandler):
         m = int(m)
         ok, used = start_boiler(c.drivers, m)
         if ok:
-            save_running(s, m, "manual")
+            runs.record_start(s, m, "manual")
             log_event(s, "manual", f"Manual run {m} min via {used}", True)
             return self._json(200, {"ok": True, "message": f"Running for {m} min (via {used})"})
         log_event(s, "manual", f"Manual run {m} min FAILED: no driver accepted it", False)
@@ -394,6 +413,26 @@ class _Handler(BaseHTTPRequestHandler):
         log_event(s, "manual", "Formula changed on /tune (applies from the next daily run)", True)
         return self._json(200, {"ok": True, "message": "Saved. Applies from the next daily run."})
 
+    def _save_schedule(self, body):
+        s = self.ctx.s
+        try:
+            sched = schedule.validate(body.get("schedule"), s.max_manual_minutes)
+        except (ValueError, TypeError) as e:
+            return self._json(400, {"ok": False, "message": str(e)})
+        from .state import save_plan
+        plan = load_plan(s)
+        if plan and plan.get("status") == "planned":         # re-time today's plan to the new ready-by
+            st, rd = schedule.plan_start(datetime.now(), plan["minutes"], sched["ready_by"])
+            plan.update(start_at=st.isoformat(timespec="minutes"), ready_at=rd.isoformat(timespec="minutes"))
+            save_plan(s, plan)
+        try:
+            schedule.save(s, sched)
+        except OSError as e:
+            return self._json(500, {"ok": False, "message": f"Could not save: {e}"})
+        on = sum(p["enabled"] for p in sched["presets"])
+        log_event(s, "manual", f"Schedule saved: ready by {sched['ready_by'] or 'right away'}, {on} preset(s) on", True)
+        return self._json(200, {"ok": True, "message": "Schedule saved", "schedule": sched})
+
     def _sunshine(self):
         from . import tune, sunshine
         s = self.ctx.s
@@ -424,7 +463,7 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(501, {"ok": False, "message": "None of the active drivers can stop the boiler"})
         for d in capable:
             if d.stop():
-                clear_running(s)
+                runs.record_stop(s)
                 log_event(s, "manual", f"Manual stop via {d.name}", True)
                 return self._json(200, {"ok": True, "message": f"Stopped (via {d.name})"})
         log_event(s, "manual", "Manual stop FAILED", False)

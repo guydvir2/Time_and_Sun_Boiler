@@ -100,6 +100,26 @@ def load_auto(s):
     return dict({"enabled": True, "since": None}, **_read_state(s).get("auto", {}))
 
 
+def save_plan(s, plan):
+    """Today's sun-based run: {date, minutes, start_at, ready_at, status: planned|started|failed|skipped, ...}"""
+    _update(s, plan=plan)
+
+
+def load_plan(s):
+    return _read_state(s).get("plan")
+
+
+def preset_done(s):
+    return _read_state(s).get("preset_done", {})
+
+
+def mark_preset_done(s, pid, day):
+    with _lock:
+        d = _read_state(s)
+        d.setdefault("preset_done", {})[pid] = str(day)
+        _write_state(s, d)
+
+
 DECISION_COLUMNS = ["timestamp", "mean_temp", "mean_clouds", "duration_min", "driver", "ok"]
 
 
