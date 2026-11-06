@@ -9,7 +9,7 @@ and tells a driver (MQTT/Tasmota, Home Assistant, or dry-run) to run it.
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 .venv/bin/python main.py          # job + dashboard
-.venv/bin/python -m boiler.web    # dashboard only (view history, nothing is switched)
+.venv/bin/python dashboard.py      # dashboard only (view history, nothing is switched)
 ```
 
 Dashboard: `http://<this-machine>:8080` (read-only, shows no secrets).
