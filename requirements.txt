@@ -1,0 +1,2 @@
+requests
+paho-mqtt>=1.6
