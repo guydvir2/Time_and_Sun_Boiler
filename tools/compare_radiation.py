@@ -78,6 +78,7 @@ def main():
     if args.log:
         with open(args.log) as f:
             log = {r["date"]: int(r["duration"]) for r in csv.DictReader(f)}
+    pb = bm.ModelParams(latitude=bt.LAT, longitude=bt.LON, model="B")
     rows = []
     for path in files:
         hours = load_rad(path)
@@ -88,6 +89,9 @@ def main():
             hv = variant(hours, kind)
             plan = bm.plan_day(sunrise, hv, sunrise, sunset, args.t_start, p)
             r[kind] = (daily_plane_kwh(hv, sunrise, sunset, p), plan.t_end_solar, minutes(plan))
+        planb = bm.plan_day(sunrise, hours, sunrise, sunset, args.t_start, pb)
+        r["b"] = (planb.t_end_solar, minutes(planb))
+        r["air"] = sum(h.temp for h in hours) / len(hours)
         r["lut"] = log.get(day.isoformat()) if args.log else bt.old_minutes(hours, sunrise, sunset)
         rows.append(r)
 
@@ -96,6 +100,13 @@ def main():
         g, h, c = r["gti"], r["ghi"], r["clouds"]
         print(f"{r['day']}        {g[0]:5.2f}   {h[0]:6.2f}   {c[0]:6.2f} |  {g[1]:5.1f} {c[1]:5.1f} |"
               f"  {g[2]:4d} {c[2]:4d} {r['lut']!s:>4}")
+
+    cold = [r for r in rows if r["air"] < 12 and r["gti"][0] > 5.0]
+    if cold:
+        print("\nCOLD + SUNNY days (air<12C, >5 kWh/m2): model A vs model B vs LUT")
+        print("date         air   dusk A  dusk B | min A  min B   LUT")
+        for r in cold:
+            print(f"{r['day']}  {r['air']:5.1f}  {r['gti'][1]:6.1f} {r['b'][0]:6.1f} | {r['gti'][2]:5d} {r['b'][1]:6d} {r['lut']!s:>5}")
 
     n = len(rows)
     ratio = [r["clouds"][0] / r["gti"][0] for r in rows if r["gti"][0] > 0.2]

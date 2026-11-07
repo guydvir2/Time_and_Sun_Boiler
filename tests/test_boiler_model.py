@@ -45,7 +45,7 @@ def test_heating_energy_and_mix():
     assert abs(bm.mix_after_refill(65, 0.4, 20) - 47.0) < 1e-9
 
 
-TOP_UP = bm.ModelParams(heater=bm.HeaterParams(t_min_use=None))   # always heat to t_max
+TOP_UP = bm.ModelParams(heater=bm.HeaterParams(t_min_use=None, t_target_run2=None))   # always heat to t_max
 
 
 def test_solar_raises_tank_and_run1_ends_at_ready_time():

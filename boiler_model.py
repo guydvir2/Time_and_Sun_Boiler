@@ -64,6 +64,7 @@ class HeaterParams:
     eta_el: float = 0.98
     t_max: float = 65.0                 # T_BOILER_MAX: a run heats up to this
     t_min_use: Optional[float] = 45.0   # a run turns on only below this; None -> always top up to t_max
+    t_target_run2: Optional[float] = 50.0   # run 2 heats only up to this (None -> t_max); a top-up, not a full reheat
 
 
 @dataclass
@@ -428,11 +429,12 @@ def plan_day(now: datetime, hours: List[WeatherHour], sunrise: datetime, sunset:
         t_amb = refill_temperature(hours, ready_by, run2_start, s)
         x_used = usage_fraction(hours, sunrise, sunset, s)
         t = mix_after_refill(t, x_used, t_amb)
-        kwh2 = heating_kwh(tk.liters, t, ht.t_max, ht.eta_el)
+        t_goal2 = ht.t_max if ht.t_target_run2 is None else min(ht.t_target_run2, ht.t_max)
+        kwh2 = heating_kwh(tk.liters, t, t_goal2, ht.eta_el)
         if kwh2 > 0 and _below_min(t, ht):
             dur2 = timedelta(hours=kwh2 / ht.power_kw)
-            run2 = RunPlan(run2_start, run2_start + dur2, round(t, 1), ht.t_max, round(kwh2, 2))
-            t = ht.t_max
+            run2 = RunPlan(run2_start, run2_start + dur2, round(t, 1), t_goal2, round(kwh2, 2))
+            t = t_goal2
         t_end_day = t
         end_of_day = run2.end if run2 else run2_start
 
