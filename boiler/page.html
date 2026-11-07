@@ -377,6 +377,13 @@ function renderToday(d) {
   const t = d.totals.today, parts = [];
   if (t.auto) parts.push(`auto ${t.auto}`); if (t.preset) parts.push(`preset ${t.preset}`); if (t.manual) parts.push(`extra ${t.manual}`);
   R.append(h("div", "ran", t.total ? `Ran today ${t.total} min` + (parts.length > 1 ? ` (${parts.join(", ")})` : "") : "Not run yet today"));
+  const pw = d.power;                                  /* measured by the plug's current sensor */
+  if (pw && pw.live) {
+    const L = pw.live, m = pw.today;
+    const now_ = {heating: `Heating now · ${L.watts} W`, tank_hot: "On, no draw (tank hot?)", idle: "Element idle",
+                  offline: "Power sensor offline", waiting: "Power sensor: waiting"}[L.state];
+    R.append(h("div", "ran", now_ + (m.minutes ? ` · measured today ${m.minutes} min, ${m.kwh} kWh` : "")));
+  } else if (pw && pw.today.minutes) R.append(h("div", "ran", `Measured today ${pw.today.minutes} min, ${pw.today.kwh} kWh`));
 
   /* bottom: weather + confidence */
   const W = h("div", "tw");

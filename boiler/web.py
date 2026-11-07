@@ -22,6 +22,7 @@ from .state import (load_last_update, load_attempt, load_running, load_auto, set
                     record_weather, save_later, clear_later, load_later)
 from . import confidence
 from .activity import log_event, read_events
+from . import power as power_mod
 from .drivers import start_boiler, REGISTRY
 from . import runs, schedule
 
@@ -91,7 +92,7 @@ def health(s, now, last_update, attempt):
     return "yellow", "No estimate yet today"
 
 
-def build_status(s, driver_names, formula=None, now=None):
+def build_status(s, driver_names, formula=None, now=None, power=None):
     formula = formula or Formula()
     now = now or datetime.now()
     today = str(now.date())
@@ -116,6 +117,8 @@ def build_status(s, driver_names, formula=None, now=None):
         "auto": load_auto(s),
         "plan": load_plan(s),
         "totals": runs.totals(s, now),
+        "power": {"live": power.snapshot(now) if power else None, **power_mod.totals(s, now, monitor=power)}
+                 if s.power_enabled else None,
         "upcoming": schedule.upcoming(schedule.load(s), now, load_plan(s)),
         "ready_by": schedule.load(s)["ready_by"],
         "segments": runs.segments(s, today, now),
@@ -224,7 +227,7 @@ class Ctx:
         from .services import check_all
         with self.sv_lock:                            # one check round at a time, cached for a minute
             if self.sv["value"] is None or _time.time() - self.sv["t"] > SERVICES_TTL:
-                self.sv = {"t": _time.time(), "value": check_all(self.s, self.forecast())}
+                self.sv = {"t": _time.time(), "value": check_all(self.s, self.forecast(), self.app.power if self.app else None)}
             return self.sv["value"]
 
     @property
@@ -310,7 +313,7 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(500, {"error": str(e)})
         elif path == "/api/status":
             try:
-                st = build_status(c.s, c.names, c.formula)
+                st = build_status(c.s, c.names, c.formula, power=c.app.power if c.app else None)
                 st["controls"] = self._controls()
                 self._json(200, st)
             except Exception as e:                      # never crash the thread on bad data

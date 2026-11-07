@@ -82,6 +82,10 @@ class Settings:
         self.tasmota_confirm = _bool(g("tasmota", "confirm", fallback="True"))
         self.tasmota_confirm_timeout = int(g("tasmota", "confirm_timeout", fallback="10"))
 
+        # --- power sensor (the plug's own energy readings; listen + log only) ---
+        self.power_enabled = _bool(g("power", "enabled", fallback="True"))
+        self.power_on_watts = float(g("power", "on_watts", fallback="100"))     # at or above = element is heating
+
         # --- dashboard (read-only web page; shows no secrets) ---
         self.dashboard_enabled = _bool(g("dashboard", "enabled", fallback="True"))
         self.dashboard_host = g("dashboard", "host", fallback="0.0.0.0")   # 127.0.0.1 = this machine only
@@ -96,6 +100,7 @@ class Settings:
         self.decisions_file = os.path.join(self.stored_dir, "decisions.csv")
         self.activity_file = os.path.join(self.stored_dir, "activity.jsonl")
         self.schedule_file = os.path.join(self.stored_dir, "schedule.json")        # ready-by + presets
+        self.power_file = os.path.join(self.stored_dir, "power.jsonl")             # measured heating sessions
         self.runs_file = os.path.join(self.stored_dir, "runs.jsonl")               # minutes really run
         self.formula_file = os.path.join(self.stored_dir, "formula.json")          # tuned on /tune
         self.formula_history = os.path.join(self.stored_dir, "formula_history.jsonl")

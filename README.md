@@ -28,6 +28,13 @@ weekly presets) · **History** (charts, weather, activity) · **Settings** · **
 
 `dashboard.py` runs the page alone, view-only (it never switches anything).
 
+## Power sensor (current sensor on the plug)
+
+If the Tasmota plug has an energy sensor, the app listens to it (same MQTT topic, `[power]` in config.ini).
+Home shows *Heating now · 1980 W* and the measured minutes / kWh today; every heating session is logged to
+`stored_data/power.jsonl`. "On, no draw" means the relay is on but the element's thermostat has cut off.
+Listen and log only: it changes no decision.
+
 ## Tune the formula
 
 `http://<this-machine>:8080/tune`: move sliders and see what every saved day would have got.

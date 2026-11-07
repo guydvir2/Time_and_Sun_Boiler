@@ -14,3 +14,4 @@ stored_data/runs.jsonl
 stored_data/schedule.json
 settings.json
 settings.json.tmp
+stored_data/power.jsonl
