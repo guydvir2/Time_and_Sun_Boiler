@@ -173,14 +173,15 @@ input[type=time]{width:128px}.pcard input{width:100%}
 @media (prefers-color-scheme:dark){.tr:not(.on){background:var(--soft)}}
 
 /* auto runs toggle + via chip */
-.auto{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card);border-radius:20px;padding:14px 18px}
-.auto .t{font:600 18px Bricolage,Figtree,sans-serif}.auto .s{font-size:13.5px;color:var(--mute)}
-.auto.paused{background:#FFF1D2}.auto.paused .s{color:#8A5A00}
-@media (prefers-color-scheme:dark){.auto.paused{background:#3A2E12}.auto.paused .s{color:#F2C96B}}
-.sw{position:relative;flex:none;width:56px;height:32px;border:0;border-radius:99px;background:var(--ok);cursor:pointer;padding:0}
-.sw::after{content:"";position:absolute;top:3px;left:27px;width:26px;height:26px;border-radius:50%;background:#fff;transition:left .15s}
-.sw.off{background:#B8C7D1}.sw.off::after{left:3px}
-.sw:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+#autobox .autocard{margin-bottom:10px}
+.autocard{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card);border-radius:20px;padding:14px 18px}
+.autocard .t{font:600 18px Bricolage,Figtree,sans-serif}.autocard .s{font-size:13.5px;color:var(--mute)}
+.autocard.paused{background:#FFF1D2}.autocard.paused .s{color:#8A5A00}
+@media (prefers-color-scheme:dark){.autocard.paused{background:#3A2E12}.autocard.paused .s{color:#F2C96B}}
+.tog{position:relative;flex:none;width:56px;height:32px;border:0;border-radius:99px;background:var(--ok);cursor:pointer;padding:0}
+.tog::after{content:"";position:absolute;top:3px;left:27px;width:26px;height:26px;border-radius:50%;background:#fff;transition:left .15s}
+.tog.off{background:#B8C7D1}.tog.off::after{left:3px}
+.tog:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 .ran{font-size:13.5px;color:var(--mute);padding:8px 8px 0}
 .via{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;margin-top:10px;font:600 13px Figtree,sans-serif;padding:4px 10px;border-radius:99px;background:var(--soft);color:var(--ink)}
 .via .ico{width:15px;height:15px}
@@ -202,6 +203,7 @@ input[type=time]{width:128px}.pcard input{width:100%}
 
 <!-- ============ HOME ============ -->
 <section class="tab" id="t-home">
+  <div id="autobox"></div>
   <div class="tgrid" id="today"><div class="tl"><div class="lbl">Loading…</div></div></div>
   <div class="extra" id="extra"></div>
   <div id="foot"></div>
@@ -373,10 +375,8 @@ function renderToday(d) {
   if (cc != null) f1.append(fact("cloud", `${cc}%`));
   if (fd) f1.append(fact("sunrise", fd.sunrise, "s"), fact("sunset", fd.sunset, "s"));
   if (f1.childNodes.length) W.append(f1);
-  const c = d.confidence, tr = h("div", "trust"), m = h("div", "meter");
-  for (let i = 0; i < 5; i++) m.append(h("i", i < c.level ? "" : "off"));
-  const fin = planToday && p.status === "final", lock = planToday && p.lock_at && !fin ? ` · final after ${hm(p.lock_at)}` : "";
-  tr.append(m, h("span", "", `Confidence ${c.label}${lock}`)); W.append(tr);
+  const c = d.confidence, fin = planToday && p.status === "final";
+  if (planToday && p.lock_at && !fin) W.append(h("div", "trust", `Final after ${hm(p.lock_at)}`));
   if (planToday && !fin && p.trail && p.trail.length > 1) W.append(h("div", "trust", "Estimate so far: " + p.trail.slice(-5).map(x => x[1]).join(" → ") + " min"));
   if (c.warning) { const a = h("div", "alert"); a.append(ico("alert_triangle"), h("span", "", c.warning)); W.append(a); }
 
@@ -428,17 +428,17 @@ function renderExtra(d) {
 /* ---------- footer: today so far + pause ---------- */
 function renderFoot(d) {
   const box = $("foot"); box.replaceChildren();
-  const on = d.auto.enabled, card = h("div", "auto" + (on ? "" : " paused"));
+  const on = d.auto.enabled, card = h("div", "autocard" + (on ? "" : " paused"));
   const txt = h("div"); txt.append(h("div", "t", on ? "Auto runs" : "Auto runs paused"),
     h("div", "s", on ? "Daily runs and presets, by the sun" : "Only extra hot water will heat"));
-  const sw = h("button", "sw" + (on ? "" : " off")); sw.type = "button"; sw.setAttribute("role", "switch");
+  const sw = h("button", "tog" + (on ? "" : " off")); sw.type = "button"; sw.setAttribute("role", "switch");
   sw.setAttribute("aria-checked", String(on)); sw.setAttribute("aria-label", "Auto runs");
   sw.onclick = async () => {
     if (!d.controls.logged_in) { toast("Unlock first (Extra hot water box)"); return; }
     if (on && !confirm("Pause auto runs? Daily runs and presets stop. Extra hot water still works.")) return;
     sw.disabled = true; const r = await post("/api/auto", {enabled: !on}); toast(r.message); refresh(); refreshServices();
   };
-  card.append(txt, sw); box.append(card);
+  card.append(txt, sw); $("autobox").replaceChildren(card);
   const t = d.totals.today, parts = [];
   if (t.auto) parts.push(`auto ${t.auto}`); if (t.preset) parts.push(`preset ${t.preset}`); if (t.manual) parts.push(`extra ${t.manual}`);
   box.append(h("div", "ran", t.total ? `Ran today: ${t.total} min` + (parts.length > 1 ? ` (${parts.join(", ")})` : "") : "Not run yet today"));
