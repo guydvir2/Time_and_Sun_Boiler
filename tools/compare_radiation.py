@@ -9,7 +9,7 @@ For each day prints the daily radiation on the panel (kWh/m2) from:
 and the dusk temperature and heating minutes the model gives for each,
 with the LUT minutes as a sanity check.
 
-Run from the repo root:  python3 tools/compare_radiation.py [--t-start 35] [--plot out.png]
+Run from the repo root:  python3 tools/compare_radiation.py [--log daily_log.csv] [--t-start 35] [--plot out.png]
 """
 
 import argparse
@@ -65,6 +65,7 @@ def minutes(plan):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--t-start", type=float, default=35.0)
+    ap.add_argument("--log", default=None, help="app daily_log.csv: its minutes are the LUT sanity check")
     ap.add_argument("--plot", default=None, help="save a PNG chart to this path")
     args = ap.parse_args()
 
@@ -73,6 +74,10 @@ def main():
         raise SystemExit("no data in stored_data_rad/ - run tools/backfill_radiation.py first")
 
     p = bm.ModelParams(latitude=bt.LAT, longitude=bt.LON)
+    log = {}
+    if args.log:
+        with open(args.log) as f:
+            log = {r["date"]: int(r["duration"]) for r in csv.DictReader(f)}
     rows = []
     for path in files:
         hours = load_rad(path)
@@ -83,8 +88,7 @@ def main():
             hv = variant(hours, kind)
             plan = bm.plan_day(sunrise, hv, sunrise, sunset, args.t_start, p)
             r[kind] = (daily_plane_kwh(hv, sunrise, sunset, p), plan.t_end_solar, minutes(plan))
-        lut = bt.old_minutes(hours, sunrise, sunset)
-        r["lut"] = lut
+        r["lut"] = log.get(day.isoformat()) if args.log else bt.old_minutes(hours, sunrise, sunset)
         rows.append(r)
 
     print("date        panel kWh/m2: real  tiltedGHI  clouds | dusk C: real clouds | minutes: real clouds LUT")

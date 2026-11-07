@@ -3,3 +3,4 @@ config.ini
 config/
 __pycache__/
 .pytest_cache/
+daily_log.csv
