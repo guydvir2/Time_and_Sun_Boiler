@@ -67,7 +67,8 @@ class ScheduleParams:
     run1_ready_by: time = time(19, 0)
     run2_start: time = time(20, 30)
     refill_fraction: float = 0.40       # x: share of tank used before run 2
-    t_amb: float = 20.0                 # refill (cold inlet) water temperature
+    t_amb: Optional[float] = None       # refill water temp; None -> forecast air temp at usage time
+    t_amb_fallback: float = 20.0        # used when the forecast has no value for that hour
     vacation: bool = False
 
 
@@ -133,6 +134,7 @@ class DayPlan:
     t_next_dawn: float                   # estimate for tomorrow's T_start
     vacation: bool
     warnings: List[str] = field(default_factory=list)
+    t_refill: Optional[float] = None     # refill water temp used for the usage step
 
     @property
     def heating_needed(self) -> bool:
@@ -345,8 +347,9 @@ def plan_day(now: datetime, hours: List[WeatherHour], sunrise: datetime, sunset:
         t_range = (round(t_end_solar, 1), round(t_end_solar, 1))
 
     run1 = run2 = None
+    t_amb = None
     ua = tk.ua_value()
-    night_air = _night_air(hours, sunset, s.t_amb)
+    night_air = _night_air(hours, sunset, s.t_amb_fallback)
     ready_by = _on_date(sunset, s.run1_ready_by)
     run2_start = _on_date(sunset, s.run2_start)
     t = t_end_solar
@@ -376,7 +379,8 @@ def plan_day(now: datetime, hours: List[WeatherHour], sunrise: datetime, sunset:
             warnings.append("run 2 is set to start before run 1 is ready")
         hrs_gap = max(0.0, (run2_start - ready_by).total_seconds() / 3600)
         t = standby(t, night_air, hrs_gap, tk.liters, ua)
-        t = mix_after_refill(t, s.refill_fraction, s.t_amb)
+        t_amb = refill_temperature(hours, ready_by, run2_start, s)
+        t = mix_after_refill(t, s.refill_fraction, t_amb)
         kwh2 = heating_kwh(tk.liters, t, ht.t_max, ht.eta_el)
         if kwh2 > 0:
             dur2 = timedelta(hours=kwh2 / ht.power_kw)
@@ -397,7 +401,20 @@ def plan_day(now: datetime, hours: List[WeatherHour], sunrise: datetime, sunset:
         sunrise=sunrise, sunset=sunset, run1=run1, run2=run2, total_kwh=round(total, 2),
         t_end_day=round(t_end_day, 1), t_next_dawn=round(t_next_dawn, 1),
         vacation=s.vacation, warnings=warnings,
+        t_refill=None if t_amb is None else round(t_amb, 1),
     )
+
+
+def refill_temperature(hours: List[WeatherHour], use_from: datetime, use_to: datetime,
+                       s: ScheduleParams) -> float:
+    """Refill water temperature: fixed if set, else forecast air temp during usage."""
+    if s.t_amb is not None:
+        return s.t_amb
+    window = [h.temp for h in hours
+              if h.time < use_to and h.time + timedelta(hours=1) > use_from]
+    if not window:
+        window = [h.temp for h in hours if h.time <= use_to < h.time + timedelta(hours=1)]
+    return sum(window) / len(window) if window else s.t_amb_fallback
 
 
 def _night_air(hours: List[WeatherHour], sunset: datetime, default: float) -> float:
@@ -432,8 +449,9 @@ def plan_summary(plan: DayPlan) -> List[str]:
         lines.append("GRN   vacation: no electric heating")
     for name, r in (("run 1", plan.run1), ("run 2", plan.run2)):
         if r:
+            extra = f" (refill at {plan.t_refill} C)" if name == "run 2" and plan.t_refill is not None else ""
             lines.append(f"GRN   {name}: {r.start:%H:%M}-{r.end:%H:%M} "
-                         f"{r.t_from}->{r.t_to} C, {r.kwh} kWh, {r.minutes} min")
+                         f"{r.t_from}->{r.t_to} C, {r.kwh} kWh, {r.minutes} min{extra}")
         elif not plan.vacation:
             lines.append(f"GRN   {name}: not needed")
     lines.append(f"GRN   total {plan.total_kwh} kWh; tomorrow dawn ~{plan.t_next_dawn} C")

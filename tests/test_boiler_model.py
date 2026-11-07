@@ -110,3 +110,16 @@ def test_cloud_fallback_when_radiation_missing():
     plan = bm.plan_day(DAY, hours, SUNRISE, SUNSET, t_start=30.0)
     assert plan.t_end_solar > 30.0
     assert plan.confidence == "low"
+
+
+def test_run2_depends_on_evening_temperature():
+    warm = bm.plan_day(DAY, make_day(night_temp=24), SUNRISE, SUNSET, t_start=30.0)
+    cold = bm.plan_day(DAY, make_day(night_temp=8), SUNRISE, SUNSET, t_start=30.0)
+    assert warm.t_refill == 24 and cold.t_refill == 8
+    assert cold.run2.kwh > warm.run2.kwh
+
+
+def test_fixed_t_amb_overrides_forecast():
+    p = bm.ModelParams(schedule=bm.ScheduleParams(t_amb=20.0))
+    plan = bm.plan_day(DAY, make_day(night_temp=8), SUNRISE, SUNSET, t_start=30.0, p=p)
+    assert plan.t_refill == 20.0
