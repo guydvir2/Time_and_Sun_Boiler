@@ -8,10 +8,13 @@ Day sequence (one fully mixed tank, single temperature T):
   1. Dawn: tank starts at T_start.
   2. Solar phase (sunrise -> sunset): collector heats the tank.
   3. Dusk: T_end_solar (calculated).
-  4. Run 1: electric heating to T_max, finishing at run1_ready_by.
-     Its start is calculated backwards from the energy needed.
+  4. Run 1: only if the tank is below T_min_use at run1_ready_by.
+     Heats to T_max, finishing at run1_ready_by; start is calculated backwards.
   5. Usage: a fraction x of the tank is drawn and refilled at T_amb.
-  6. Run 2: starts at run2_start, heats back to T_max.
+  6. Run 2: only if the tank is below T_min_use after the refill.
+     Starts at run2_start, heats back to T_max.
+  On warm sunny days solar alone can keep the tank above T_min_use,
+  so neither run is needed.
   7. Day ends. Night standby loss gives tomorrow's T_start estimate.
 
 Vacation mode: no electric heating at all, solar only.
@@ -59,7 +62,8 @@ class CollectorParams:
 class HeaterParams:
     power_kw: float = 3.0
     eta_el: float = 0.98
-    t_max: float = 65.0                 # T_BOILER_MAX
+    t_max: float = 65.0                 # T_BOILER_MAX: a run heats up to this
+    t_min_use: Optional[float] = 45.0   # a run turns on only below this; None -> always top up to t_max
 
 
 @dataclass
@@ -363,7 +367,7 @@ def plan_day(now: datetime, hours: List[WeatherHour], sunrise: datetime, sunset:
         t_at_ready = standby(t, night_air, max(0.0, (ready_by - sunset).total_seconds() / 3600),
                              tk.liters, ua)
         kwh1 = heating_kwh(tk.liters, t_at_ready, ht.t_max, ht.eta_el)
-        if kwh1 > 0:
+        if kwh1 > 0 and _below_min(t_at_ready, ht):
             dur = timedelta(hours=kwh1 / ht.power_kw)
             start1 = ready_by - dur
             if start1 < sunset:
@@ -382,7 +386,7 @@ def plan_day(now: datetime, hours: List[WeatherHour], sunrise: datetime, sunset:
         t_amb = refill_temperature(hours, ready_by, run2_start, s)
         t = mix_after_refill(t, s.refill_fraction, t_amb)
         kwh2 = heating_kwh(tk.liters, t, ht.t_max, ht.eta_el)
-        if kwh2 > 0:
+        if kwh2 > 0 and _below_min(t, ht):
             dur2 = timedelta(hours=kwh2 / ht.power_kw)
             run2 = RunPlan(run2_start, run2_start + dur2, round(t, 1), ht.t_max, round(kwh2, 2))
             t = ht.t_max
@@ -403,6 +407,11 @@ def plan_day(now: datetime, hours: List[WeatherHour], sunrise: datetime, sunset:
         vacation=s.vacation, warnings=warnings,
         t_refill=None if t_amb is None else round(t_amb, 1),
     )
+
+
+def _below_min(t: float, ht: HeaterParams) -> bool:
+    """True when the tank is too cold to skip the run (solar did not cover it)."""
+    return ht.t_min_use is None or t < ht.t_min_use
 
 
 def refill_temperature(hours: List[WeatherHour], use_from: datetime, use_to: datetime,

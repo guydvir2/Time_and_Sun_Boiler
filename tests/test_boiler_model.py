@@ -45,8 +45,11 @@ def test_heating_energy_and_mix():
     assert abs(bm.mix_after_refill(65, 0.4, 20) - 47.0) < 1e-9
 
 
+TOP_UP = bm.ModelParams(heater=bm.HeaterParams(t_min_use=None))   # always heat to t_max
+
+
 def test_solar_raises_tank_and_run1_ends_at_ready_time():
-    plan = bm.plan_day(DAY.replace(hour=7), make_day(), SUNRISE, SUNSET, t_start=30.0)
+    plan = bm.plan_day(DAY.replace(hour=7), make_day(), SUNRISE, SUNSET, t_start=30.0, p=TOP_UP)
     assert plan.t_end_solar > 30.0
     assert plan.run1 is not None
     assert plan.run1.end == DAY.replace(hour=19)
@@ -56,9 +59,21 @@ def test_solar_raises_tank_and_run1_ends_at_ready_time():
 
 
 def test_hot_tank_skips_run1():
-    plan = bm.plan_day(DAY.replace(hour=7), make_day(), SUNRISE, SUNSET, t_start=70.0)
+    plan = bm.plan_day(DAY.replace(hour=7), make_day(), SUNRISE, SUNSET, t_start=70.0, p=TOP_UP)
     assert plan.run1 is None
     assert plan.run2 is not None
+
+
+def test_warm_sunny_day_solar_covers_both_runs():
+    plan = bm.plan_day(DAY, make_day(peak_w=700, temp=28, night_temp=24), SUNRISE, SUNSET, t_start=50.0)
+    assert plan.t_end_solar > 60
+    assert plan.run1 is None and plan.run2 is None
+    assert not bm.should_publish(plan)
+
+
+def test_cold_cloudy_day_still_needs_both_runs():
+    plan = bm.plan_day(DAY, make_day(peak_w=120, clouds=95, temp=12, night_temp=8), SUNRISE, SUNSET, t_start=30.0)
+    assert plan.run1 is not None and plan.run2 is not None
 
 
 def test_vacation_has_no_electric_and_is_not_published():
@@ -91,7 +106,7 @@ def test_confidence_low_when_radiation_and_clouds_disagree():
 
 
 def test_replan_stops_at_run1_start_or_dusk():
-    plan = bm.plan_day(DAY.replace(hour=7), make_day(), SUNRISE, SUNSET, t_start=30.0)
+    plan = bm.plan_day(DAY.replace(hour=7), make_day(), SUNRISE, SUNSET, t_start=30.0, p=TOP_UP)
     stop = min(SUNSET, plan.run1.start)
     assert bm.replan_due(stop.replace(minute=0) if stop.minute else stop.replace(hour=stop.hour - 1), plan)
     assert not bm.replan_due(stop, plan)
