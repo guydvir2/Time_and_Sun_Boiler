@@ -188,6 +188,9 @@ input[type=time]{width:128px}.pcard input{width:100%}
 .via.d{background:rgba(255,255,255,.2);color:#fff}
 .ico.logo{fill:currentColor;stroke:none}
 .tr .ran{margin-top:auto;padding:12px 0 0;font-size:13px;color:var(--mute)}.tr.on .ran{color:#FFE0D6}
+.links a.b-mqtt{color:#660066}.links a.b-tasmota{color:#1FA3EC}.links a.b-homeassistant{color:#18BCF2}
+@media (prefers-color-scheme:dark){.links a.b-mqtt{color:#C77DC7}}
+.via .logo{color:inherit}
 </style></head><body>
 <main>
 <header>
@@ -237,7 +240,6 @@ input[type=time]{width:128px}.pcard input{width:100%}
 <!-- ============ SETTINGS ============ -->
 <section class="tab" id="t-settings">
   <div class="card" id="services"><h2>Connections<small id="svwhen"></small></h2><div id="sv" class="note">Checking…</div></div>
-  <div class="card" id="cloud"></div>
   <div id="settings-body"><div class="card note">Loading…</div></div></section>
 
 <!-- ============ SETUP WIZARD ============ -->
@@ -313,6 +315,7 @@ function renderLinks() {
   if (S) { const c = S.confidence; items.push(["cloud_download", "Weather data", {level: c.level >= 4 ? "green" : c.level === 3 ? "yellow" : "red", text: `Forecast confidence: ${c.label}`}]); }
   for (const [icon, name, r] of items) {
     const a = h("a", r.level); a.href = "#settings"; a.title = `${name}: ${r.text}`; a.setAttribute("aria-label", `${name}: ${r.text}`);
+    if (LOGOS[icon]) a.classList.add("b-" + icon);
     a.append(LOGOS[icon] ? logo(icon) : ico(icon)); box.append(a);
   }
 }
@@ -455,40 +458,6 @@ function viaChip(d, dark) {
   const [icon, name] = {mqtt_tasmota: ["mqtt", "via MQTT"], homeassistant: ["homeassistant", "via Home Assistant"], dryrun: ["plug_connected", "Test mode"]}[drv] || ["plug_connected", drv];
   const c = h("span", "via" + (dark ? " d" : "")); c.title = (d.drivers || []).length > 1 ? `Then: ${d.drivers.slice(1).join(", ")}` : name;
   c.append(LOGOS[icon] ? logo(icon) : ico(icon), document.createTextNode(name)); return c;
-}
-
-/* ---------- cloud quick control ---------- */
-let CK = null, ckTimer;
-function renderCloud(d) {
-  const box = $("cloud"); const saved = d.formula.cloud_k;
-  if (CK && CK.saved === saved && CK.logged === d.controls.logged_in) return;
-  CK = {saved, logged: d.controls.logged_in, value: saved};
-  box.replaceChildren(h("h2", "", "Cloud boost"));
-  box.append(h("div", "note", "Extra time on a fully cloudy day, when it is warm enough for the sun to matter."));
-  const row = h("div", "split"); const inp = h("input"); Object.assign(inp, {type: "range", min: 0, max: 1.5, step: 0.05, value: saved});
-  inp.setAttribute("aria-label", "Cloud boost");
-  const val = h("b", "", `+${Math.round(saved * 100)}%`); val.style.minWidth = "56px"; val.style.textAlign = "right";
-  row.append(inp, val); const eff = h("div", "note", ""); eff.style.marginTop = "6px";
-  const act = h("div", "row");
-  box.append(row, eff, act);
-  const save = h("button", "btn go sm", "Save"); save.disabled = true;
-  const undo = h("button", "btn ghost sm", "Undo"); undo.disabled = true;
-  if (d.controls.logged_in) act.append(save, undo); else if (d.controls.password_set) act.append(h("span", "note", "Unlock above to save."));
-  const preview = async () => {
-    const f = Object.assign({}, d.formula.full, {cloud_k: CK.value});
-    const r = await post("/api/tune/preview", {formula: f}); if (!r.ok) { eff.textContent = r.message; return; }
-    const today = (r.forecast || [])[0], s = r.summary;
-    const parts = [];
-    if (today) parts.push(`Today: ${today.base} min base, with clouds ${today.minutes} min` + (today.minutes !== today.now ? ` (now ${today.now})` : "") + ".");
-    if (s.days) parts.push(`Saved days average ${s.avg_current} → ${s.avg_new} min.`);
-    eff.textContent = parts.join(" ");
-  };
-  inp.oninput = () => { CK.value = Number(inp.value); val.textContent = `+${Math.round(CK.value * 100)}%`;
-    save.disabled = undo.disabled = CK.value === saved; clearTimeout(ckTimer); ckTimer = setTimeout(preview, 200); };
-  undo.onclick = () => { inp.value = saved; inp.oninput(); };
-  save.onclick = async () => { const r = await post("/api/formula", {formula: Object.assign({}, d.formula.full, {cloud_k: CK.value})});
-    toast(r.ok ? "Cloud boost saved, applies from the next estimate" : r.message); if (r.ok) { CK = null; refresh(); } };
-  preview();
 }
 
 /* ---------- lists ---------- */
@@ -764,7 +733,7 @@ async function refresh() {
     const r = await fetch("/api/status", {cache: "no-store"}); if (!r.ok) throw 0; const d = await r.json(); S = d;
     if ((d.controls.needs_setup || !d.controls.password_set) && !WIZ_SEEN && location.hash !== "#setup") { WIZ_SEEN = true; location.hash = "#setup"; }
     const fh = $("fullheat"); if (fh && !fh.dataset.ok) fullHeat(fh);
-    renderToday(d); renderExtra(d); renderFoot(d); renderLinks(); renderCloud(d); renderNext(d); renderHistory(d); renderForecast();
+    renderToday(d); renderExtra(d); renderFoot(d); renderLinks(); renderNext(d); renderHistory(d); renderForecast();
   } catch (e) { const t = $("today"); t.replaceChildren(h("div", "tl")); t.firstChild.append(h("div", "lbl", "Can't reach the boiler service")); }
 }
 async function refreshForecast() { try { FC = await (await fetch("/api/forecast", {cache: "no-store"})).json(); } catch (e) { FC = {error: "Forecast unavailable"}; } if (S) { renderToday(S); renderForecast(); } }
