@@ -138,7 +138,7 @@ class Engine:
         if plan and plan.get("date") == today and "runs" in plan and plan.get("minutes") is not None:
             rolling.sync_runs(plan, s, schedule.load(s)["ready_by"], now)
             for run in plan["runs"]:
-                if not rolling.startable(plan, run):
+                if not rolling.startable(plan, run, s.min_run):
                     continue
                 start_at = datetime.fromisoformat(run["start_at"])
                 if now < start_at:

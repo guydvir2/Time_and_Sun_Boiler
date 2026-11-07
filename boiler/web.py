@@ -121,7 +121,7 @@ def build_status(s, driver_names, formula=None, now=None):
         "segments": runs.segments(s, today, now),
         "today": todays, "base": base,
         "last": hist[-1] if hist else None,
-        "check_every_min": s.sleep_minutes, "run1_pct": s.run1_pct, "run2_at": s.run2_at,
+        "check_every_min": s.sleep_minutes, "run1_pct": s.run1_pct, "run2_at": s.run2_at, "min_run": s.min_run,
         "drivers": list(driver_names),
         "history": hist,
         "weather": _today_weather(s, today),

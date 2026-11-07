@@ -16,7 +16,6 @@ from datetime import datetime, time, timedelta
 from . import schedule
 
 ESTIMATE_EVERY_MIN = 60
-MIN_RUN = 3                       # shorter runs are skipped
 
 
 def split(total, pct, cap):
@@ -62,6 +61,7 @@ def _iso(t):
 
 def sync_runs(plan, s, ready_by, now):
     """(Re)compute minutes and times of the runs that have not started yet. Safe to call every tick."""
+    MIN_RUN = max(1, getattr(s, "min_run", 5))
     if plan.get("minutes") is None:
         return plan
     cap, total = s.max_manual_minutes, plan["minutes"]
@@ -107,6 +107,6 @@ def sync_runs(plan, s, ready_by, now):
     return plan
 
 
-def startable(plan, run):
+def startable(plan, run, min_run=5):
     """Run 1 may go on an estimate (it has a ready-by to meet); run 2 only on the final number."""
-    return run["status"] in ("planned", "failed") and run["minutes"] >= MIN_RUN and (run["n"] == 1 or plan["status"] == "final")
+    return run["status"] in ("planned", "failed") and run["minutes"] >= max(1, min_run) and (run["n"] == 1 or plan["status"] == "final")

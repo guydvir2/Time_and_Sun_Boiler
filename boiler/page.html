@@ -391,6 +391,7 @@ function renderToday(d) {
   if (planToday && !fin && p.trail && p.trail.length > 1) W.append(h("div", "trust", "Estimate so far: " + p.trail.slice(-5).map(x => x[1]).join(" → ") + " min"));
   if (c.warning) { const a = h("div", "alert"); a.append(ico("alert_triangle"), h("span", "", c.warning)); W.append(a); }
 
+  L.append(h("div", "tiny", `Min run ${d.min_run} min`));
   box.append(L, R, W);
 }
 
@@ -670,6 +671,7 @@ function renderSettings() {
   card("Location", c => placeSearch(c));
   const conn = card("Boiler connection", c => connChoice(c));
   card("Runs", c => { c.append(fld("Max on per run (minutes)", "max_manual_minutes", {type: "number", hint: "No single run is longer than this: daily runs, presets and extra hot water."}),
+                               fld("Min run (minutes)", "min_run", {type: "number", hint: "A daily run shorter than this is skipped: not worth switching on."}),
                                fld("Run 1 share of the day (%)", "run1_pct", {type: "number", hint: "100 = all in run 1. Less leaves the rest for run 2, for later showers."}),
                                fld("Run 2 time", "run2_at", {type: "time", hint: "When run 2 starts (never before the day's number is final). Empty = right after run 1."})); });
   card("Boiler", c => { c.id = "fullheat"; fullHeat(c); });
