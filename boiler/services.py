@@ -28,7 +28,7 @@ def engine_row(s, now=None):
 def auto_row(s):
     a = load_auto(s)
     if a["enabled"]:
-        return {"name": "Auto-run", "level": "green", "text": f"On · daily after {s.update_after}"}
+        return {"name": "Auto-run", "level": "green", "text": "On · refines hourly, final after sunset"}
     since = f" since {a['since'][5:10]} {a['since'][11:16]}" if a.get("since") else ""
     return {"name": "Auto-run", "level": "yellow", "text": f"Paused{since}"}
 

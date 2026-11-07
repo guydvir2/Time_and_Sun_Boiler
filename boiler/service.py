@@ -1,9 +1,8 @@
-"""The engine. Every 30 s it checks three things:
-  1. Daily decision (after UPDATE_AFTER): weather -> formula -> minutes -> a plan (start now, or later so the
-     water is hot by the 'ready by' time).
-  2. The plan's start time reached -> switch on.
+"""The engine. Every 30 s it checks:
+  1. Today's estimate, refined every hour (measured weather so far + forecast), locked after the sun window.
+  2. Run 1 / run 2 start times reached -> switch on (see rolling.py).
   3. Weekly presets (extra timed runs) due -> switch on.
-Pause (dashboard) stops 1-3. Manual Run/Stop on the dashboard always work.
+Pause (dashboard) stops 2-3; the estimate keeps refining. Extra hot water and Stop always work.
 """
 import sys
 from time import sleep, monotonic
@@ -12,38 +11,32 @@ from datetime import datetime, date, time, timedelta
 from . import APP_VERSION
 from .settings import Settings
 from .formula import Formula, daily_mean, explain, load_formula
-from .weather import get_weather, get_sun_times, csv_path, save_csv, load_csv
+from .weather import get_day, csv_path, save_csv
 from .state import (load_last_update, save_last_update, save_attempt, log_decision, save_heartbeat,
                     auto_enabled, save_plan, load_plan, preset_done, mark_preset_done, load_running,
                     load_later, clear_later)
 from .activity import log_event, trim
 from .drivers import build_drivers, start_boiler
-from . import schedule, runs
+from . import schedule, runs, rolling
 
 TICK_SECONDS = 30
 START_RETRY_MIN = 2          # a failed start is retried every 2 min ...
 START_GIVE_UP_MIN = 120      # ... for up to 2 h after its planned time
 
 
-def decide(s, formula):
-    """Weather -> minutes. Returns (minutes, temp, clouds) or None (no data, will retry)."""
-    sun = get_sun_times(s, s.days_back)
-    path = csv_path(s, s.days_back)
-    if s.read_from_file:
-        rows, ok = load_csv(path)
-    else:
-        rows, ok = get_weather(s, sun["sunrise"], sun["sunset"], s.days_back)
-        if ok and s.save_data:
-            save_csv(rows, path)
-    if not ok:
-        return None, "No weather data (will retry)"
-    t, cc = daily_mean(rows, sun["sunrise"], sun["sunset"], formula)
+def estimate(s, formula, now):
+    """Today's minutes from the whole day's weather (measured so far + forecast for the rest).
+    Returns (minutes, temp, clouds, lock_at, rows) or None when there is no data."""
+    day = get_day(s, now.date())
+    if not day:
+        return None
+    rise = round(day["sunrise"].hour + day["sunrise"].minute / 60) % 24
+    sets = round(day["sunset"].hour + day["sunset"].minute / 60) % 24
+    t, cc = daily_mean(day["rows"], rise, sets, formula)
     if t is None:
-        return None, "No weather points in the analysis window (will retry)"
+        return None
     info = explain(t, cc, formula)
-    print(f"🔥 mean {t:.1f}°C, clouds {cc:.0f}% → base {info['base_min']} min, "
-          f"cloud +{info['cloud_alpha'] * 100:.0f}% → {info['result_min']} min")
-    return (info["result_min"], t, cc), ""
+    return info["result_min"], t, cc, rolling.lock_time(now.date(), day["sunset"], formula), day["rows"]
 
 
 def start_now(s, drivers, minutes, source, label):
@@ -54,42 +47,38 @@ def start_now(s, drivers, minutes, source, label):
     return ok, used
 
 
-def run_daily_update(s, drivers, formula, now=None):
-    """The daily decision. Returns True once today's plan is made. A failed start is retried by the
-    engine (plan status 'failed'), not by deciding again."""
-    now = now or datetime.now()
-    print("\n" + "=" * 40 + f"\nDAILY UPDATE  {now:%Y-%m-%d %H:%M:%S}\n" + "=" * 40)
-    result, why = decide(s, formula)
-    if result is None:
-        print("❌ " + why)
-        save_attempt(s, False, why)
-        log_event(s, "auto", why, False)
+def update_estimate(s, formula, now):
+    """One refinement of today's plan. Returns False when the weather could not be read (retry later)."""
+    today = str(now.date())
+    plan = load_plan(s)
+    if not plan or plan.get("date") != today or "runs" not in plan:
+        if plan and plan.get("date") == today:           # an old-style plan from before the upgrade: leave today alone
+            return True
+        plan = rolling.new_plan(now.date())
+    if plan["status"] == "final":
+        return True
+    res = estimate(s, formula, now)
+    if res is None:
+        save_attempt(s, False, "No weather data (will retry)")
         return False
-    minutes, t, cc = result
-    start_at, ready_at = schedule.plan_start(now, minutes, schedule.load(s)["ready_by"])
-    plan = {"date": str(now.date()), "minutes": minutes, "temp": round(t, 1), "clouds": round(cc),
-            "start_at": start_at.isoformat(timespec="minutes"), "ready_at": ready_at.isoformat(timespec="minutes"),
-            "status": "planned"}
-    if minutes <= 0:
-        plan["status"] = "skipped"
-        save_plan(s, plan)
-        log_decision(s, t, cc, 0, "", True)
-        save_attempt(s, True, "0 min needed today (warm and sunny)")
-        log_event(s, "auto", f"No run needed today ({t:.1f}°C, {cc:.0f}% clouds)")
-        return True
-    if start_at > now:
-        save_plan(s, plan)
-        log_decision(s, t, cc, minutes, "planned", True)
-        save_attempt(s, True, f"{minutes} min planned: start {start_at:%H:%M}, ready {ready_at:%H:%M}")
-        log_event(s, "auto", f"Planned {minutes} min: start {start_at:%H:%M}, hot by {ready_at:%H:%M} ({t:.1f}°C, {cc:.0f}% clouds)")
-        print(f"🕒 planned: start {start_at:%H:%M}, ready by {ready_at:%H:%M}")
-        return True
-    ok, used = start_now(s, drivers, minutes, "auto", "Auto run")
-    plan["status"] = "started" if ok else "failed"
+    minutes, t, cc, lock_at, rows = res
+    final = now >= lock_at
+    before = plan.get("minutes")
+    rolling.apply_estimate(plan, minutes, t, cc, lock_at, now, final)
+    rolling.sync_runs(plan, s, schedule.load(s)["ready_by"], now)
     save_plan(s, plan)
-    log_decision(s, t, cc, minutes, used, ok)
-    save_attempt(s, ok, f"{minutes} min via {used}" if ok else "No driver accepted the run (will retry)")
-    print("✅ DAILY UPDATE COMPLETED" if ok else "❌ No driver accepted the run — will retry")
+    if final:
+        save_last_update(s, now.date())
+        log_decision(s, t, cc, minutes, "final", True)
+        if s.save_data:
+            save_csv([r for r in rows if r["time"] <= now], csv_path(s, 0))
+        save_attempt(s, True, f"Final: {minutes} min ({t:.1f}°C, {cc:.0f}% clouds)")
+        log_event(s, "auto", f"Final for today: {minutes} min ({t:.1f}°C, {cc:.0f}% clouds)")
+    else:
+        save_attempt(s, True, f"Estimate {minutes} min, final after {lock_at:%H:%M}")
+        if before is None:
+            log_event(s, "auto", f"First estimate today: {minutes} min, final after {lock_at:%H:%M}")
+    print(f"{'🔒' if final else '🔁'} {minutes} min ({t:.1f}°C, {cc:.0f}% clouds){'' if final else f', final after {lock_at:%H:%M}'}")
     return True
 
 
@@ -98,9 +87,7 @@ class Engine:
 
     def __init__(self, s, drivers):
         self.s, self.drivers = s, drivers
-        self.hh, self.mm = (int(x) for x in s.update_after.split(":"))
-        self.debug_pending = s.debug_ignore_time
-        self.next_decision_try = 0.0          # monotonic; weather failures retry every SLEEP_MINUTES
+        self.next_decision_try = 0.0          # monotonic: next estimate (hourly; after a failure every SLEEP_MINUTES)
         self.last_try = {}                    # start retries: key -> monotonic
 
     def _formula(self):
@@ -133,36 +120,40 @@ class Engine:
         s, now = self.s, now or datetime.now()
         save_heartbeat(s)
         self._later(now)                       # a user-set extra run goes ahead even when paused
-        if not auto_enabled(s):
-            return "paused"
         today = str(now.date())
 
-        # 1. daily decision
-        due = now.time() >= time(self.hh, self.mm) or self.debug_pending
-        if due and (load_last_update(s) != today or self.debug_pending) and monotonic() >= self.next_decision_try:
-            if run_daily_update(s, self.drivers, self._formula(), now):
-                save_last_update(s, now.date())
-                if (load_plan(s) or {}).get("status") == "failed":
-                    self.last_try["plan"] = monotonic()  # it just failed: next try in START_RETRY_MIN
-                self.debug_pending = False
-            else:
-                self.next_decision_try = monotonic() + 60 * s.sleep_minutes
-
-        # 2. planned start (also retries a failed immediate start)
+        # 1. refine today's estimate (hourly, and at once when the lock time is passed)
         plan = load_plan(s)
-        if plan and plan.get("status") in ("planned", "failed"):
-            start_at = datetime.fromisoformat(plan["start_at"])
-            if now >= start_at:
+        pending_lock = (plan and plan.get("date") == today and plan.get("status") == "estimate"
+                        and plan.get("lock_at") and now >= datetime.fromisoformat(plan["lock_at"]))
+        if monotonic() >= self.next_decision_try or pending_lock:
+            ok = update_estimate(s, self._formula(), now)
+            self.next_decision_try = monotonic() + 60 * (rolling.ESTIMATE_EVERY_MIN if ok else s.sleep_minutes)
+
+        if not auto_enabled(s):
+            return "paused"
+
+        # 2. runs: keep their times in step with the estimate, start the ones that are due
+        plan = load_plan(s)
+        if plan and plan.get("date") == today and "runs" in plan and plan.get("minutes") is not None:
+            rolling.sync_runs(plan, s, schedule.load(s)["ready_by"], now)
+            for run in plan["runs"]:
+                if not rolling.startable(plan, run):
+                    continue
+                start_at = datetime.fromisoformat(run["start_at"])
+                if now < start_at:
+                    continue
                 if now > start_at + timedelta(minutes=START_GIVE_UP_MIN):
-                    plan["status"] = "missed"
-                    save_plan(s, plan)
-                    log_event(s, "auto", f"Gave up the {plan['minutes']} min run planned for {start_at:%H:%M}", False)
-                elif self._may_try("plan", START_RETRY_MIN):
-                    ok, used = start_now(s, self.drivers, plan["minutes"], "auto", "Auto run")
-                    plan["status"] = "started" if ok else "failed"
-                    save_plan(s, plan)
+                    run["status"] = "missed"
+                    log_event(s, "auto", f"Gave up run {run['n']} ({run['minutes']} min) planned for {start_at:%H:%M}", False)
+                elif self._may_try(f"run{run['n']}", START_RETRY_MIN):
+                    label = f"Run {run['n']}" + ("" if plan["status"] == "final" else " (on estimate)")
+                    ok, used = start_now(s, self.drivers, run["minutes"], "auto", label)
+                    run["status"] = "started" if ok else "failed"
                     if ok:
-                        log_decision(s, plan["temp"], plan["clouds"], plan["minutes"], used, True)
+                        run["start_at"] = now.isoformat(timespec="minutes")
+                        run["ready_at"] = (now + timedelta(minutes=run["minutes"])).isoformat(timespec="minutes")
+            save_plan(s, plan)
 
         # 3. presets
         sched = schedule.load(s)
@@ -215,7 +206,6 @@ def main():
             if app.version != seen:              # settings saved on the dashboard: use them now
                 seen = app.version
                 eng = Engine(app.s, app.drivers)
-                eng.next_decision_try = 0.0
                 print(f"🔄 settings reloaded, drivers: {', '.join(d.name for d in app.drivers) or 'none'}")
             state = eng.tick() if app.drivers else "waiting for setup"
         except Exception as e:                   # one bad tick must not kill the engine

@@ -169,7 +169,7 @@ function renderSave(blocking) {
   }
   const save = h("button", "btn go", "💾 Save formula"); save.disabled = !dirty || blocking.length > 0;
   save.onclick = async () => {
-    if (!confirm("Save this formula? It applies from the next daily run.")) return;
+    if (!confirm("Save this formula? It applies from the next estimate.")) return;
     const r = await post("/api/formula", {formula: cur}); toast((r.ok ? "✅ " : "❌ ") + r.message); if (r.ok) load();
   };
   row.append(save, undo, def); box.append(row);

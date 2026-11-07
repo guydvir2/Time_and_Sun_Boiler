@@ -71,41 +71,24 @@ def _today_weather(s, today):
 
 def health(s, now, last_update, attempt):
     """(level, text). level is green / yellow / red. Problems win over everything else."""
-    hh, mm = (int(x) for x in s.update_after.split(":"))
-    due = now.time() >= time(hh, mm)
     today = str(now.date())
-    done_today = last_update == today
-    stale_days = None
-    if last_update:
-        try:
-            stale_days = (now.date() - date.fromisoformat(last_update)).days
-        except ValueError:
-            pass
-    failed_today = bool(attempt) and not attempt.get("ok") and str(attempt.get("time", ""))[:10] == today
-
     auto = load_auto(s)
     if not auto["enabled"]:
         return "yellow", "Schedule is paused" + (f" (since {auto['since'][5:10]})" if auto.get("since") else "")
     plan = load_plan(s)
-    if plan and plan.get("status") == "planned":
-        return "green", f"Planned {plan['minutes']} min: starts {plan['start_at'][11:16]}, hot by {plan['ready_at'][11:16]}"
-    if plan and plan.get("date") == today:
-        st = plan.get("status")
-        if st == "missed":
-            return "red", f"Today's planned run ({plan['start_at'][11:16]}) could not start"
-        if st == "skipped":
-            return "green", "No run needed today (warm and sunny)"
-    if done_today:
-        return "green", "Today's run is done" + (f": {attempt['message']}" if attempt and attempt.get("ok") else "")
-    if failed_today:
-        return "red", f"Today's run failed: {attempt.get('message', '')}"
-    if stale_days is not None and stale_days >= 2:
-        return "red", f"No successful run since {last_update}"
-    if due:
-        return "yellow", "Due now: will run at the next check"
-    if last_update is None:
-        return "yellow", f"No run yet. First run after {s.update_after}"
-    return "green", f"Waiting. Next run after {s.update_after}"
+    if plan and plan.get("date") == today and "runs" in plan:
+        for r in plan["runs"]:
+            if r["status"] == "missed":
+                return "red", f"Run {r['n']} ({r['start_at'][11:16]}) could not start"
+            if r["status"] == "failed":
+                return "red", f"Run {r['n']} did not start yet: retrying"
+        if plan.get("minutes") is not None:
+            if plan["status"] == "final":
+                return "green", f"Final for today: {plan['minutes']} min"
+            return "green", f"Estimate {plan['minutes']} min, final after {plan['lock_at'][11:16]}"
+    if attempt and not attempt.get("ok") and str(attempt.get("time", ""))[:10] == today:
+        return "red", attempt.get("message", "Weather unavailable")
+    return "yellow", "No estimate yet today"
 
 
 def build_status(s, driver_names, formula=None, now=None):
@@ -119,13 +102,6 @@ def build_status(s, driver_names, formula=None, now=None):
     todays = hist[-1] if hist and hist[-1]["date"] == today else None
     done_today = last_update == today
 
-    hh, mm = (int(x) for x in s.update_after.split(":"))
-    if done_today:
-        nxt = f"{now.date() + timedelta(days=1)} {s.update_after}"
-    elif now.time() >= time(hh, mm):
-        nxt = "next check"
-    else:
-        nxt = f"{today} {s.update_after}"
 
     base = None
     if todays:
@@ -145,7 +121,7 @@ def build_status(s, driver_names, formula=None, now=None):
         "segments": runs.segments(s, today, now),
         "today": todays, "base": base,
         "last": hist[-1] if hist else None,
-        "next_run": nxt, "update_after": s.update_after, "check_every_min": s.sleep_minutes,
+        "check_every_min": s.sleep_minutes, "run1_pct": s.run1_pct, "run2_at": s.run2_at,
         "drivers": list(driver_names),
         "history": hist,
         "weather": _today_weather(s, today),
@@ -359,7 +335,7 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(502, {"results": [], "error": f"City search unavailable ({type(e).__name__})"})
         elif path == "/api/schedule":
             self._json(200, {"schedule": schedule.load(c.s), "max_minutes": c.s.max_manual_minutes,
-                             "update_after": c.s.update_after, "controls": self._controls()})
+                             "run1_pct": c.s.run1_pct, "run2_at": c.s.run2_at, "controls": self._controls()})
         elif path == "/api/forecast":
             self._json(200, c.forecast())
         elif path == "/healthz":
@@ -507,8 +483,8 @@ class _Handler(BaseHTTPRequestHandler):
         except OSError as e:
             return self._json(500, {"ok": False, "message": f"Could not save: {e}"})
         self.ctx.fc["t"] = 0.0                         # forecast "expected run" uses the new formula
-        log_event(s, "manual", "Formula changed on /tune (applies from the next daily run)", True)
-        return self._json(200, {"ok": True, "message": "Saved. Applies from the next daily run."})
+        log_event(s, "manual", "Formula changed on /tune (applies from the next estimate)", True)
+        return self._json(200, {"ok": True, "message": "Saved. Applies from the next estimate (within the hour)."})
 
     # -- settings + setup
     def _first_password(self, body):
@@ -566,11 +542,10 @@ class _Handler(BaseHTTPRequestHandler):
         except (ValueError, TypeError) as e:
             return self._json(400, {"ok": False, "message": str(e)})
         from .state import save_plan
+        from . import rolling
         plan = load_plan(s)
-        if plan and plan.get("status") == "planned":         # re-time today's plan to the new ready-by
-            st, rd = schedule.plan_start(datetime.now(), plan["minutes"], sched["ready_by"])
-            plan.update(start_at=st.isoformat(timespec="minutes"), ready_at=rd.isoformat(timespec="minutes"))
-            save_plan(s, plan)
+        if plan and plan.get("date") == str(date.today()) and "runs" in plan:   # re-time today's runs now
+            save_plan(s, rolling.sync_runs(plan, s, sched["ready_by"], datetime.now()))
         try:
             schedule.save(s, sched)
         except OSError as e:

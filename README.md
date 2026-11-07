@@ -3,6 +3,14 @@
 Decides each day how long the boiler should run, from the day's temperature and cloud cover,
 and tells a driver (MQTT/Tasmota, Home Assistant, or dry-run) to run it.
 
+How the day works:
+- Every hour it re-estimates today's minutes: measured weather for the hours already past, the forecast
+  for the rest. The number locks once the sun window is over (around sunset); after that it is final.
+- The minutes are split into run 1 (`RUN1_PERCENT`, timed to be hot by the Schedule's "hot by") and
+  run 2 (the rest, at `RUN2_AT`, never before the number is final). If run 1 had to start on an estimate
+  that later went up, run 2 tops up the difference. No run is longer than "max on per run".
+- `UPDATE_AFTER` is no longer used.
+
 ## Run
 
 ```

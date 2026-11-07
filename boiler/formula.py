@@ -18,6 +18,7 @@ class Formula:
     sun_min_temp: float = 10.0    # below this, clouds are ignored (no sun to lose)
     sun_max_temp: float = 20.0    # at/above this, clouds count fully
     max_on: int = 180             # hard cap, minutes
+    full_heat: int = 0            # minutes to heat a fully cold boiler; 0 = use the table as it is
     window_start_offset: int = 2  # analysis window: sunrise + N hours ...
     window_end_offset: int = 1    # ... to sunset - N hours
 
@@ -57,7 +58,13 @@ class Formula:
 
 
 def base_minutes(T: float, f: Formula) -> float:
-    """Temperature-only duration, interpolated from the table."""
+    """Temperature-only duration, interpolated from the table (scaled so its top = full_heat, if set)."""
+    v = _lut(T, f)
+    top = max(f.temp_lut.values()) if f.temp_lut else 0
+    return v * f.full_heat / top if f.full_heat and top else v
+
+
+def _lut(T: float, f: Formula) -> float:
     temps = sorted(f.temp_lut)
     if T <= temps[0]:
         return f.temp_lut[temps[0]]
@@ -112,7 +119,7 @@ def daily_mean(data, sunrise: int, sunset: int, f: Formula = None):
 # The tuned formula lives in stored_data/formula.json (written by the /tune page).
 # The engine reads it at every daily run, so a saved change applies from the next run, no restart.
 
-LIMITS = {"cloud_k": (0, 2), "sun_min_temp": (-10, 40), "sun_max_temp": (-10, 45), "max_on": (0, 600),
+LIMITS = {"cloud_k": (0, 2), "sun_min_temp": (-10, 40), "sun_max_temp": (-10, 45), "max_on": (0, 600), "full_heat": (0, 600),
           "window_start_offset": (0, 6), "window_end_offset": (0, 6)}
 
 
@@ -126,7 +133,7 @@ def parse_formula(d) -> "Formula":
             v = d[k]
             if isinstance(v, bool) or not isinstance(v, (int, float)) or not lo <= v <= hi:
                 raise ValueError(f"{k} must be a number from {lo} to {hi}")
-            out[k] = int(v) if k in ("max_on", "window_start_offset", "window_end_offset") else float(v)
+            out[k] = int(v) if k in ("max_on", "full_heat", "window_start_offset", "window_end_offset") else float(v)
     if "temp_lut" in d:
         lut = d["temp_lut"]
         if not isinstance(lut, dict) or not 2 <= len(lut) <= 40:

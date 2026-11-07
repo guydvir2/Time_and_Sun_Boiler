@@ -108,8 +108,10 @@ def due_presets(sched, now: datetime, done: dict):
 def upcoming(sched, now: datetime, plan=None, limit=3):
     """Next scheduled starts (planned auto run + presets), soonest first: [{'at','what','minutes'}]."""
     ev = []
-    if plan and plan.get("status") == "planned":
-        ev.append({"at": plan["start_at"], "what": "Auto (sun)", "minutes": plan["minutes"]})
+    for r in (plan or {}).get("runs", []):
+        if r["status"] in ("planned", "failed") and r["minutes"] > 0 and r.get("start_at") and r["start_at"] > now.isoformat():
+            est = "" if plan.get("status") == "final" else ", estimate"
+            ev.append({"at": r["start_at"], "what": f"Run {r['n']} (sun{est})", "minutes": r["minutes"]})
     for p in sched["presets"]:
         if not p["enabled"]:
             continue

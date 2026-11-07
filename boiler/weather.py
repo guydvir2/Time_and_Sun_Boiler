@@ -66,6 +66,30 @@ def get_sun_times(s, days_back=0, default_sunrise=7, default_sunset=17):
     return {"sunrise": default_sunrise, "sunset": default_sunset}
 
 
+def get_day(s, day=None):
+    """All of one day's hours (past = measured, future = forecast) plus exact sunrise/sunset, in one call.
+    Returns {'rows': [{time,temp,clouds}], 'sunrise': datetime, 'sunset': datetime} or None on failure."""
+    day = day or date.today()
+    try:
+        r = requests.get(s.weather_url, timeout=s.request_timeout, params={
+            "latitude": s.latitude, "longitude": s.longitude, "hourly": "temperature_2m,cloudcover",
+            "daily": "sunrise,sunset", "past_days": 1, "forecast_days": 2, "timezone": "auto"})
+        r.raise_for_status()
+        j = r.json()
+        rows = [{"time": datetime.fromisoformat(t), "temp": tp, "clouds": cc}
+                for t, tp, cc in zip(j["hourly"]["time"], j["hourly"]["temperature_2m"], j["hourly"]["cloudcover"])
+                if tp is not None and cc is not None and t[:10] == str(day)]
+        for d, sr, ss in zip(j["daily"]["time"], j["daily"]["sunrise"], j["daily"]["sunset"]):
+            if d == str(day) and rows:
+                _record(s, "weather", True)
+                return {"rows": rows, "sunrise": datetime.fromisoformat(sr), "sunset": datetime.fromisoformat(ss)}
+        print(f"⚠️  No weather rows for {day}")
+    except Exception as e:
+        print(f"❌ Weather fetch failed: {e}")
+    _record(s, "weather", False)
+    return None
+
+
 def csv_path(s, days_back):
     return os.path.join(s.stored_dir, f"{date.today() - timedelta(days=days_back)}.csv")
 

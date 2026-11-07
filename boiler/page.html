@@ -298,23 +298,31 @@ function todayForecast(d) {
 function renderToday(d) {
   const box = $("today"); box.replaceChildren(); box.className = "today";
   const p = d.plan, today = d.now.slice(0, 10), fd = todayForecast(d), planToday = p && p.date === today;
-  let lead, num, unit = "min", when = null;
+  let lead, num, unit = "min", when = null, extraLine = null, trail = null;
   if (d.running) {
     box.classList.add("on");
     const left = Math.max(1, Math.round((Date.parse(d.running.until) - Date.parse(d.now)) / 60000));
     lead = `Heating now (${d.running.source === "manual" ? "extra" : d.running.source})`; num = left; unit = "min left";
     const t0 = new Date(Date.parse(d.running.until) - d.running.minutes * 60000);
     when = [["Started", pad2(t0.getHours()) + ":" + pad2(t0.getMinutes())], ["Hot by", hm(d.running.until)]];
+  } else if (planToday && p.runs && p.minutes != null) {
+    const fin = p.status === "final", r1 = p.runs.find(r => r.n === 1), r2 = p.runs.find(r => r.n === 2);
+    num = p.minutes;
+    if (fin && p.minutes === 0) lead = "Sun did the work today";
+    else lead = fin ? "Today the boiler runs" : `Today, estimate. Final after ${hm(p.lock_at)}`;
+    const cell = r => r.status === "started" ? [`Run ${r.n} ran`, `${hm(r.start_at)}`] : r.status === "missed" ? [`Run ${r.n} missed`, hm(r.start_at)] : null;
+    when = [];
+    if (r1 && r1.status !== "skipped") when.push(...(cell(r1) ? [cell(r1), ["Hot since", hm(r1.ready_at)]] : [["Starts", hm(r1.start_at)], ["Hot by", hm(r1.ready_at)]]));
+    if (r2 && r2.status !== "skipped" && r2.minutes > 0) extraLine = r2.status === "started" ? `Top-up ran at ${hm(r2.start_at)}, ${r2.minutes} min` : `Top-up ${hm(r2.start_at)}, ${r2.minutes} min` + (fin ? "" : " (estimate)");
+    if (!fin && p.trail && p.trail.length > 1) trail = "Earlier today: " + p.trail.slice(-4).map(x => `${x[0]} ${x[1]}`).join(" → ") + " min";
+    if (!when.length) when = null;
   } else if (planToday && p.status === "skipped") {
     lead = "Sun did the work today"; num = 0;
-  } else if (planToday && p.status === "planned") {
+  } else if (planToday && p.start_at) {
     lead = "Today the boiler runs"; num = p.minutes; when = [["Starts", hm(p.start_at)], ["Hot by", hm(p.ready_at)]];
-  } else if (planToday && (p.status === "started" || p.status === "failed" || p.status === "missed")) {
-    lead = p.status === "started" ? "Done for today" : "Today's run did not start"; num = p.minutes;
-    when = [["Started", hm(p.start_at)], [p.status === "started" ? "Hot since" : "Planned for", hm(p.ready_at)]];
   } else {
     lead = d.auto.enabled ? "Today, expected" : "Schedule paused. Today would be"; num = fd ? fd.minutes : "–";
-    when = [["Decides at", d.update_after]]; if (d.ready_by) when.push(["Hot by", d.ready_by]);
+    if (d.ready_by) when = [["Hot by", d.ready_by]];
   }
   box.append(h("div", "lead", lead));
   const n = h("div", "num", String(num)); n.append(h("small", "", unit)); box.append(n);
@@ -333,7 +341,9 @@ function renderToday(d) {
   tr.append(m, h("span", "", `Forecast confidence: ${c.label}`)); box.append(tr);
   if (c.warning) { const a = h("div", "alert"); a.append(ico("alert_triangle"), h("span", "", c.warning)); box.append(a); }
 
+  if (trail) { const t = h("div", "trust", trail); box.append(t); }
   if (when) { const w = h("div", "when"); when.forEach(([k, v], i) => { const x = h("div", i ? "ready" : ""); x.append(h("span", "", k), h("b", "", v)); w.append(x); }); box.append(w); }
+  if (extraLine) { const x = h("div", "facts"); x.style.marginTop = "12px"; x.append(fact("flame", extraLine)); box.append(x); }
   if (d.running && d.controls.can_stop && d.controls.logged_in) {
     const st = h("button", "btn stop"); st.append(ico("player_stop"), document.createTextNode("Stop now"));
     st.onclick = async () => { if (!confirm("Switch the boiler off now?")) return; st.disabled = true; const r = await post("/api/stop"); toast(r.ok ? "Stopped" : r.message); refresh(); };
@@ -429,7 +439,7 @@ function renderCloud(d) {
     save.disabled = undo.disabled = CK.value === saved; clearTimeout(ckTimer); ckTimer = setTimeout(preview, 200); };
   undo.onclick = () => { inp.value = saved; inp.oninput(); };
   save.onclick = async () => { const r = await post("/api/formula", {formula: Object.assign({}, d.formula.full, {cloud_k: CK.value})});
-    toast(r.ok ? "Cloud boost saved, applies from the next daily run" : r.message); if (r.ok) { CK = null; refresh(); } };
+    toast(r.ok ? "Cloud boost saved, applies from the next estimate" : r.message); if (r.ok) { CK = null; refresh(); } };
   preview();
 }
 
@@ -437,7 +447,7 @@ function renderCloud(d) {
 function renderNext(d) {
   const box = $("next"); box.replaceChildren();
   if (!d.auto.enabled) { box.append(h("div", "note", "Paused: nothing is scheduled.")); return; }
-  if (!d.upcoming.length) { box.append(h("div", "note", `Next decision after ${d.update_after}. Add presets on the Schedule tab.`)); return; }
+  if (!d.upcoming.length) { box.append(h("div", "note", "Nothing planned yet. Add presets below.")); return; }
   const today = d.now.slice(0, 10), tmr = new Date(Date.parse(today) + 864e5).toISOString().slice(0, 10);
   for (const e of d.upcoming) { const day = e.at.slice(0, 10) === today ? "Today" : e.at.slice(0, 10) === tmr ? "Tomorrow" : DAYS[(new Date(e.at).getDay() + 6) % 7];
     const r = h("div", "nx"); r.append(h("span", "", `${day} ${hm(e.at)}, ${e.what}`), h("span", "", e.minutes + " min")); box.append(r); }
@@ -464,7 +474,7 @@ async function loadSchedule() {
 }
 function renderSchedule() {
   const sc = SCH.schedule, c = SCH.controls;
-  $("decide-note").textContent = `Each day after ${SCH.update_after} the engine looks at today's weather and decides the minutes.`;
+  $("decide-note").textContent = `Every hour the app re-estimates today's minutes from the weather; the number is final after sunset. Run 1 gets ${SCH.run1_pct}% of the day` + (SCH.run1_pct < 100 ? `, run 2 the rest at ${SCH.run2_at || "right after run 1"}.` : "; anything over the max per run goes to run 2.");
   $("rb-asap").checked = !sc.ready_by; $("rb-time").checked = !!sc.ready_by; if (sc.ready_by) $("rb-at").value = sc.ready_by;
   $("rb-asap").onchange = () => { sc.ready_by = ""; dirty(); };
   $("rb-time").onchange = () => { sc.ready_by = $("rb-at").value || "18:30"; dirty(); };
@@ -531,7 +541,7 @@ function renderHistory(d) {
   if (d.weather.length) wx.append(spark(d.weather.map(r => r.temp), "Today °C", "var(--heat)"), spark(d.weather.map(r => r.clouds), "Clouds %", "var(--mute)"));
   events($("actall"), d.activity, 15, d.now.slice(0, 10));
   const kv = $("kv"); kv.replaceChildren();
-  const rows = [["Drivers", d.drivers.join(", then ") || "none"], ["Decides after", d.update_after], ["Hot by", d.ready_by || "as soon as decided"], ["Version", d.version]];
+  const rows = [["Drivers", d.drivers.join(", then ") || "none"], ["Run 1 share", d.run1_pct + "%"], ["Run 2 at", d.run2_at || "after run 1"], ["Hot by", d.ready_by || "right after sunset"], ["Version", d.version]];
   if (d.base) rows.splice(1, 0, ["Today's math", `${d.base.base_min} min base, clouds +${(d.base.cloud_alpha * 100).toFixed(0)}%, result ${d.base.result_min} min`]);
   for (const [k, v] of rows) kv.append(h("span", "", k), h("span", "", String(v)));
   const fx = $("fx"); fx.replaceChildren(); const pts = d.formula.points; if (!pts.length) return;
@@ -625,13 +635,27 @@ async function loadSettings() {
   if (S && S.controls.password_set && !S.controls.logged_in) { const c = h("div", "card"); c.append(h("h2", "", "Settings"), h("div", "note", lockedNote(S.controls)), unlockRow(loadSettings)); body.replaceChildren(c); return; }
   if (!await fetchSettings()) return; CHG = {}; renderSettings();
 }
+function fullHeat(c) {
+  const f = S && S.formula && S.formula.full;
+  c.querySelectorAll(":scope > :not(h2)").forEach(x => x.remove());
+  if (!f) { c.append(h("div", "note", "Loading…")); return; }
+  c.dataset.ok = "1";
+  const w = h("div", "field"), l = h("label", "", "Full heat from cold (minutes)"), inp = h("input");
+  inp.type = "number"; inp.min = 0; inp.max = 600; inp.value = f.full_heat || ""; inp.placeholder = String(Math.max(...Object.values(f.temp_lut))); inp.id = "f-full"; l.htmlFor = "f-full";
+  w.append(l, inp, h("div", "hint", "How long the boiler alone takes to heat a cold tank. The coldest, cloudiest day runs this long; sunny days less. Empty = use the Tune table as it is."));
+  const b = h("button", "btn sm", "Save"); b.onclick = async () => { const v = inp.value === "" ? 0 : Number(inp.value);
+    const r = await post("/api/formula", {formula: Object.assign({}, f, {full_heat: v})}); toast(r.ok ? "Saved. Applies from the next estimate" : r.message); if (r.ok) refresh(); };
+  const row = h("div", "row"); row.append(b); c.append(w, row);
+}
 function renderSettings() {
   const body = $("settings-body"); body.replaceChildren();
   const card = (title, fill) => { const c = h("div", "card"); c.append(h("h2", "", title)); fill(c); body.append(c); return c; };
   card("Location", c => placeSearch(c));
   const conn = card("Boiler connection", c => connChoice(c));
-  card("Timing", c => { c.append(fld("Decide each day after", "decide_after", {type: "time", hint: "Weather of the day is read after this time. The Schedule tab sets when the water should be hot."}),
-                                 fld("Longest manual run (minutes)", "max_manual_minutes", {type: "number"})); });
+  card("Runs", c => { c.append(fld("Max on per run (minutes)", "max_manual_minutes", {type: "number", hint: "No single run is longer than this: daily runs, presets and extra hot water."}),
+                               fld("Run 1 share of the day (%)", "run1_pct", {type: "number", hint: "100 = all in run 1. Less leaves the rest for run 2, for later showers."}),
+                               fld("Run 2 time", "run2_at", {type: "time", hint: "When run 2 starts (never before the day's number is final). Empty = right after run 1."})); });
+  card("Boiler", c => { c.id = "fullheat"; fullHeat(c); });
   card("Password", c => { c.append(fld("New dashboard password", "dashboard.password", {type: "password", secret: true, hint: "At least 6 characters. Everyone is logged out after a change."})); });
   const bar = h("div", "card"); const save = h("button", "btn go", "Save settings"); const undo = h("button", "btn ghost", "Undo changes");
   const st = h("div", "note"); const row = h("div", "row"); row.style.marginTop = "0"; row.append(save, undo); bar.append(row, st); body.append(bar);
@@ -676,7 +700,7 @@ function renderWizard() {
     k.append(h("h1", "", "When should the water be hot?"));
     const f = h("div", "field"); const t = h("input"); t.type = "time"; t.value = "18:30"; t.setAttribute("aria-label", "Hot by");
     f.append(h("label", "", "Hot by"), t, h("div", "hint", "BoilerMind starts early enough to finish at this time. Change it any day on the Schedule tab."));
-    k.append(f, fld("Decide each day after", "decide_after", {type: "time", hint: "The day's weather is read after this time."}), nav);
+    k.append(f, nav);
     next.textContent = "Finish setup";
     next.onclick = async () => { next.disabled = true; const r = await saveChanges();
       if (!r.ok) { toast(r.message); next.disabled = false; return; }
@@ -691,6 +715,7 @@ async function refresh() {
   try {
     const r = await fetch("/api/status", {cache: "no-store"}); if (!r.ok) throw 0; const d = await r.json(); S = d;
     if ((d.controls.needs_setup || !d.controls.password_set) && !WIZ_SEEN && location.hash !== "#setup") { WIZ_SEEN = true; location.hash = "#setup"; }
+    const fh = $("fullheat"); if (fh && !fh.dataset.ok) fullHeat(fh);
     renderToday(d); renderExtra(d); renderFoot(d); renderLinks(); renderCloud(d); renderNext(d); renderHistory(d); renderForecast();
   } catch (e) { const t = $("today"); t.replaceChildren(h("div", "lead", "Can't reach the boiler service")); }
 }

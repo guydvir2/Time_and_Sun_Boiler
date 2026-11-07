@@ -41,7 +41,9 @@ class Settings:
         self.read_from_file = _bool(g("parameters", "READ_DATA_FROM_FILE", fallback="False"))
         self.debug_ignore_time = _bool(g("parameters", "debug_mode_ignore_update_time", fallback="False"))
         self.days_back = int(g("parameters", "DAYS_BACK_WEATHER_DATA", fallback="0"))
-        self.update_after = g("parameters", "UPDATE_AFTER", fallback="17:01")   # HH:MM local
+        self.update_after = g("parameters", "UPDATE_AFTER", fallback="17:01")   # legacy: no longer used by the engine
+        self.run1_pct = int(g("parameters", "RUN1_PERCENT", fallback="100"))     # share of the day's minutes in run 1
+        self.run2_at = g("parameters", "RUN2_AT", fallback="21:00")             # run 2 (top-up) time, "" = right after run 1
         self.request_timeout = int(g("parameters", "REQUEST_TIMEOUT", fallback="15"))
 
         # --- location / weather ---
