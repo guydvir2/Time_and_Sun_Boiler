@@ -77,7 +77,11 @@ def main():
     log = {}
     if args.log:
         with open(args.log) as f:
-            log = {r["date"]: int(r["duration"]) for r in csv.DictReader(f)}
+            rd = list(csv.DictReader(f))
+        log = {r["date"]: int(r["duration"]) for r in rd}
+        log_temp = {r["date"]: float(r["avg_temp"]) for r in rd}
+    else:
+        log_temp = {}
     pb = bm.ModelParams(latitude=bt.LAT, longitude=bt.LON, model="B")
     rows = []
     for path in files:
@@ -91,7 +95,8 @@ def main():
             r[kind] = (daily_plane_kwh(hv, sunrise, sunset, p), plan.t_end_solar, minutes(plan))
         planb = bm.plan_day(sunrise, hours, sunrise, sunset, args.t_start, pb)
         r["b"] = (planb.t_end_solar, minutes(planb))
-        r["air"] = sum(h.temp for h in hours) / len(hours)
+        day_h = [h for h in hours if sunrise <= h.time <= sunset] or hours
+        r["air"] = sum(h.temp for h in day_h) / len(day_h)
         r["lut"] = log.get(day.isoformat()) if args.log else bt.old_minutes(hours, sunrise, sunset)
         rows.append(r)
 
@@ -100,6 +105,13 @@ def main():
         g, h, c = r["gti"], r["ghi"], r["clouds"]
         print(f"{r['day']}        {g[0]:5.2f}   {h[0]:6.2f}   {c[0]:6.2f} |  {g[1]:5.1f} {c[1]:5.1f} |"
               f"  {g[2]:4d} {c[2]:4d} {r['lut']!s:>4}")
+
+    bad = [r for r in rows if str(r["day"]) in log_temp and abs(log_temp[str(r["day"])] - r["air"]) > 4]
+    if bad:
+        print("\nTEMPERATURE THE APP LOGGED vs REAL (differ by more than 4 C)")
+        print("date         logged  real   LUT min")
+        for r in bad:
+            print(f"{r['day']}   {log_temp[str(r['day'])]:6.1f} {r['air']:6.1f}   {r['lut']!s:>5}")
 
     cold = [r for r in rows if r["air"] < 12 and r["gti"][0] > 5.0]
     if cold:
