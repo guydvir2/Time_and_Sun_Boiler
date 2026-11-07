@@ -70,7 +70,11 @@ class HeaterParams:
 class ScheduleParams:
     run1_ready_by: time = time(19, 0)
     run2_start: time = time(20, 30)
-    refill_fraction: float = 0.40       # x: share of tank used before run 2
+    refill_fraction: float = 0.40       # x: share of tank used before run 2, at refill_ref_temp
+    refill_slope: float = 0.0           # x drops by this per degC of mean day temp above refill_ref_temp
+    refill_ref_temp: float = 15.0       # degC
+    refill_min: float = 0.0
+    refill_max: float = 0.9
     t_amb: Optional[float] = None       # refill water temp; None -> forecast air temp at usage time
     t_amb_fallback: float = 20.0        # used when the forecast has no value for that hour
     vacation: bool = False
@@ -139,6 +143,7 @@ class DayPlan:
     vacation: bool
     warnings: List[str] = field(default_factory=list)
     t_refill: Optional[float] = None     # refill water temp used for the usage step
+    usage: Optional[float] = None        # share of the tank used before run 2
 
     @property
     def heating_needed(self) -> bool:
@@ -192,8 +197,9 @@ def _utc_hours(dt: datetime, offset_h: float) -> float:
     return dt.hour + dt.minute / 60.0 - offset_h
 
 
-def solar_elevation_deg(dt: datetime, lat: float, lon: float, offset_h: float) -> float:
-    """Approximate solar elevation (good to ~1 deg), dt = middle of the hour."""
+def solar_position(dt: datetime, lat: float, lon: float, offset_h: float):
+    """Approximate sun position (good to ~1 deg).
+    Returns (elevation_deg, azimuth_deg from south, positive toward west)."""
     doy = dt.timetuple().tm_yday
     g = 2 * math.pi / 365.0 * (doy - 1 + (_utc_hours(dt, offset_h) - 12) / 24)
     decl = (0.006918 - 0.399912 * math.cos(g) + 0.070257 * math.sin(g)
@@ -204,7 +210,41 @@ def solar_elevation_deg(dt: datetime, lat: float, lon: float, offset_h: float) -
     ha = math.radians(solar_time_min / 4 - 180)
     la = math.radians(lat)
     sin_el = math.sin(la) * math.sin(decl) + math.cos(la) * math.cos(decl) * math.cos(ha)
-    return math.degrees(math.asin(max(-1.0, min(1.0, sin_el))))
+    el = math.asin(max(-1.0, min(1.0, sin_el)))
+    az = math.atan2(math.sin(ha), math.cos(ha) * math.sin(la) - math.tan(decl) * math.cos(la))
+    return math.degrees(el), math.degrees(az)
+
+
+def solar_elevation_deg(dt: datetime, lat: float, lon: float, offset_h: float) -> float:
+    return solar_position(dt, lat, lon, offset_h)[0]
+
+
+def tilted_from_ghi(ghi: float, dt: datetime, p: "ModelParams", albedo: float = 0.2) -> float:
+    """Horizontal radiation -> radiation on the tilted panel.
+    Erbs beam/diffuse split + isotropic sky. dt = start of the hour."""
+    if ghi <= 0:
+        return 0.0
+    mid = dt + timedelta(minutes=30)
+    el, az = solar_position(mid, p.latitude, p.longitude, p.utc_offset_hours)
+    if el <= 1.0:
+        return ghi
+    sin_el = math.sin(math.radians(el))
+    doy = mid.timetuple().tm_yday
+    i0 = 1367.0 * (1 + 0.033 * math.cos(2 * math.pi * doy / 365.0))
+    kt = min(1.0, ghi / (i0 * sin_el))
+    if kt <= 0.22:
+        kd = 1 - 0.09 * kt
+    elif kt <= 0.80:
+        kd = 0.9511 - 0.1604 * kt + 4.388 * kt ** 2 - 16.638 * kt ** 3 + 12.336 * kt ** 4
+    else:
+        kd = 0.165
+    dhi = kd * ghi
+    dni = (ghi - dhi) / sin_el
+    b = math.radians(p.collector.tilt_deg)
+    cos_inc = (sin_el * math.cos(b)
+               + math.cos(math.radians(el)) * math.sin(b) * math.cos(math.radians(az - p.collector.azimuth_deg)))
+    return (dni * max(0.0, cos_inc) + dhi * (1 + math.cos(b)) / 2
+            + ghi * albedo * (1 - math.cos(b)) / 2)
 
 
 def clear_sky_ghi(dt: datetime, lat: float, lon: float, offset_h: float) -> float:
@@ -242,14 +282,15 @@ def _fraction_of_hour_in_daylight(h: WeatherHour, sunrise: datetime, sunset: dat
 
 
 def plane_irradiance(h: WeatherHour, p: ModelParams) -> Optional[float]:
-    """Radiation on the panel: GTI first, then GHI, then cloud estimate."""
+    """Radiation on the panel: GTI first, else GHI (or cloud estimate) tilted to the panel."""
     if h.gti is not None:
         return h.gti
     if h.ghi is not None:
-        return h.ghi
+        return tilted_from_ghi(h.ghi, h.time, p)
     if h.cloud_cover is not None:
-        return ghi_from_clouds(clear_sky_ghi(h.time, p.latitude, p.longitude, p.utc_offset_hours),
-                               h.cloud_cover)
+        ghi = ghi_from_clouds(clear_sky_ghi(h.time, p.latitude, p.longitude, p.utc_offset_hours),
+                              h.cloud_cover)
+        return tilted_from_ghi(ghi, h.time, p)
     return None
 
 
@@ -352,6 +393,7 @@ def plan_day(now: datetime, hours: List[WeatherHour], sunrise: datetime, sunset:
 
     run1 = run2 = None
     t_amb = None
+    x_used = None
     ua = tk.ua_value()
     night_air = _night_air(hours, sunset, s.t_amb_fallback)
     ready_by = _on_date(sunset, s.run1_ready_by)
@@ -384,7 +426,8 @@ def plan_day(now: datetime, hours: List[WeatherHour], sunrise: datetime, sunset:
         hrs_gap = max(0.0, (run2_start - ready_by).total_seconds() / 3600)
         t = standby(t, night_air, hrs_gap, tk.liters, ua)
         t_amb = refill_temperature(hours, ready_by, run2_start, s)
-        t = mix_after_refill(t, s.refill_fraction, t_amb)
+        x_used = usage_fraction(hours, sunrise, sunset, s)
+        t = mix_after_refill(t, x_used, t_amb)
         kwh2 = heating_kwh(tk.liters, t, ht.t_max, ht.eta_el)
         if kwh2 > 0 and _below_min(t, ht):
             dur2 = timedelta(hours=kwh2 / ht.power_kw)
@@ -406,12 +449,24 @@ def plan_day(now: datetime, hours: List[WeatherHour], sunrise: datetime, sunset:
         t_end_day=round(t_end_day, 1), t_next_dawn=round(t_next_dawn, 1),
         vacation=s.vacation, warnings=warnings,
         t_refill=None if t_amb is None else round(t_amb, 1),
+        usage=None if x_used is None else round(x_used, 3),
     )
 
 
 def _below_min(t: float, ht: HeaterParams) -> bool:
     """True when the tank is too cold to skip the run (solar did not cover it)."""
     return ht.t_min_use is None or t < ht.t_min_use
+
+
+def usage_fraction(hours: List[WeatherHour], sunrise: datetime, sunset: datetime,
+                   s: ScheduleParams) -> float:
+    """Share of the tank used before run 2. Warmer days use less hot water."""
+    day = _daylight(hours, sunrise, sunset)
+    if not day or s.refill_slope == 0:
+        return s.refill_fraction
+    t_day = sum(h.temp for h in day) / len(day)
+    x = s.refill_fraction - s.refill_slope * (t_day - s.refill_ref_temp)
+    return max(s.refill_min, min(s.refill_max, x))
 
 
 def refill_temperature(hours: List[WeatherHour], use_from: datetime, use_to: datetime,

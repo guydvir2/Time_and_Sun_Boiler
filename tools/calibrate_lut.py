@@ -22,10 +22,11 @@ import glob  # noqa: E402
 
 CAP = 180
 GRID = {
-    "k": [4, 5, 6, 7, 8, 9, 10, 11, 12],
-    "t_start": [30, 35, 40, 45, 50, 55],
-    "t_min_use": [35, 40, 45, 50, 55],
-    "refill": [0.2, 0.3, 0.4, 0.5],
+    "k": [4, 5, 6, 7, 8],
+    "t_start": [30, 35, 40],
+    "t_min_use": [45, 50, 55],
+    "refill": [0.2, 0.3, 0.4, 0.5, 0.6],     # share used at 15 C
+    "slope": [0.0, 0.01, 0.02, 0.03, 0.04, 0.05],  # less used per degC warmer
 }
 
 
@@ -43,11 +44,12 @@ def load_days():
     return days
 
 
-def model_minutes(day, k, t_start, t_min, refill):
+def model_minutes(day, k, t_start, t_min, refill, slope=0.0):
     hours, sunrise, sunset, _ = day
     p = bm.ModelParams(latitude=bt.LAT, longitude=bt.LON, k=k,
                        heater=bm.HeaterParams(t_min_use=t_min),
-                       schedule=bm.ScheduleParams(refill_fraction=refill, t_amb=hours[-1].temp))
+                       schedule=bm.ScheduleParams(refill_fraction=refill, refill_slope=slope,
+                                                  t_amb=hours[-1].temp))
     plan = bm.plan_day(sunrise, hours, sunrise, sunset, t_start, p)
     m = (plan.run1.minutes if plan.run1 else 0) + (plan.run2.minutes if plan.run2 else 0)
     return min(m, CAP), plan
@@ -72,13 +74,14 @@ def main():
         results.append((mae, bias, combo))
     results.sort(key=lambda r: r[0])
 
-    print("\nTop 8 fits (k, t_start, t_min_use, refill):")
-    print(" MAE min  bias min   k  t_start  t_min  refill")
+    print("\nTop 8 fits:")
+    print(" MAE min  bias min   k  t_start  t_min  used@15C  slope/C")
     for mae, bias, c in results[:8]:
-        print(f"  {mae:6.1f}   {bias:+6.1f}  {c[0]:3d}  {c[1]:6d}  {c[2]:5d}   {c[3]:.0%}")
+        print(f"  {mae:6.1f}   {bias:+6.1f}  {c[0]:3d}  {c[1]:6d}  {c[2]:5d}   {c[3]:6.0%}   {c[4]:.0%}")
 
     best = results[0][2]
-    print(f"\nBest fit day by day: k={best[0]}, t_start={best[1]}, t_min_use={best[2]}, refill={best[3]:.0%}")
+    print(f"\nBest fit day by day: k={best[0]}, t_start={best[1]}, t_min_use={best[2]}, "
+          f"used@15C={best[3]:.0%}, slope={best[4]:.0%}/C")
     print("date        clouds  temp  dusk   LUT  model  diff")
     big = 0
     for d in days:

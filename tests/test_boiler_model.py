@@ -138,3 +138,16 @@ def test_fixed_t_amb_overrides_forecast():
     p = bm.ModelParams(schedule=bm.ScheduleParams(t_amb=20.0))
     plan = bm.plan_day(DAY, make_day(night_temp=8), SUNRISE, SUNSET, t_start=30.0, p=p)
     assert plan.t_refill == 20.0
+
+
+def test_usage_falls_on_warm_days():
+    s = bm.ScheduleParams(refill_fraction=0.3, refill_slope=0.05, refill_ref_temp=15.0)
+    cold = bm.usage_fraction(make_day(temp=12), SUNRISE, SUNSET, s)
+    warm = bm.usage_fraction(make_day(temp=25), SUNRISE, SUNSET, s)
+    assert abs(cold - 0.45) < 1e-9 and warm == 0.0
+
+
+def test_tilt_boosts_low_winter_sun():
+    p = bm.ModelParams()
+    noon = DAY.replace(hour=11)
+    assert bm.tilted_from_ghi(500.0, noon, p) > 500.0
