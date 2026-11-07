@@ -1,3 +1,5 @@
 # Local secrets and settings
 config.ini
 config/
+__pycache__/
+.pytest_cache/
