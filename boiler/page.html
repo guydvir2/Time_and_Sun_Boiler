@@ -152,8 +152,6 @@ input[type=time]{width:128px}.pcard input{width:100%}
 .heat .ico{width:22px;height:22px}.heat:disabled{opacity:.6;cursor:default}
 .heat:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 .pending{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;padding:10px 14px;border-radius:14px;background:var(--soft);font-size:15px}
-.foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:4px 6px;font-size:14px;color:var(--mute)}
-.foot .switch{color:var(--ink);font-weight:600}
 
 /* ---- today: split view ---- */
 .tgrid{display:grid;grid-template-columns:1.15fr 1fr;gap:10px;margin-bottom:14px}
@@ -173,6 +171,20 @@ input[type=time]{width:128px}.pcard input{width:100%}
 .tr .tstop{margin-top:12px}
 .tw .trust,.tw .alert{margin-top:0}
 @media (prefers-color-scheme:dark){.tr:not(.on){background:var(--soft)}}
+
+/* auto runs toggle + via chip */
+.auto{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card);border-radius:20px;padding:14px 18px}
+.auto .t{font:600 18px Bricolage,Figtree,sans-serif}.auto .s{font-size:13.5px;color:var(--mute)}
+.auto.paused{background:#FFF1D2}.auto.paused .s{color:#8A5A00}
+@media (prefers-color-scheme:dark){.auto.paused{background:#3A2E12}.auto.paused .s{color:#F2C96B}}
+.sw{position:relative;flex:none;width:56px;height:32px;border:0;border-radius:99px;background:var(--ok);cursor:pointer;padding:0}
+.sw::after{content:"";position:absolute;top:3px;left:27px;width:26px;height:26px;border-radius:50%;background:#fff;transition:left .15s}
+.sw.off{background:#B8C7D1}.sw.off::after{left:3px}
+.sw:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.ran{font-size:13.5px;color:var(--mute);padding:8px 8px 0}
+.via{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;margin-top:10px;font:600 13px Figtree,sans-serif;padding:4px 10px;border-radius:99px;background:var(--soft);color:var(--ink)}
+.via .ico{width:15px;height:15px}
+.via.d{background:rgba(255,255,255,.2);color:#fff}
 </style></head><body>
 <main>
 <header>
@@ -192,7 +204,7 @@ input[type=time]{width:128px}.pcard input{width:100%}
 <section class="tab" id="t-home">
   <div class="tgrid" id="today"><div class="tl"><div class="lbl">Loading…</div></div></div>
   <div class="extra" id="extra"></div>
-  <div class="foot" id="foot"></div>
+  <div id="foot"></div>
 </section>
 
 <!-- ============ SCHEDULE ============ -->
@@ -336,6 +348,7 @@ function renderToday(d) {
     const left = Math.max(1, Math.round((Date.parse(d.running.until) - Date.parse(d.now)) / 60000));
     const what = {manual: "extra", auto: "daily run", preset: "preset"}[d.running.source] || d.running.source;
     R.append(h("div", "lbl", `Boiler on · ${what}`), big(left, "min left"), kv("Off at", hm(d.running.until)));
+    const v = viaChip(d, true); if (v) R.append(v);
     if (d.controls.can_stop && d.controls.logged_in) {
       const st = h("button", "tstop"); st.append(ico("player_stop"), document.createTextNode("Stop"));
       st.onclick = async () => { if (!confirm("Switch the boiler off now?")) return; st.disabled = true; const r = await post("/api/stop"); toast(r.ok ? "Stopped" : r.message); refresh(); };
@@ -348,7 +361,8 @@ function renderToday(d) {
     const nx = nexts.find(e => e.at.slice(0, 10) === today);
     R.append(h("div", "lbl", "Boiler off"));
     if (nx) R.append(big(hm(nx.at)), h("div", "tiny", `Next: ${nx.what.replace(/ \(.*\)/, "")}, ${nx.m} min`));
-    else R.append(big("Off"), h("div", "tiny", d.auto.enabled ? "Nothing more today" : "Schedule paused"));
+    else R.append(big("Off"), h("div", "tiny", d.auto.enabled ? "Nothing more today" : "Auto runs paused"));
+    const v = viaChip(d); if (v) R.append(v);
   }
 
   /* bottom: weather + confidence */
@@ -414,17 +428,28 @@ function renderExtra(d) {
 /* ---------- footer: today so far + pause ---------- */
 function renderFoot(d) {
   const box = $("foot"); box.replaceChildren();
+  const on = d.auto.enabled, card = h("div", "auto" + (on ? "" : " paused"));
+  const txt = h("div"); txt.append(h("div", "t", on ? "Auto runs" : "Auto runs paused"),
+    h("div", "s", on ? "Daily runs and presets, by the sun" : "Only extra hot water will heat"));
+  const sw = h("button", "sw" + (on ? "" : " off")); sw.type = "button"; sw.setAttribute("role", "switch");
+  sw.setAttribute("aria-checked", String(on)); sw.setAttribute("aria-label", "Auto runs");
+  sw.onclick = async () => {
+    if (!d.controls.logged_in) { toast("Unlock first (Extra hot water box)"); return; }
+    if (on && !confirm("Pause auto runs? Daily runs and presets stop. Extra hot water still works.")) return;
+    sw.disabled = true; const r = await post("/api/auto", {enabled: !on}); toast(r.message); refresh(); refreshServices();
+  };
+  card.append(txt, sw); box.append(card);
   const t = d.totals.today, parts = [];
   if (t.auto) parts.push(`auto ${t.auto}`); if (t.preset) parts.push(`preset ${t.preset}`); if (t.manual) parts.push(`extra ${t.manual}`);
-  box.append(h("span", "", t.total ? `Ran today: ${t.total} min` + (parts.length > 1 ? ` (${parts.join(", ")})` : "") : "Not run yet today"));
-  const sw = h("label", "switch"), cb = h("input"); cb.type = "checkbox"; cb.checked = d.auto.enabled;
-  sw.append(cb, document.createTextNode("Schedule"));
-  cb.onchange = async () => {
-    if (!d.controls.logged_in) { cb.checked = !cb.checked; toast("Unlock first (Extra hot water box)"); return; }
-    if (!cb.checked && !confirm("Pause the automatic and preset runs? Extra hot water still works.")) { cb.checked = true; return; }
-    const r = await post("/api/auto", {enabled: cb.checked}); toast(r.message); refresh(); refreshServices();
-  };
-  box.append(sw);
+  box.append(h("div", "ran", t.total ? `Ran today: ${t.total} min` + (parts.length > 1 ? ` (${parts.join(", ")})` : "") : "Not run yet today"));
+}
+
+/* which link switches the boiler */
+function viaChip(d, dark) {
+  const drv = (d.drivers || [])[0]; if (!drv) return null;
+  const [icon, name] = {mqtt_tasmota: ["access_point", "via MQTT"], homeassistant: ["home", "via Home Assistant"], dryrun: ["plug_connected", "Test mode"]}[drv] || ["plug_connected", drv];
+  const c = h("span", "via" + (dark ? " d" : "")); c.title = (d.drivers || []).length > 1 ? `Then: ${d.drivers.slice(1).join(", ")}` : name;
+  c.append(ico(icon), document.createTextNode(name)); return c;
 }
 
 /* ---------- cloud quick control ---------- */
