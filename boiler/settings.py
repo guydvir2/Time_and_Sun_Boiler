@@ -1,8 +1,11 @@
 """All configuration in one place. Nothing else in the package reads files or env directly.
 
-Precedence (later wins): config.ini  <  config.local.ini (git-ignored, secrets)  <  settings.json
-(written by the Settings tab / setup wizard, git-ignored)  <  environment.
-Secrets: HA_TOKEN (Home Assistant), MQTT_PASSWORD (broker).
+Two places only:
+  * config.ini     harmless defaults, shipped in git (no addresses, no location, no secrets)
+  * settings.json  YOUR values, written by the Settings tab / setup wizard (git-ignored, owner-only file)
+Secrets are never in a file the app reads or writes. They come from the environment only:
+  HA_TOKEN (Home Assistant), MQTT_PASSWORD (broker), DASHBOARD_PASSWORD (this page).
+On the server keep them in a root-only env file (boiler.env, see boiler.env.example).
 """
 import os
 import json
@@ -20,8 +23,10 @@ class Settings:
         env = os.environ if environ is None else environ
         # interpolation=None: '%' is literal (Tasmota topics use %topic%, and passwords may contain '%')
         cp = configparser.ConfigParser(interpolation=None)
-        cp.read(ini_paths or [os.path.join(BASE_DIR, "config.ini"),
-                              os.path.join(BASE_DIR, "config.local.ini")])
+        cp.read(ini_paths or [os.path.join(BASE_DIR, "config.ini")])
+        old_local = configparser.ConfigParser(interpolation=None)       # retired file: only looked at to warn about secrets
+        if not ini_paths:
+            old_local.read(os.path.join(BASE_DIR, "config.local.ini"))
         # the UI's settings file: default location only when using the default ini files (tests pass their own)
         self.settings_json = json_path or (None if ini_paths else os.path.join(BASE_DIR, "settings.json"))
         if self.settings_json:
@@ -33,6 +38,10 @@ class Settings:
             except (ValueError, OSError, AttributeError) as e:
                 print(f"⚠️  {self.settings_json} unreadable ({e}); ignoring it")
         self._cp = cp
+        # a secret left in a file is ignored; remember it so the page and the log can say so
+        self.legacy_secrets = [f"{sec}.{key}" for sec, key in (("homeassistant", "token"), ("mqtt", "password"),
+                               ("dashboard", "password")) if cp.get(sec, key, fallback="").strip()
+                               or old_local.get(sec, key, fallback="").strip()]
 
         g = cp.get
         # --- general behaviour ---
@@ -61,7 +70,7 @@ class Settings:
         # --- Home Assistant driver ---
         self.ha_ip = g("homeassistant", "ip", fallback=g("homeassistant", "HA_IP", fallback=""))
         self.ha_port = g("homeassistant", "port", fallback=g("homeassistant", "HA_PORT", fallback="8123"))
-        self.ha_token = env.get("HA_TOKEN") or g("homeassistant", "token", fallback="")
+        self.ha_token = env.get("HA_TOKEN", "")
         self.ha_slider_1 = g("homeassistant", "BOILER_1ST_ON_ENTITY_ID", fallback="")
         self.ha_slider_2 = g("homeassistant", "BOILER_2ND_ON_ENTITY_ID", fallback="")
         self.ha_script_1 = g("homeassistant", "RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID", fallback="")
@@ -74,7 +83,7 @@ class Settings:
         self.mqtt_host = g("mqtt", "host", fallback="")
         self.mqtt_port = int(g("mqtt", "port", fallback="1883"))
         self.mqtt_user = g("mqtt", "username", fallback="")
-        self.mqtt_password = env.get("MQTT_PASSWORD") or g("mqtt", "password", fallback="")
+        self.mqtt_password = env.get("MQTT_PASSWORD", "")
         self.tasmota_topic = g("tasmota", "topic", fallback="")        # the device's %topic%
         # Tasmota's own "Full Topic" field (Configuration > MQTT). Default is Tasmota's default.
         self.tasmota_full_topic = g("tasmota", "full_topic", fallback="%prefix%/%topic%/")
@@ -92,7 +101,7 @@ class Settings:
         self.dashboard_host = g("dashboard", "host", fallback="0.0.0.0")   # 127.0.0.1 = this machine only
         self.dashboard_port = int(g("dashboard", "port", fallback="8080"))
         # Manual buttons (Run/Stop) only work when a password is set. Keep it in config.local.ini or env.
-        self.dashboard_password = env.get("DASHBOARD_PASSWORD") or g("dashboard", "password", fallback="")
+        self.dashboard_password = env.get("DASHBOARD_PASSWORD", "")
         self.max_manual_minutes = int(g("dashboard", "max_manual_minutes", fallback="180"))
 
         # --- paths ---

@@ -181,6 +181,9 @@ def main():
     for p in app.problems:
         print(f"⚠️  {p}")
     trim(s)
+    if s.legacy_secrets:
+        print(f"⚠️  Secrets found in a config file and IGNORED: {', '.join(s.legacy_secrets)}. "
+              f"Run migrate_secrets.py, then restart (see README: Secrets).")
     log_event(s, "service", f"Service started v{APP_VERSION}" + (f", drivers: {', '.join(d.name for d in app.drivers)}"
                                                                  if app.drivers else ", waiting for setup"))
     if s.dashboard_enabled:

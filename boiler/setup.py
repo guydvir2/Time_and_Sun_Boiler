@@ -90,12 +90,15 @@ FIELDS = {
 }
 
 
+ENV_NAMES = {"mqtt.password": "MQTT_PASSWORD", "ha.token": "HA_TOKEN", "dashboard.password": "DASHBOARD_PASSWORD"}
+
+
 def values(s):
     """Current values for the page. Secrets -> {'set': bool} only."""
     out = {}
     for key, (_, _, _, attr, secret) in FIELDS.items():
         v = getattr(s, attr)
-        out[key] = {"set": bool(v)} if secret else v
+        out[key] = {"set": bool(v), "env": ENV_NAMES[key]} if secret else v
     out["needs_setup"] = s.needs_setup
     out["drivers_available"] = {"mqtt_tasmota": "Tasmota plug (MQTT)", "homeassistant": "Home Assistant",
                                 "dryrun": "Test mode (switches nothing)"}
@@ -110,7 +113,9 @@ def clean(changes):
     for k, v in changes.items():
         if k not in FIELDS:
             raise ValueError(f"'{k}' cannot be changed here")
-        sec, key, check, _, _ = FIELDS[k]
+        sec, key, check, _, secret = FIELDS[k]
+        if secret:
+            raise ValueError(f"{k}: is set in the server's environment ({ENV_NAMES[k]}), not here")
         try:
             out[(sec, key)] = str(check(v))
         except ValueError as e:

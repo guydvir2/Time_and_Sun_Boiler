@@ -2,7 +2,7 @@
 
 Runs as a thread inside the service (so one process), or alone:  python dashboard.py  (view-only)
 Reading is open on your network. Anything that SWITCHES the boiler (Run / Stop) needs the dashboard
-password (config.local.ini or env DASHBOARD_PASSWORD); with no password set, controls are off.
+password (env DASHBOARD_PASSWORD); with no password set, controls are off.
 The API never exposes secrets.
 """
 import csv
@@ -491,21 +491,8 @@ class _Handler(BaseHTTPRequestHandler):
 
     # -- settings + setup
     def _first_password(self, body):
-        from . import setup
-        c = self.ctx
-        if c.auth.enabled:
-            return self._json(403, {"ok": False, "message": "A password is already set. Log in instead."})
-        try:
-            cleaned = setup.clean({"dashboard.password": body.get("password")})
-            setup.save(c.s, cleaned)
-        except ValueError as e:
-            return self._json(400, {"ok": False, "message": "Password: " + str(e).split(": ", 1)[-1]})
-        except OSError as e:
-            return self._json(500, {"ok": False, "message": f"Could not save: {e}"})
-        c.settings_changed()
-        log_event(c.s, "manual", "Dashboard password created", True)
-        cookie = f"{COOKIE}={c.auth.grant()}; HttpOnly; SameSite=Strict; Path=/; Max-Age={Auth.TTL}"
-        return self._json(200, {"ok": True, "message": "Password created"}, {"Set-Cookie": cookie})
+        return self._json(403, {"ok": False, "message": "The dashboard password is set with DASHBOARD_PASSWORD in "
+                                                        "the server's environment file, not here."})
 
     def _save_settings(self, body):
         from . import setup

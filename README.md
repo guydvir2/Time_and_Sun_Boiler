@@ -48,12 +48,16 @@ check that cloud cover is a fair stand-in for sun.
 `python backfill.py` fills the history chart from the weather files already in `stored_data/`
 (what the current formula would have decided). Those days show faded, marked "replayed". Safe to repeat.
 
-## Config
+## Config and secrets (two places, no more)
 
-- `config.ini`: settings (tracked). Pick drivers under `[output] drivers = ...`
-  (`dryrun`, `mqtt_tasmota`, `homeassistant`; a list means "next one only if the previous failed").
-- `config.local.ini` (git-ignored) or env vars: secrets (`HA_TOKEN`, `MQTT_PASSWORD`).
-  See `config.local.ini.example`.
+- `config.ini` (in git): harmless defaults only. No location, no addresses, no secrets.
+- `settings.json` (git-ignored, owner-only): **your** values, saved by the Settings tab / setup wizard.
+- **Secrets live only in the server's environment**, never in a file the app reads or writes:
+  `DASHBOARD_PASSWORD`, `MQTT_PASSWORD`, `HA_TOKEN`. Keep them in `boiler.env` (copy `boiler.env.example`,
+  `chmod 600`, git-ignored) and hand it to the service: `docker run --env-file boiler.env ...` or
+  `EnvironmentFile=/path/boiler.env` in systemd. The Settings tab only shows whether each one is set.
+- **Moving an existing install:** BEFORE switching branches run `python3 migrate_secrets.py --clean`. It writes
+  `boiler.env`, keeps your location / addresses in `settings.json`, and removes the secrets from the old files.
 
 ## Safe first runs
 

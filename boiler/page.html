@@ -297,7 +297,7 @@ function unlockRow(after) {
 }
 function lockedNote(c) {
   return c.password_set ? "Locked. Enter the password to switch the boiler or change settings."
-                        : "Locked. Set a dashboard password in config.local.ini and restart to enable controls.";
+                        : "Locked. Set DASHBOARD_PASSWORD in boiler.env on the server and restart to enable controls.";
 }
 
 /* ---------- icons ---------- */
@@ -609,7 +609,10 @@ const fld = (label, key, opt = {}) => {
   const w = h("div", "field"), id = "f-" + key.replace(/\W/g, "_"); const l = h("label", "", label); l.htmlFor = id;
   const inp = h("input"); inp.id = id; inp.type = opt.type || "text"; if (opt.ph) inp.placeholder = opt.ph;
   const v = SET[key];
-  if (opt.secret) inp.placeholder = v && v.set ? "Saved. Type to replace it" : (opt.ph || "Not set");
+  if (opt.secret) {                                  /* secrets live in the server's environment, never here */
+    const ok = v && v.set; const s_ = h("div", "hint", ok ? `🟢 Set in the server environment (${v.env}).` : `🟡 Not set. Add ${v ? v.env : "it"} to boiler.env on the server and restart.`);
+    w.append(l, s_); if (opt.hint && !ok) w.append(h("div", "hint", opt.hint)); return w;
+  }
   else if (v !== null && v !== undefined) inp.value = Array.isArray(v) ? v.join(",") : v;
   if (key in CHG && !opt.secret) inp.value = CHG[key];
   inp.oninput = () => { let x = inp.value; if (opt.type === "number") x = x === "" ? "" : Number(x);
@@ -700,7 +703,7 @@ function renderSettings() {
                                fld("Run 1 share of the day (%)", "run1_pct", {type: "number", hint: "100 = all in run 1. Less leaves the rest for run 2, for later showers."}),
                                fld("Run 2 time", "run2_at", {type: "time", hint: "When run 2 starts (never before the day's number is final). Empty = right after run 1."})); });
   card("Boiler", c => { c.id = "fullheat"; fullHeat(c); });
-  card("Password", c => { c.append(fld("New dashboard password", "dashboard.password", {type: "password", secret: true, hint: "At least 6 characters. Everyone is logged out after a change."})); });
+  card("Secrets", c => { c.append(fld("Dashboard password", "dashboard.password", {secret: true}), fld("MQTT broker password", "mqtt.password", {secret: true}), fld("Home Assistant token", "ha.token", {secret: true})); });
   const bar = h("div", "card"); const save = h("button", "btn go", "Save settings"); const undo = h("button", "btn ghost", "Undo changes");
   const st = h("div", "note"); const row = h("div", "row"); row.style.marginTop = "0"; row.append(save, undo); bar.append(row, st); body.append(bar);
   onChange = (redraw) => { if (redraw) { const y = scrollY; renderSettings(); scrollTo(0, y); return; } save.disabled = undo.disabled = !Object.keys(CHG).length; st.textContent = Object.keys(CHG).length ? "You have unsaved changes." : "All saved."; };
@@ -725,13 +728,9 @@ function renderWizard() {
   onChange = (redraw) => { if (redraw) renderWizard(); };
   if (STEP === 0) {
     k.append(h("h1", "", "Welcome to BoilerMind"), h("div", "note", "It reads the weather each day and runs your electric boiler only as long as the sun did not heat the water. First, protect this page with a password."));
-    const pw = h("input", "wide"); pw.type = "password"; pw.placeholder = "Choose a password"; pw.autocomplete = "new-password";
-    const pw2 = h("input", "wide"); pw2.type = "password"; pw2.placeholder = "Type it again"; pw2.autocomplete = "new-password";
-    const f = h("div", "field"); f.append(pw, pw2, h("div", "hint", "At least 6 characters. Needed to switch the boiler and change settings."));
-    k.append(f, nav); next.textContent = "Create password";
-    next.onclick = async () => { if (pw.value !== pw2.value) { toast("The two passwords are different"); return; }
-      const r = await post("/api/setup/password", {password: pw.value}); toast(r.message);
-      if (r.ok) { await refresh(); await fetchSettings(); STEP = 1; renderWizard(); } };
+    const f = h("div", "field"); f.append(h("div", "hint", "Passwords are never typed into this page. On the server, put  DASHBOARD_PASSWORD=your-password  in boiler.env (see boiler.env.example), restart the service, then press the button."));
+    k.append(f, nav); next.textContent = "I did it, continue";
+    next.onclick = async () => { await refresh(); if (S && S.controls.password_set) { startWizard(); } else toast("Not set yet: DASHBOARD_PASSWORD is empty on the server"); };
   } else if (STEP === 1) {
     k.append(h("h1", "", "Where is the boiler?"), h("div", "note", "Used for the local weather and sunrise times."));
     placeSearch(k); k.append(nav);
