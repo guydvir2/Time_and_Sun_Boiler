@@ -186,6 +186,8 @@ input[type=time]{width:128px}.pcard input{width:100%}
 .via{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;margin-top:10px;font:600 13px Figtree,sans-serif;padding:4px 10px;border-radius:99px;background:var(--soft);color:var(--ink)}
 .via .ico{width:15px;height:15px}
 .via.d{background:rgba(255,255,255,.2);color:#fff}
+.ico.logo{fill:currentColor;stroke:none}
+.tr .ran{margin-top:auto;padding:12px 0 0;font-size:13px;color:var(--mute)}.tr.on .ran{color:#FFE0D6}
 </style></head><body>
 <main>
 <header>
@@ -290,6 +292,8 @@ function lockedNote(c) {
 
 /* ---------- icons ---------- */
 const ICONS = {"access_point": "M12 12l0 .01 M14.828 9.172a4 4 0 0 1 0 5.656 M17.657 6.343a8 8 0 0 1 0 11.314 M9.168 14.828a4 4 0 0 1 0 -5.656 M6.337 17.657a8 8 0 0 1 0 -11.314", "plug_connected": "M7 12l5 5l-1.5 1.5a3.536 3.536 0 1 1 -5 -5l1.5 -1.5 M17 12l-5 -5l1.5 -1.5a3.536 3.536 0 1 1 5 5l-1.5 1.5 M3 21l2.5 -2.5 M18.5 5.5l2.5 -2.5 M10 11l-2 2 M13 14l-2 2", "home": "M5 12l-2 0l9 -9l9 9l-2 0 M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7 M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6", "cloud_download": "M19 18a3.5 3.5 0 0 0 0 -7h-1a5 4.5 0 0 0 -11 -2a4.6 4.4 0 0 0 -2.1 8.4 M12 13l0 9 M9 19l3 3l3 -3", "temperature": "M10 13.5a4 4 0 1 0 4 0v-8.5a2 2 0 0 0 -4 0v8.5 M10 9l4 0", "cloud": "M6.657 18c-2.572 0 -4.657 -2.007 -4.657 -4.483c0 -2.475 2.085 -4.482 4.657 -4.482c.393 -1.762 1.794 -3.2 3.675 -3.773c1.88 -.572 3.956 -.193 5.444 1c1.488 1.19 2.162 3.007 1.77 4.769h.99c1.913 0 3.464 1.56 3.464 3.486c0 1.927 -1.551 3.487 -3.465 3.487h-11.878", "sunrise": "M3 17h1m16 0h1m-15.4 -6.4l.7 .7m12.1 -.7l-.7 .7m-9.7 5.7a4 4 0 0 1 8 0 M3 21l18 0 M12 9v-6l3 3m-6 0l3 -3", "sunset": "M3 17h1m16 0h1m-15.4 -6.4l.7 .7m12.1 -.7l-.7 .7m-9.7 5.7a4 4 0 0 1 8 0 M3 21l18 0 M12 3v6l3 -3m-6 0l3 3", "flame": "M12 10.941c2.333 -3.308 .167 -7.823 -1 -8.941c0 3.395 -2.235 5.299 -3.667 6.706c-1.43 1.408 -2.333 3.294 -2.333 5.588c0 3.704 3.134 6.706 7 6.706c3.866 0 7 -3.002 7 -6.706c0 -1.712 -1.232 -4.403 -2.333 -5.588c-2.084 3.353 -3.257 3.353 -4.667 2.235", "alert_triangle": "M12 9v4 M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0 M12 16h.01", "player_stop": "M5 7a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2l0 -10", "lock": "M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6 M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0 M8 11v-4a4 4 0 1 1 8 0v4"};
+const LOGOS = {"homeassistant": "M22.939 10.627 13.061.749a1.505 1.505 0 0 0-2.121 0l-9.879 9.878C.478 11.21 0 12.363 0 13.187v9c0 .826.675 1.5 1.5 1.5h9.227l-4.063-4.062a2.034 2.034 0 0 1-.664.113c-1.13 0-2.05-.92-2.05-2.05s.92-2.05 2.05-2.05 2.05.92 2.05 2.05c0 .233-.041.456-.113.665l3.163 3.163V9.928a2.05 2.05 0 0 1-1.15-1.84c0-1.13.92-2.05 2.05-2.05s2.05.92 2.05 2.05a2.05 2.05 0 0 1-1.15 1.84v8.127l3.146-3.146A2.051 2.051 0 0 1 18 12.239c1.13 0 2.05.92 2.05 2.05s-.92 2.05-2.05 2.05c-.25 0-.488-.047-.709-.13L12.9 20.602v3.088h9.6c.825 0 1.5-.675 1.5-1.5v-9c0-.825-.477-1.977-1.061-2.561z", "mqtt": "M10.657 23.994h-9.45A1.212 1.212 0 0 1 0 22.788v-9.18h.071c5.784 0 10.504 4.65 10.586 10.386Zm7.606 0h-4.045C14.135 16.246 7.795 9.977 0 9.942V6.038h.071c9.983 0 18.121 8.044 18.192 17.956Zm4.53 0h-.97C21.754 12.071 11.995 2.407 0 2.372v-1.16C0 .55.544.006 1.207.006h7.64C15.733 2.49 21.257 7.789 24 14.508v8.291c0 .663-.544 1.195-1.207 1.195ZM16.713.006h6.092A1.19 1.19 0 0 1 24 1.2v5.914c-.91-1.242-2.046-2.65-3.158-3.762C19.588 2.11 18.122.987 16.714.005Z", "tasmota": "M12 0L0 12l1.371 1.372L12 2.743l10.629 10.629L24 12 12 0zm0 8.463a7.41 7.41 0 0 0-2.64 14.334v-2.133a5.464 5.464 0 0 1 1.671-10.17V24h1.94V10.494a5.464 5.464 0 0 1 1.669 10.171v2.133A7.41 7.41 0 0 0 12 8.463z"};   /* simple-icons, CC0 */
+const logo = n => { const s = el("svg", {viewBox: "0 0 24 24", class: "ico logo", "aria-hidden": "true"}); s.append(el("path", {d: LOGOS[n]})); return s; };
 const ico = n => { const s = el("svg", {viewBox: "0 0 24 24", class: "ico", "aria-hidden": "true"}); s.append(el("path", {d: ICONS[n]})); return s; };
 const fact = (icon, text, cls) => { const d = h("div", cls || ""); d.append(ico(icon)); const t = h("span", "", text); if (cls) t.style.color = "#DCE8EF"; d.append(t); return d; };
 
@@ -301,15 +305,15 @@ function renderLinks() {
   const find = f => rows.find(f);
   const items = [];
   const mq = find(r => r.name === "MQTT broker");
-  if (mq) items.push(["access_point", "MQTT broker", mq, "MQTT"]);
+  if (mq) items.push(["mqtt", "MQTT broker", mq, "MQTT"]);
   const plug = find(r => r.name.startsWith("Plug "));
-  if (mq || plug) items.push(["plug_connected", "Boiler relay", plug || {level: "grey", text: "Unknown until MQTT connects"}, "Relay"]);
+  if (mq || plug) items.push(["tasmota", "Boiler relay (Tasmota)", plug || {level: "grey", text: "Unknown until MQTT connects"}, "Relay"]);
   const ha = find(r => r.name === "Home Assistant");
-  if (ha) items.push(["home", "Home Assistant", ha, "HA"]);
+  if (ha) items.push(["homeassistant", "Home Assistant", ha, "HA"]);
   if (S) { const c = S.confidence; items.push(["cloud_download", "Weather data", {level: c.level >= 4 ? "green" : c.level === 3 ? "yellow" : "red", text: `Forecast confidence: ${c.label}`}]); }
   for (const [icon, name, r] of items) {
     const a = h("a", r.level); a.href = "#settings"; a.title = `${name}: ${r.text}`; a.setAttribute("aria-label", `${name}: ${r.text}`);
-    a.append(ico(icon)); box.append(a);
+    a.append(LOGOS[icon] ? logo(icon) : ico(icon)); box.append(a);
   }
 }
 
@@ -363,9 +367,13 @@ function renderToday(d) {
     const nx = nexts.find(e => e.at.slice(0, 10) === today);
     R.append(h("div", "lbl", "Boiler off"));
     if (nx) R.append(big(hm(nx.at)), h("div", "tiny", `Next: ${nx.what.replace(/ \(.*\)/, "")}, ${nx.m} min`));
-    else R.append(big("Off"), h("div", "tiny", d.auto.enabled ? "Nothing more today" : "Auto runs paused"));
+    else R.append(big("Off"), h("div", "tiny", d.auto.enabled ? "Nothing more today" : "On hold"));
     const v = viaChip(d); if (v) R.append(v);
   }
+
+  const t = d.totals.today, parts = [];
+  if (t.auto) parts.push(`auto ${t.auto}`); if (t.preset) parts.push(`preset ${t.preset}`); if (t.manual) parts.push(`extra ${t.manual}`);
+  R.append(h("div", "ran", t.total ? `Ran today ${t.total} min` + (parts.length > 1 ? ` (${parts.join(", ")})` : "") : "Not run yet today"));
 
   /* bottom: weather + confidence */
   const W = h("div", "tw");
@@ -429,27 +437,24 @@ function renderExtra(d) {
 function renderFoot(d) {
   const box = $("foot"); box.replaceChildren();
   const on = d.auto.enabled, card = h("div", "autocard" + (on ? "" : " paused"));
-  const txt = h("div"); txt.append(h("div", "t", on ? "Auto runs" : "Auto runs paused"),
-    h("div", "s", on ? "Daily runs and presets, by the sun" : "Only extra hot water will heat"));
+  const txt = h("div"); txt.append(h("div", "t", on ? "Active" : "On hold"),
+    h("div", "s", on ? "Heating by the sun, plus your presets" : "Nothing runs by itself. Extra hot water still works"));
   const sw = h("button", "tog" + (on ? "" : " off")); sw.type = "button"; sw.setAttribute("role", "switch");
-  sw.setAttribute("aria-checked", String(on)); sw.setAttribute("aria-label", "Auto runs");
+  sw.setAttribute("aria-checked", String(on)); sw.setAttribute("aria-label", "Active");
   sw.onclick = async () => {
     if (!d.controls.logged_in) { toast("Unlock first (Extra hot water box)"); return; }
-    if (on && !confirm("Pause auto runs? Daily runs and presets stop. Extra hot water still works.")) return;
+    if (on && !confirm("Put on hold? Daily runs and presets stop. Extra hot water still works.")) return;
     sw.disabled = true; const r = await post("/api/auto", {enabled: !on}); toast(r.message); refresh(); refreshServices();
   };
   card.append(txt, sw); $("autobox").replaceChildren(card);
-  const t = d.totals.today, parts = [];
-  if (t.auto) parts.push(`auto ${t.auto}`); if (t.preset) parts.push(`preset ${t.preset}`); if (t.manual) parts.push(`extra ${t.manual}`);
-  box.append(h("div", "ran", t.total ? `Ran today: ${t.total} min` + (parts.length > 1 ? ` (${parts.join(", ")})` : "") : "Not run yet today"));
 }
 
 /* which link switches the boiler */
 function viaChip(d, dark) {
   const drv = (d.drivers || [])[0]; if (!drv) return null;
-  const [icon, name] = {mqtt_tasmota: ["access_point", "via MQTT"], homeassistant: ["home", "via Home Assistant"], dryrun: ["plug_connected", "Test mode"]}[drv] || ["plug_connected", drv];
+  const [icon, name] = {mqtt_tasmota: ["mqtt", "via MQTT"], homeassistant: ["homeassistant", "via Home Assistant"], dryrun: ["plug_connected", "Test mode"]}[drv] || ["plug_connected", drv];
   const c = h("span", "via" + (dark ? " d" : "")); c.title = (d.drivers || []).length > 1 ? `Then: ${d.drivers.slice(1).join(", ")}` : name;
-  c.append(ico(icon), document.createTextNode(name)); return c;
+  c.append(LOGOS[icon] ? logo(icon) : ico(icon), document.createTextNode(name)); return c;
 }
 
 /* ---------- cloud quick control ---------- */
