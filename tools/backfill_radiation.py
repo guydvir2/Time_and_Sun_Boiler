@@ -7,7 +7,7 @@ Open-Meteo historical archive, and writes one CSV per day to
 stored_data_rad/YYYY-MM-DD.csv  (columns: time,temp,clouds,ghi,gti).
 
 Run on a machine that can reach Open-Meteo, from the repo root:
-    python3 tools/backfill_radiation.py [--tilt 50] [--azimuth 0]
+    python3 tools/backfill_radiation.py [--log daily_log.csv] [--tilt 50] [--azimuth 0]
 """
 
 import argparse
@@ -32,6 +32,11 @@ def location():
     return 32.72, 35.13
 
 
+def log_dates(path):
+    with open(path) as f:
+        return sorted(date.fromisoformat(r["date"]) for r in csv.DictReader(f))
+
+
 def stored_dates():
     names = glob.glob(os.path.join(ROOT, "stored_data", "*.csv"))
     return sorted(date.fromisoformat(os.path.basename(n)[:10]) for n in names)
@@ -41,9 +46,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tilt", type=float, default=50.0)
     ap.add_argument("--azimuth", type=float, default=0.0)
+    ap.add_argument("--log", default=None, help="app daily_log.csv: take the dates from it")
     args = ap.parse_args()
 
-    days = stored_dates()
+    days = log_dates(args.log) if args.log else stored_dates()
     if not days:
         raise SystemExit("no files in stored_data/")
     lat, lon = location()
