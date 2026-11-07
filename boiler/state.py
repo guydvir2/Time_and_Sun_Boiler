@@ -109,6 +109,39 @@ def load_plan(s):
     return _read_state(s).get("plan")
 
 
+def save_later(s, at, minutes):
+    """One pending 'extra hot water' run for later today: {at: ISO minute, minutes}."""
+    _update(s, later={"at": at.isoformat(timespec="minutes"), "minutes": int(minutes)})
+
+
+def clear_later(s):
+    _update(s, later=None)
+
+
+def load_later(s):
+    return _read_state(s).get("later")
+
+
+WX_KEEP = 12
+
+
+def record_weather(s, kind, ok):
+    """Remember the outcome of every weather / sun-time fetch (last WX_KEEP), for the confidence meter."""
+    with _lock:
+        d = _read_state(s)
+        log = d.get("wx_log", [])[-(WX_KEEP - 1):]
+        log.append({"t": datetime.now().isoformat(timespec="seconds"), "kind": kind, "ok": bool(ok)})
+        d["wx_log"] = log
+        if ok:
+            d["wx_last_ok"] = log[-1]["t"]
+        _write_state(s, d)
+
+
+def load_weather_log(s):
+    d = _read_state(s)
+    return d.get("wx_log", []), d.get("wx_last_ok")
+
+
 def preset_done(s):
     return _read_state(s).get("preset_done", {})
 

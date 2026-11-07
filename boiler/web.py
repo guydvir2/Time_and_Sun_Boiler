@@ -18,12 +18,15 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import APP_VERSION
 from .formula import Formula, explain, load_formula, compute_duration, base_minutes
-from .state import load_last_update, load_attempt, load_running, load_auto, set_auto, load_plan
+from .state import (load_last_update, load_attempt, load_running, load_auto, set_auto, load_plan,
+                    record_weather, save_later, clear_later, load_later)
+from . import confidence
 from .activity import log_event, read_events
 from .drivers import start_boiler, REGISTRY
 from . import runs, schedule
 
 PAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "page.html")
+STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 TUNE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tune.html")
 COOKIE = "boiler_session"
 CSRF_HEADER = ("X-Requested-With", "boiler-ui")      # a cross-site page cannot send this without our consent
@@ -147,6 +150,8 @@ def build_status(s, driver_names, formula=None, now=None):
         "history": hist,
         "weather": _today_weather(s, today),
         "activity": read_events(s, 15),
+        "confidence": confidence.score(s, now),
+        "later": load_later(s),
         "formula": {"points": sorted([float(k), v] for k, v in formula.temp_lut.items()),
                     "cloud_k": formula.cloud_k, "max_on": formula.max_on, "full": formula.to_dict()},
     }
@@ -265,8 +270,10 @@ class Ctx:
                 return self.fc["value"]
             try:
                 self.fc = {"t": _time.time(), "value": forecast_prediction(self.s, self.formula)}
+                record_weather(self.s, "forecast", True)
                 return self.fc["value"]
             except Exception as e:
+                record_weather(self.s, "forecast", False)
                 if self.fc["value"] is not None:     # serve the last good one, marked stale
                     return dict(self.fc["value"], stale=True)
                 return {"error": f"Forecast unavailable ({type(e).__name__})"}
@@ -283,7 +290,8 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
-        self.send_header("Cache-Control", "no-store")
+        if "Cache-Control" not in (headers or {}):
+            self.send_header("Cache-Control", "no-store")
         for k, v in (headers or {}).items():
             self.send_header(k, v)
         self.end_headers()
@@ -312,6 +320,13 @@ class _Handler(BaseHTTPRequestHandler):
         if path in ("/", "/index.html", "/tune"):
             with open(TUNE_FILE if path == "/tune" else PAGE_FILE, "rb") as f:
                 self._send(200, f.read(), "text/html; charset=utf-8")
+        elif path.startswith("/static/"):
+            name = os.path.basename(path)                # no sub-folders, no "..": just a file name
+            fp = os.path.join(STATIC_DIR, name)
+            if not name.endswith(".woff2") or not os.path.isfile(fp):
+                return self._send(404, "not found", "text/plain")
+            with open(fp, "rb") as f:
+                self._send(200, f.read(), "font/woff2", {"Cache-Control": "max-age=604800"})
         elif path == "/api/tune":
             try:
                 self._json(200, self._tune_data())
@@ -387,7 +402,7 @@ class _Handler(BaseHTTPRequestHandler):
         if path == "/api/sunshine":                   # fetch public data into the cache: no password needed
             return self._sunshine()
 
-        if path not in ("/api/run", "/api/stop", "/api/auto", "/api/formula", "/api/schedule",
+        if path not in ("/api/run", "/api/stop", "/api/auto", "/api/later/cancel", "/api/formula", "/api/schedule",
                         "/api/settings", "/api/settings/test"):
             return self._json(404, {"ok": False, "message": "Not found"})
         if not c.auth.enabled:
@@ -396,6 +411,12 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
         if path == "/api/auto":                       # pause/resume needs no driver
             return self._auto(body)
+        if path == "/api/later/cancel":
+            later = load_later(c.s)
+            clear_later(c.s)
+            if later:
+                log_event(c.s, "manual", f"Cancelled extra {later['minutes']} min at {later['at'][11:16]}", True)
+            return self._json(200, {"ok": True, "message": "Cancelled"})
         if path == "/api/formula":
             return self._save_formula(body)
         if path == "/api/schedule":
@@ -423,6 +444,18 @@ class _Handler(BaseHTTPRequestHandler):
         if isinstance(m, bool) or not isinstance(m, (int, float)) or int(m) != m or not 1 <= int(m) <= s.max_manual_minutes:
             return self._json(400, {"ok": False, "message": f"Minutes must be a whole number from 1 to {s.max_manual_minutes}"})
         m = int(m)
+        at = body.get("at")
+        if at:                                          # "HH:MM" later today: the engine starts it
+            try:
+                hh, mm = (int(x) for x in str(at).split(":"))
+                when = datetime.combine(date.today(), time(hh, mm))
+            except ValueError:
+                return self._json(400, {"ok": False, "message": "Start time must be HH:MM"})
+            if when <= datetime.now():
+                return self._json(400, {"ok": False, "message": "Start time has already passed"})
+            save_later(s, when, m)
+            log_event(s, "manual", f"Extra {m} min set for {when:%H:%M}", True)
+            return self._json(200, {"ok": True, "message": f"Set: {m} min at {when:%H:%M}"})
         ok, used = start_boiler(c.drivers, m)
         if ok:
             runs.record_start(s, m, "manual")

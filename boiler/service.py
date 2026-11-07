@@ -14,7 +14,8 @@ from .settings import Settings
 from .formula import Formula, daily_mean, explain, load_formula
 from .weather import get_weather, get_sun_times, csv_path, save_csv, load_csv
 from .state import (load_last_update, save_last_update, save_attempt, log_decision, save_heartbeat,
-                    auto_enabled, save_plan, load_plan, preset_done, mark_preset_done, load_running)
+                    auto_enabled, save_plan, load_plan, preset_done, mark_preset_done, load_running,
+                    load_later, clear_later)
 from .activity import log_event, trim
 from .drivers import build_drivers, start_boiler
 from . import schedule, runs
@@ -113,9 +114,25 @@ class Engine:
         self.last_try[key] = t
         return True
 
+    def _later(self, now):
+        s, later = self.s, load_later(self.s)
+        if not later:
+            return
+        at = datetime.fromisoformat(later["at"])
+        if now < at:
+            return
+        if now > at + timedelta(minutes=START_GIVE_UP_MIN):
+            clear_later(s)
+            log_event(s, "manual", f"Gave up the extra {later['minutes']} min set for {at:%H:%M}", False)
+        elif self._may_try("later", START_RETRY_MIN):
+            ok, _ = start_now(s, self.drivers, later["minutes"], "manual", "Extra hot water")
+            if ok:
+                clear_later(s)
+
     def tick(self, now=None):
         s, now = self.s, now or datetime.now()
         save_heartbeat(s)
+        self._later(now)                       # a user-set extra run goes ahead even when paused
         if not auto_enabled(s):
             return "paused"
         today = str(now.date())

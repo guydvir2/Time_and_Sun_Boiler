@@ -5,6 +5,14 @@ import requests
 from datetime import datetime, date, timedelta
 
 
+def _record(s, kind, ok):
+    try:
+        from .state import record_weather
+        record_weather(s, kind, ok)
+    except Exception:                      # bookkeeping must never break a fetch
+        pass
+
+
 def get_weather(s, start_hour, end_hour, days_back=0):
     """Hourly temperature and cloud cover for one day, limited to [start_hour, end_hour].
     Returns (rows, ok). Rows are dicts: time, temp, clouds."""
@@ -26,9 +34,11 @@ def get_weather(s, start_hour, end_hour, days_back=0):
                 continue
             rows.append({"time": ts, "temp": temp, "clouds": clouds})
         print(f"✅ {len(rows)} weather points")
+        _record(s, "weather", len(rows) > 0)
         return rows, len(rows) > 0
     except Exception as e:
         print(f"❌ Weather fetch failed: {e}")
+        _record(s, "weather", False)
         return [], False
 
 
@@ -47,10 +57,12 @@ def get_sun_times(s, days_back=0, default_sunrise=7, default_sunset=17):
                 res = {"sunrise": round(a.hour + a.minute / 60) % 24,
                        "sunset": round(b.hour + b.minute / 60) % 24}
                 print(f"🌅 Sunrise {a:%H:%M} → {res['sunrise']}h, sunset {b:%H:%M} → {res['sunset']}h")
+                _record(s, "sun", True)
                 return res
         print(f"⚠️  No sun data for {target}, using defaults")
     except Exception as e:
         print(f"❌ Sun times failed: {e} — using defaults")
+    _record(s, "sun", False)
     return {"sunrise": default_sunrise, "sunset": default_sunset}
 
 

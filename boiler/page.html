@@ -6,18 +6,24 @@
 <title>BoilerMind</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='14' r='7' fill='%23f2b53a'/%3E%3Cpath d='M3 22c4-3 7-3 10 0s7 3 10 0 5-3 6-2v8H3z' fill='%232b7fb8'/%3E%3C/svg%3E">
 <style>
+@font-face{font-family:Figtree;font-weight:400;font-display:swap;src:url(/static/figtree-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:Figtree;font-weight:600;font-display:swap;src:url(/static/figtree-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:Bricolage;font-weight:600;font-display:swap;src:url(/static/bricolage-grotesque-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:Bricolage;font-weight:700;font-display:swap;src:url(/static/bricolage-grotesque-latin-700-normal.woff2) format("woff2")}
 :root{
-  --bg:#e9f0f4; --card:#ffffff; --ink:#12293b; --mute:#5b6f80; --line:#d6e1e8; --soft:#f3f7f9;
-  --sun:#f2b53a; --heat:#e0533d; --water:#2b7fb8; --ok:#1f9d61; --warn:#c98a00; --bad:#d23c2e;
-  --r-lg:20px; --r-sm:10px;
+  --bg:#DCEAF1; --card:#FBFDFE; --ink:#12324A; --mute:#5E7688; --line:#D3E1E9; --soft:#EEF4F8;
+  --sun:#F4B12C; --heat:#E2552F; --water:#1F6E9C; --ok:#2FA36B; --warn:#C98A00; --bad:#D23C2E;
+  --deep:#12324A; --deep2:#1D4866; --deeptx:#A9C3D4;
+  --r-lg:24px; --r-sm:12px;
 }
 @media (prefers-color-scheme:dark){:root{
-  --bg:#0d1922; --card:#14232e; --ink:#e4edf2; --mute:#90a4b3; --line:#243845; --soft:#1a2c38;
-  --sun:#f2b53a; --heat:#f0654e; --water:#5aa6dc; --ok:#3cc07f; --warn:#e2ad2e; --bad:#ff6b5c;
+  --bg:#0B1A24; --card:#132631; --ink:#E4EDF2; --mute:#8FA6B5; --line:#223947; --soft:#1A2F3C;
+  --sun:#F4B12C; --heat:#F0654E; --water:#5AA6DC; --ok:#3CC07F; --warn:#E2AD2E; --bad:#FF6B5C;
+  --deep:#16364D; --deep2:#21496A; --deeptx:#A9C3D4;
 }}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-feature-settings:"tnum" 1}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Figtree,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-feature-settings:"tnum" 1}
 main{max-width:720px;margin:0 auto;padding:12px 16px 96px}
 a{color:var(--water)}
 button,input{font:inherit;color:inherit}
@@ -25,7 +31,7 @@ button,input{font:inherit;color:inherit}
 
 /* header + tabs */
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0 12px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:750;font-size:20px;letter-spacing:-.01em}
+.brand{display:flex;align-items:center;gap:10px;font:700 21px Bricolage,Figtree,sans-serif;letter-spacing:-.02em}
 .brand svg{width:34px;height:34px}
 .pill{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--mute);background:var(--card);border:1px solid var(--line);padding:5px 11px;border-radius:999px;max-width:55vw}
 .pill i{width:9px;height:9px;border-radius:50%;background:var(--mute);flex:none}
@@ -119,11 +125,50 @@ input[type=time]{width:128px}.pcard input{width:100%}
 .wxl{display:flex;justify-content:space-between;gap:8px;padding:4px 0;font-size:15px}.wxl span:last-child{color:var(--mute)}
 #toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);background:var(--ink);color:var(--card);padding:11px 16px;border-radius:12px;font-size:15px;max-width:90vw;display:none;z-index:9}
 @media (prefers-reduced-motion:no-preference){.nowline{animation:pulse 2.4s ease-in-out infinite}@keyframes pulse{50%{opacity:.35}}}
+
+/* ---- home v3 ---- */
+.ico{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.links{display:flex;gap:6px}
+.links a{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--card);color:var(--ok);position:relative}
+.links a::after{content:"";position:absolute;right:0;bottom:0;width:10px;height:10px;border-radius:50%;background:var(--ok);border:2px solid var(--bg)}
+.links a.yellow{color:var(--warn)}.links a.yellow::after{background:var(--sun)}
+.links a.red{color:var(--bad)}.links a.red::after{background:var(--bad)}
+.links a.grey{color:var(--mute)}.links a.grey::after{background:var(--line)}
+.today{background:var(--deep);color:#fff;border-radius:var(--r-lg);padding:22px 22px 20px;margin-bottom:14px}
+.today .lead{color:var(--deeptx);font-size:15px}
+.today .num{font:700 88px/.9 Bricolage,Figtree,sans-serif;letter-spacing:-.04em;margin:6px 0 16px;display:flex;align-items:baseline;gap:8px}
+.today .num small{font:600 24px Bricolage,Figtree,sans-serif;letter-spacing:0;color:var(--deeptx)}
+.today.on .num{color:var(--sun)}
+.facts{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:15px;color:#DCE8EF}
+.facts div{display:flex;align-items:center;gap:6px}.facts .s{color:var(--sun)}
+.trust{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:14px;color:var(--deeptx)}
+.meter{display:flex;gap:3px}.meter i{width:14px;height:6px;border-radius:3px;background:var(--sun)}.meter i.off{background:rgba(255,255,255,.18)}
+.alert{display:flex;gap:8px;align-items:flex-start;margin-top:12px;padding:10px 12px;border-radius:14px;background:rgba(244,177,44,.16);color:#FBE3AE;font-size:14px;line-height:1.35}
+.when{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));margin-top:18px;background:var(--deep2);border-radius:16px}
+.when div{padding:12px 14px}.when div+div{border-left:1px solid rgba(255,255,255,.12)}
+.when span{display:block;font-size:13px;color:var(--deeptx)}
+.when b{font:600 26px Bricolage,Figtree,sans-serif}.when .ready b{color:var(--sun)}
+.today .btn.stop{margin-top:16px;width:100%;min-height:50px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px}
+.extra{background:var(--card);border-radius:var(--r-lg);padding:20px 22px 22px;margin-bottom:14px}
+.extra h2{font:600 20px Bricolage,Figtree,sans-serif;margin:0 0 14px;letter-spacing:-.01em}
+.ctl{margin-bottom:16px}
+.ctl .row2{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--mute);margin-bottom:6px}
+.ctl .row2 b{font:600 19px Bricolage,Figtree,sans-serif;color:var(--ink)}
+.extra input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:99px;background:linear-gradient(var(--ink),var(--ink)) 0/var(--p,0%) 100% no-repeat,var(--line);outline:none;margin:10px 0}
+.extra input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:var(--card);border:3px solid var(--ink);box-shadow:0 2px 6px rgba(18,50,74,.25);cursor:pointer}
+.extra input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--card);border:3px solid var(--ink);cursor:pointer}
+.extra input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px rgba(244,177,44,.6)}
+.heat{width:100%;min-height:56px;border:0;border-radius:18px;background:var(--heat);color:#fff;font:600 18px Figtree,sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+.heat .ico{width:22px;height:22px}.heat:disabled{opacity:.6;cursor:default}
+.heat:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.pending{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;padding:10px 14px;border-radius:14px;background:var(--soft);font-size:15px}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:4px 6px;font-size:14px;color:var(--mute)}
+.foot .switch{color:var(--ink);font-weight:600}
 </style></head><body>
 <main>
 <header>
   <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="13" r="7" fill="var(--sun)"/><path d="M2 22c4-3 7-3 10 0s8 3 11 0 5-3 7-2v9H2z" fill="var(--water)"/></svg>BoilerMind</div>
-  <div class="pill" id="pill"><i></i><span>Loading</span></div>
+  <div class="links" id="links" aria-label="Connections"></div>
 </header>
 <nav id="nav">
   <a href="#home" data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
@@ -136,24 +181,14 @@ input[type=time]{width:128px}.pcard input{width:100%}
 
 <!-- ============ HOME ============ -->
 <section class="tab" id="t-home">
-  <div class="card hero">
-    <div class="headline" id="headline">…</div>
-    <div class="sub" id="subline"></div>
-    <div class="strip" id="strip"></div>
-    <div class="stats">
-      <div><div class="total" id="total">0<small>min</small></div><div class="total-l">ran today</div></div>
-      <div class="chips" id="chips"></div>
-    </div>
-  </div>
-  <div class="card" id="controls"></div>
-  <div class="card" id="cloud"></div>
-  <div class="card"><h2>Coming up</h2><div id="next"></div></div>
-  <div class="card"><h2>Recent activity</h2><div id="act"></div></div>
-  <div class="card"><h2>Services<small id="svwhen"></small></h2><div id="sv" class="note">Checking…</div></div>
+  <div class="today" id="today"><div class="lead">Loading…</div></div>
+  <div class="extra" id="extra"></div>
+  <div class="foot" id="foot"></div>
 </section>
 
 <!-- ============ SCHEDULE ============ -->
 <section class="tab" id="t-schedule">
+  <div class="card"><h2>Coming up</h2><div id="next"></div></div>
   <div class="card"><h2>Sun-based daily run</h2>
     <div class="note" id="decide-note"></div>
     <label class="radio"><input type="radio" name="rb" value="asap" id="rb-asap"> Start as soon as it is decided</label>
@@ -175,7 +210,10 @@ input[type=time]{width:128px}.pcard input{width:100%}
   <div class="card"><h2>Details</h2><div class="kv" id="kv"></div><h2 style="margin-top:16px">Temperature to minutes</h2><div id="fx"></div></div>
 </section>
 <!-- ============ SETTINGS ============ -->
-<section class="tab" id="t-settings"><div id="settings-body"><div class="card note">Loading…</div></div></section>
+<section class="tab" id="t-settings">
+  <div class="card" id="services"><h2>Connections<small id="svwhen"></small></h2><div id="sv" class="note">Checking…</div></div>
+  <div class="card" id="cloud"></div>
+  <div id="settings-body"><div class="card note">Loading…</div></div></section>
 
 <!-- ============ SETUP WIZARD ============ -->
 <section class="tab" id="t-setup"><div id="setup-body"></div></section>
@@ -227,100 +265,138 @@ function lockedNote(c) {
                         : "Locked. Set a dashboard password in config.local.ini and restart to enable controls.";
 }
 
-/* ---------- hero ---------- */
-function renderHero(d) {
-  const H = $("headline"), sub = $("subline"); H.className = "headline";
-  const p = d.plan;
-  if (d.running) { H.textContent = "On now"; H.classList.add("on");
-    sub.textContent = `Until ${hm(d.running.until)}, ${d.running.minutes} min ${d.running.source} run.`; }
-  else if (!d.auto.enabled) { H.textContent = "Schedule paused"; sub.textContent = "No automatic or preset runs. Manual Run still works."; }
-  else if (p && p.status === "planned") { H.textContent = `Hot by ${hm(p.ready_at)}`;
-    sub.textContent = `Starts at ${hm(p.start_at)} and runs ${p.minutes} min (${p.temp}°C, ${p.clouds}% clouds).`; }
-  else if (p && p.date === d.now.slice(0, 10) && p.status === "started") { H.textContent = "Done for today";
-    sub.textContent = `Ran ${p.minutes} min, hot since ${hm(p.ready_at)}.`; }
-  else if (p && p.date === d.now.slice(0, 10) && p.status === "skipped") { H.textContent = "Sun did the work"; sub.textContent = "No boiler time needed today."; }
-  else if (d.today && d.today.ok && !d.today.replay) { H.textContent = "Done for today"; sub.textContent = `Auto run: ${d.today.minutes} min (${d.today.temp}°C, ${d.today.clouds}% clouds).`; }
-  else { H.textContent = d.health.level === "red" ? "Needs attention" : "Waiting"; sub.textContent = d.health.text; }
-  const pill = $("pill"); pill.className = "pill " + d.health.level; pill.querySelector("span").textContent = {green: "All good", yellow: "Heads-up", red: "Problem"}[d.health.level] || "…"; pill.title = d.health.text;
-  const t = d.totals.today; $("total").firstChild.textContent = t.total;
-  const ch = $("chips"); ch.replaceChildren();
-  for (const k of ["auto", "preset", "manual"]) if (t[k]) { const c = h("span", "chip"); c.append(h("i", "sw " + k), document.createTextNode(k + " "), h("b", "", t[k])); ch.append(c); }
-  const wk = h("span", "chip"); wk.append(document.createTextNode("7 days "), h("b", "", d.totals.week + " min")); ch.append(wk);
-  drawStrip(d);
-}
-function drawStrip(d) {
-  const box = $("strip"); box.replaceChildren();
-  const W = 360, x0 = 4, x1 = W - 4, X = m => x0 + (m / 1440) * (x1 - x0);
-  const svg = el("svg", {viewBox: `0 0 ${W} 78`, role: "img", "aria-label": "Today: sun hours and boiler on time"});
-  svg.append(el("rect", {x: x0, y: 8, width: x1 - x0, height: 22, rx: 7, fill: "var(--soft)"}));
-  svg.append(el("rect", {x: x0, y: 36, width: x1 - x0, height: 16, rx: 6, fill: "var(--soft)"}));
-  const today = d.now.slice(0, 10), fd = FC && FC.days ? FC.days.find(x => x.date === today) : null;
-  if (fd) {
-    for (const hr of fd.hours) svg.append(el("rect", {x: X(hr.h * 60), y: 8, width: (x1 - x0) / 24, height: 22, fill: "var(--sun)", opacity: (0.15 + 0.85 * (100 - hr.c) / 100).toFixed(2)}));
-    const [sr, ss] = [fd.sunrise, fd.sunset].map(v => { const [a, b] = v.split(":").map(Number); return a * 60 + b; });
-    svg.append(el("rect", {x: x0, y: 8, width: X(sr) - x0, height: 22, rx: 7, fill: "var(--card)", opacity: .7}));
-    svg.append(el("rect", {x: X(ss), y: 8, width: x1 - X(ss), height: 22, rx: 7, fill: "var(--card)", opacity: .7}));
+/* ---------- icons ---------- */
+const ICONS = {"access_point": "M12 12l0 .01 M14.828 9.172a4 4 0 0 1 0 5.656 M17.657 6.343a8 8 0 0 1 0 11.314 M9.168 14.828a4 4 0 0 1 0 -5.656 M6.337 17.657a8 8 0 0 1 0 -11.314", "plug_connected": "M7 12l5 5l-1.5 1.5a3.536 3.536 0 1 1 -5 -5l1.5 -1.5 M17 12l-5 -5l1.5 -1.5a3.536 3.536 0 1 1 5 5l-1.5 1.5 M3 21l2.5 -2.5 M18.5 5.5l2.5 -2.5 M10 11l-2 2 M13 14l-2 2", "home": "M5 12l-2 0l9 -9l9 9l-2 0 M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7 M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6", "cloud_download": "M19 18a3.5 3.5 0 0 0 0 -7h-1a5 4.5 0 0 0 -11 -2a4.6 4.4 0 0 0 -2.1 8.4 M12 13l0 9 M9 19l3 3l3 -3", "temperature": "M10 13.5a4 4 0 1 0 4 0v-8.5a2 2 0 0 0 -4 0v8.5 M10 9l4 0", "cloud": "M6.657 18c-2.572 0 -4.657 -2.007 -4.657 -4.483c0 -2.475 2.085 -4.482 4.657 -4.482c.393 -1.762 1.794 -3.2 3.675 -3.773c1.88 -.572 3.956 -.193 5.444 1c1.488 1.19 2.162 3.007 1.77 4.769h.99c1.913 0 3.464 1.56 3.464 3.486c0 1.927 -1.551 3.487 -3.465 3.487h-11.878", "sunrise": "M3 17h1m16 0h1m-15.4 -6.4l.7 .7m12.1 -.7l-.7 .7m-9.7 5.7a4 4 0 0 1 8 0 M3 21l18 0 M12 9v-6l3 3m-6 0l3 -3", "sunset": "M3 17h1m16 0h1m-15.4 -6.4l.7 .7m12.1 -.7l-.7 .7m-9.7 5.7a4 4 0 0 1 8 0 M3 21l18 0 M12 3v6l3 -3m-6 0l3 3", "flame": "M12 10.941c2.333 -3.308 .167 -7.823 -1 -8.941c0 3.395 -2.235 5.299 -3.667 6.706c-1.43 1.408 -2.333 3.294 -2.333 5.588c0 3.704 3.134 6.706 7 6.706c3.866 0 7 -3.002 7 -6.706c0 -1.712 -1.232 -4.403 -2.333 -5.588c-2.084 3.353 -3.257 3.353 -4.667 2.235", "alert_triangle": "M12 9v4 M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0 M12 16h.01", "player_stop": "M5 7a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2l0 -10", "lock": "M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6 M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0 M8 11v-4a4 4 0 1 1 8 0v4"};
+const ico = n => { const s = el("svg", {viewBox: "0 0 24 24", class: "ico", "aria-hidden": "true"}); s.append(el("path", {d: ICONS[n]})); return s; };
+const fact = (icon, text, cls) => { const d = h("div", cls || ""); d.append(ico(icon)); const t = h("span", "", text); if (cls) t.style.color = "#DCE8EF"; d.append(t); return d; };
+
+/* ---------- header: one light per link ---------- */
+let SV = null;
+function renderLinks() {
+  const box = $("links"); box.replaceChildren();
+  const rows = (SV && SV.services) || [];
+  const find = f => rows.find(f);
+  const items = [];
+  const mq = find(r => r.name === "MQTT broker");
+  if (mq) items.push(["access_point", "MQTT broker", mq, "MQTT"]);
+  const plug = find(r => r.name.startsWith("Plug "));
+  if (mq || plug) items.push(["plug_connected", "Boiler relay", plug || {level: "grey", text: "Unknown until MQTT connects"}, "Relay"]);
+  const ha = find(r => r.name === "Home Assistant");
+  if (ha) items.push(["home", "Home Assistant", ha, "HA"]);
+  if (S) { const c = S.confidence; items.push(["cloud_download", "Weather data", {level: c.level >= 4 ? "green" : c.level === 3 ? "yellow" : "red", text: `Forecast confidence: ${c.label}`}]); }
+  for (const [icon, name, r] of items) {
+    const a = h("a", r.level); a.href = "#settings"; a.title = `${name}: ${r.text}`; a.setAttribute("aria-label", `${name}: ${r.text}`);
+    a.append(ico(icon)); box.append(a);
   }
-  const seg = (a, b, attrs) => svg.append(el("rect", Object.assign({x: X(a), y: 36, width: Math.max(X(b) - X(a), 3), height: 16, rx: 4}, attrs)));
-  for (const s of d.segments) { const a = mins(s.start), b = s.end.slice(0, 10) > today ? 1440 : mins(s.end);
-    seg(a, b, {fill: s.source === "preset" ? "var(--water)" : s.source === "manual" ? "var(--ink)" : "var(--heat)"}); }
-  const p = d.plan;
-  if (p && p.status === "planned" && p.start_at.slice(0, 10) === today) {
-    const b = p.ready_at.slice(0, 10) > today ? 1440 : mins(p.ready_at);
-    seg(mins(p.start_at), b, {fill: "none", stroke: "var(--heat)", "stroke-width": 2, "stroke-dasharray": "5 4"});
-  }
-  if (p && p.status === "planned" && p.ready_at.slice(0, 10) === today) {
-    const rx = X(mins(p.ready_at)); svg.append(el("path", {d: `M${rx} 32 v24 M${rx} 56 l7 -3 l-7 -3`, stroke: "var(--heat)", "stroke-width": 2, fill: "var(--heat)"}));
-  }
-  const nx = X(mins(d.now)); svg.append(el("line", {x1: nx, x2: nx, y1: 4, y2: 56, stroke: "var(--ink)", "stroke-width": 2, class: "nowline"}));
-  for (const [m, t] of [[0, "0"], [360, "6"], [720, "12"], [1080, "18"], [1440, "24"]])
-    svg.append(el("text", {x: X(m), y: 70, class: "lbl", "text-anchor": m === 0 ? "start" : m === 1440 ? "end" : "middle"}, t));
-  box.append(svg);
-  const cap = h("div", "cap"), line = (sw, txt) => { const r = h("div", "capl"); if (sw === "sun") r.append(h("i", "sw sun")); r.append(h("span", "", txt)); cap.append(r); };
-  if (fd) line("sun", `Sky: daylight ${fd.sunrise} to ${fd.sunset}, ${fd.mean_clouds}% clouds on average. Brighter yellow = clearer hour; dark = night.`);
-  else line("sun", "Sky: forecast not loaded yet.");
-  const parts = d.segments.map(s => `${hm(s.start)} to ${hm(s.end)} (${s.source})`);
-  if (parts.length) line("", "Boiler ran: " + parts.join(", ") + " (blue = preset, red = auto, dark = manual).");
-  else if (d.running) line("", `Boiler on now until ${hm(d.running.until)}.`);
-  else if (d.today && d.today.ok && !d.today.replay) line("", `Boiler ran ${d.today.minutes} min earlier today (before the run log existed, so not drawn).`);
-  else line("", "Boiler: has not run yet today.");
-  if (p && p.status === "planned") line("", `Planned: ${hm(p.start_at)} to ${hm(p.ready_at)} (dashed), ${p.minutes} min.`);
-  cap.append(h("div", "capl", `Thin vertical line = now (${hm(d.now)}).`));
-  box.append(cap);
 }
 
-/* ---------- controls ---------- */
-function busy(box, b) { box.querySelectorAll("button,input").forEach(x => x.disabled = b); }
-async function doRun(box, m) {
-  const c = S.controls; m = Math.round(Number(m));
-  if (!(m >= 1 && m <= c.max_minutes)) { toast(`Enter 1 to ${c.max_minutes} minutes`); return; }
-  const on = S.running ? ` It is already on until ${hm(S.running.until)}; this restarts the timer.` : "";
-  if (!confirm(`Run the boiler for ${m} minutes now?${on}`)) return;
-  busy(box, true); toast("Sending…"); const r = await post("/api/run", {minutes: m});
-  toast(r.ok ? `Running for ${m} min` : r.message); ctlKey = ""; await refresh();
+/* ---------- today card ---------- */
+function todayForecast(d) {
+  const day = d.now.slice(0, 10);
+  return FC && FC.days ? FC.days.find(x => x.date === day) : null;
 }
-function renderControls(d) {
-  const c = d.controls, key = JSON.stringify([c, d.auto.enabled, !!d.running]);
-  if (key === ctlKey) return; ctlKey = key;
-  const box = $("controls"); box.replaceChildren(h("h2", "", "Run now"));
+function renderToday(d) {
+  const box = $("today"); box.replaceChildren(); box.className = "today";
+  const p = d.plan, today = d.now.slice(0, 10), fd = todayForecast(d), planToday = p && p.date === today;
+  let lead, num, unit = "min", when = null;
+  if (d.running) {
+    box.classList.add("on");
+    const left = Math.max(1, Math.round((Date.parse(d.running.until) - Date.parse(d.now)) / 60000));
+    lead = `Heating now (${d.running.source === "manual" ? "extra" : d.running.source})`; num = left; unit = "min left";
+    const t0 = new Date(Date.parse(d.running.until) - d.running.minutes * 60000);
+    when = [["Started", pad2(t0.getHours()) + ":" + pad2(t0.getMinutes())], ["Hot by", hm(d.running.until)]];
+  } else if (planToday && p.status === "skipped") {
+    lead = "Sun did the work today"; num = 0;
+  } else if (planToday && p.status === "planned") {
+    lead = "Today the boiler runs"; num = p.minutes; when = [["Starts", hm(p.start_at)], ["Hot by", hm(p.ready_at)]];
+  } else if (planToday && (p.status === "started" || p.status === "failed" || p.status === "missed")) {
+    lead = p.status === "started" ? "Done for today" : "Today's run did not start"; num = p.minutes;
+    when = [["Started", hm(p.start_at)], [p.status === "started" ? "Hot since" : "Planned for", hm(p.ready_at)]];
+  } else {
+    lead = d.auto.enabled ? "Today, expected" : "Schedule paused. Today would be"; num = fd ? fd.minutes : "–";
+    when = [["Decides at", d.update_after]]; if (d.ready_by) when.push(["Hot by", d.ready_by]);
+  }
+  box.append(h("div", "lead", lead));
+  const n = h("div", "num", String(num)); n.append(h("small", "", unit)); box.append(n);
+
+  const temps = fd ? fd.hours.map(x => x.t).filter(x => x != null) : [];
+  const f1 = h("div", "facts");
+  if (temps.length) f1.append(fact("temperature", `${Math.round(Math.min(...temps))}–${Math.round(Math.max(...temps))}°`));
+  else if (planToday && p.temp != null) f1.append(fact("temperature", `${Math.round(p.temp)}° avg`));
+  const cc = fd ? fd.mean_clouds : planToday ? p.clouds : null;
+  if (cc != null) f1.append(fact("cloud", `${cc}% clouds`));
+  if (f1.childNodes.length) box.append(f1);
+  if (fd) { const f2 = h("div", "facts"); f2.style.marginTop = "8px"; f2.append(fact("sunrise", fd.sunrise, "s"), fact("sunset", fd.sunset, "s")); box.append(f2); }
+
+  const c = d.confidence, tr = h("div", "trust"), m = h("div", "meter");
+  for (let i = 0; i < 5; i++) m.append(h("i", i < c.level ? "" : "off"));
+  tr.append(m, h("span", "", `Forecast confidence: ${c.label}`)); box.append(tr);
+  if (c.warning) { const a = h("div", "alert"); a.append(ico("alert_triangle"), h("span", "", c.warning)); box.append(a); }
+
+  if (when) { const w = h("div", "when"); when.forEach(([k, v], i) => { const x = h("div", i ? "ready" : ""); x.append(h("span", "", k), h("b", "", v)); w.append(x); }); box.append(w); }
+  if (d.running && d.controls.can_stop && d.controls.logged_in) {
+    const st = h("button", "btn stop"); st.append(ico("player_stop"), document.createTextNode("Stop now"));
+    st.onclick = async () => { if (!confirm("Switch the boiler off now?")) return; st.disabled = true; const r = await post("/api/stop"); toast(r.ok ? "Stopped" : r.message); refresh(); };
+    box.append(st);
+  }
+}
+
+/* ---------- extra hot water ---------- */
+let EX = {dur: 30, start: 0};
+const pad2 = x => String(x).padStart(2, "0");
+function startOptions(d) {            // 0 = now, then every quarter hour until 23:45
+  const t = new Date(d.now), m0 = t.getHours() * 60 + t.getMinutes(), first = Math.ceil((m0 + 5) / 15) * 15;
+  const out = [null]; for (let m = first; m <= 23 * 60 + 45; m += 15) out.push(m); return out;
+}
+function renderExtra(d) {
+  const box = $("extra"), c = d.controls;
+  const key = JSON.stringify([c, d.later, d.now.slice(0, 15)]);
+  if (box.dataset.key === key) return; box.dataset.key = key; box.replaceChildren(h("h2", "", "Extra hot water"));
+  if (!c.available) { box.append(h("div", "note", "View-only: no boiler connection is set up.")); return; }
   if (!c.password_set || !c.logged_in) { box.append(h("div", "note", lockedNote(c))); if (c.password_set) box.append(unlockRow()); return; }
-  if (c.available) {
-    const r1 = h("div", "row quick");
-    for (const m of [30, 60, 90, 120].filter(m => m <= c.max_minutes)) { const b = h("button", "btn", m + " min"); b.onclick = () => doRun(box, m); r1.append(b); }
-    const inp = h("input"); inp.type = "number"; inp.min = 1; inp.max = c.max_minutes; inp.placeholder = "min"; inp.inputMode = "numeric"; inp.setAttribute("aria-label", "Minutes");
-    const run = h("button", "btn go", "Run"); run.onclick = () => doRun(box, inp.value);
-    inp.addEventListener("keydown", e => { if (e.key === "Enter") run.click(); });
-    const r2 = h("div", "row"); r2.append(inp, run);
-    if (c.can_stop && d.running) { const st = h("button", "btn stop", "Stop now");
-      st.onclick = async () => { if (!confirm("Switch the boiler off now?")) return; busy(box, true); const r = await post("/api/stop"); toast(r.ok ? "Stopped" : r.message); ctlKey = ""; refresh(); }; r2.append(st); }
-    box.append(r1, r2);
-  } else box.append(h("div", "note", "View-only mode: this page has no driver, so it cannot switch the boiler."));
-  const auto = d.auto.enabled, r3 = h("div", "row");
-  const tg = h("button", "btn" + (auto ? " ghost" : " go"), auto ? "Pause schedule" : "Resume schedule");
-  tg.onclick = async () => { if (auto && !confirm("Pause the automatic and preset runs? Manual Run still works.")) return;
-    busy(box, true); const r = await post("/api/auto", {enabled: !auto}); toast(r.message); ctlKey = ""; await refresh(); refreshServices(); };
-  const lock = h("button", "btn ghost", "Lock"); lock.onclick = async () => { await post("/api/logout"); ctlKey = ""; refresh(); };
-  r3.append(tg, lock); box.append(r3);
+  const opts = startOptions(d); EX.start = Math.min(EX.start, opts.length - 1); EX.dur = Math.min(EX.dur, c.max_minutes);
+  const mk = (label, inp, val) => { const w = h("div", "ctl"), r = h("div", "row2"); r.append(h("span", "", label), val); w.append(r, inp); return w; };
+  const dv = h("b"), di = h("input"); Object.assign(di, {type: "range", min: 5, max: c.max_minutes, step: 5, value: EX.dur}); di.setAttribute("aria-label", "How long");
+  const sv = h("b"), si = h("input"); Object.assign(si, {type: "range", min: 0, max: opts.length - 1, step: 1, value: EX.start}); si.setAttribute("aria-label", "Start time");
+  const go = h("button", "heat"), gl = h("span");
+  go.append(ico("flame"), gl);
+  const fmt = m => m == null ? "Now" : pad2(Math.floor(m / 60)) + ":" + pad2(m % 60);
+  const upd = () => {
+    EX.dur = +di.value; EX.start = +si.value;
+    di.style.setProperty("--p", ((EX.dur - 5) / Math.max(1, c.max_minutes - 5) * 100) + "%");
+    si.style.setProperty("--p", (EX.start / Math.max(1, opts.length - 1) * 100) + "%");
+    dv.textContent = EX.dur + " min"; sv.textContent = fmt(opts[EX.start]);
+    gl.textContent = `Heat ${EX.dur} min ` + (opts[EX.start] == null ? "now" : "at " + fmt(opts[EX.start]));
+  };
+  di.oninput = si.oninput = upd; upd();
+  go.onclick = async () => {
+    const at = opts[EX.start]; const on = d.running && at == null ? ` It is already on until ${hm(d.running.until)}; this restarts the timer.` : "";
+    if (at == null && !confirm(`Heat for ${EX.dur} minutes now?${on}`)) return;
+    go.disabled = true; const r = await post("/api/run", at == null ? {minutes: EX.dur} : {minutes: EX.dur, at: fmt(at)});
+    toast(r.message); go.disabled = false; box.dataset.key = ""; refresh();
+  };
+  box.append(mk("How long", di, dv), mk("Start", si, sv), go);
+  if (d.later) {
+    const pnd = h("div", "pending"); pnd.append(h("span", "", `Set: ${d.later.minutes} min at ${hm(d.later.at)}`));
+    const x = h("button", "btn ghost sm", "Cancel"); x.onclick = async () => { const r = await post("/api/later/cancel"); toast(r.message); box.dataset.key = ""; refresh(); };
+    pnd.append(x); box.append(pnd);
+  }
+}
+
+/* ---------- footer: today so far + pause ---------- */
+function renderFoot(d) {
+  const box = $("foot"); box.replaceChildren();
+  const t = d.totals.today, parts = [];
+  if (t.auto) parts.push(`auto ${t.auto}`); if (t.preset) parts.push(`preset ${t.preset}`); if (t.manual) parts.push(`extra ${t.manual}`);
+  box.append(h("span", "", t.total ? `Ran today: ${t.total} min` + (parts.length > 1 ? ` (${parts.join(", ")})` : "") : "Not run yet today"));
+  const sw = h("label", "switch"), cb = h("input"); cb.type = "checkbox"; cb.checked = d.auto.enabled;
+  sw.append(cb, document.createTextNode("Schedule"));
+  cb.onchange = async () => {
+    if (!d.controls.logged_in) { cb.checked = !cb.checked; toast("Unlock first (Extra hot water box)"); return; }
+    if (!cb.checked && !confirm("Pause the automatic and preset runs? Extra hot water still works.")) { cb.checked = true; return; }
+    const r = await post("/api/auto", {enabled: cb.checked}); toast(r.message); refresh(); refreshServices();
+  };
+  box.append(sw);
 }
 
 /* ---------- cloud quick control ---------- */
@@ -374,6 +450,7 @@ function events(box, list, n, today) {
 async function refreshServices() {
   const box = $("sv");
   try { const j = await (await fetch("/api/services", {cache: "no-store"})).json(); if (j.error) throw 0;
+    SV = j; renderLinks();
     box.replaceChildren(); box.className = "";
     for (const x of j.services) { const r = h("div", "sv"); r.append(h("i", x.level), h("b", "", x.name), h("span", "", x.text)); box.append(r); }
     $("svwhen").textContent = "checked " + hm(j.checked);
@@ -614,11 +691,11 @@ async function refresh() {
   try {
     const r = await fetch("/api/status", {cache: "no-store"}); if (!r.ok) throw 0; const d = await r.json(); S = d;
     if ((d.controls.needs_setup || !d.controls.password_set) && !WIZ_SEEN && location.hash !== "#setup") { WIZ_SEEN = true; location.hash = "#setup"; }
-    renderHero(d); renderControls(d); renderCloud(d); renderNext(d); events($("act"), d.activity, 5, d.now.slice(0, 10)); renderHistory(d); renderForecast();
-  } catch (e) { const p = $("pill"); p.className = "pill red"; p.querySelector("span").textContent = "Can't reach the boiler service"; }
+    renderToday(d); renderExtra(d); renderFoot(d); renderLinks(); renderCloud(d); renderNext(d); renderHistory(d); renderForecast();
+  } catch (e) { const t = $("today"); t.replaceChildren(h("div", "lead", "Can't reach the boiler service")); }
 }
-async function refreshForecast() { try { FC = await (await fetch("/api/forecast", {cache: "no-store"})).json(); } catch (e) { FC = {error: "Forecast unavailable"}; } if (S) { drawStrip(S); renderForecast(); } }
+async function refreshForecast() { try { FC = await (await fetch("/api/forecast", {cache: "no-store"})).json(); } catch (e) { FC = {error: "Forecast unavailable"}; } if (S) { renderToday(S); renderForecast(); } }
 showTab();
 refresh().then(refreshForecast).then(refreshServices);
-setInterval(refresh, 30000); setInterval(refreshForecast, 600000); setInterval(refreshServices, 60000);
+setInterval(refresh, 20000); setInterval(refreshForecast, 600000); setInterval(refreshServices, 60000);
 </script></body></html>
