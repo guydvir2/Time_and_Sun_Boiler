@@ -167,6 +167,11 @@ input[type=time]{width:128px}.pcard input{width:100%}
 .tiny{font-size:13px;color:var(--deeptx);margin-top:8px}
 .tr.on{background:var(--heat);color:#fff}
 .tr.on .lbl,.tr.on .big small,.tr.on .kvs span,.tr.on .tiny{color:#FFE0D6}
+.swrow{display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:12px 14px;border-radius:16px;background:var(--card)}
+.swdot{width:14px;height:14px;border-radius:50%;background:#B7C4CE}.swdot.on{background:var(--heat);box-shadow:0 0 0 4px rgba(255,110,64,.25)}
+.swrow b{font-size:20px;min-width:44px}.swrow .grow{flex:1;font-size:13px;color:var(--mute)}
+.swbtn{min-height:44px;border:0;border-radius:12px;padding:0 18px;font:700 15px Figtree,sans-serif;cursor:pointer;background:var(--heat);color:#fff}
+.swbtn.off{background:var(--ink)}.swbtn:disabled{opacity:.5}
 .tstop{margin-top:auto;min-height:40px;border:0;border-radius:12px;background:#fff;color:var(--heat);font:600 15px Figtree,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
 .tr .tstop{margin-top:12px}
 .tw .trust,.tw .alert{margin-top:0}
@@ -202,9 +207,11 @@ input[type=time]{width:128px}.pcard input{width:100%}
   <a href="#schedule" data-tab="schedule"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Schedule</a>
   <a href="#history" data-tab="history"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>History</a>
   <a href="#settings" data-tab="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</a>
-  <a href="/tune"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Tune</a>
+  <a href="#tune" data-tab="tune"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Tune</a>
 </nav>
 <noscript>This page needs JavaScript.</noscript>
+
+<section class="tab" id="t-tune"><iframe id="tuneframe" title="Tune the formula" style="width:100%;height:calc(100vh - 150px);min-height:520px;border:0"></iframe></section>
 
 <!-- ============ HOME ============ -->
 <section class="tab" id="t-home">
@@ -269,11 +276,12 @@ let tt; function toast(m) { const t = $("toast"); t.textContent = m; t.style.dis
 /* ---------- tabs ---------- */
 function showTab() {
   const name = (location.hash || "#home").slice(1);
-  const id = ["home", "schedule", "history", "settings", "setup"].includes(name) ? name : "home";
+  const id = ["home", "schedule", "history", "settings", "tune", "setup"].includes(name) ? name : "home";
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.id === "t-" + id));
   document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("on", a.dataset.tab === id));
   if (id === "schedule" && !SCH) loadSchedule();
   if (id === "settings") loadSettings();
+  if (id === "tune" && !$("tuneframe").src) $("tuneframe").src = "/tune?embed=1";
   if (id === "setup") startWizard();
   document.querySelector("nav").style.display = id === "setup" ? "none" : "";
 }
@@ -411,10 +419,14 @@ function startOptions(d) {            // 0 = now, then every quarter hour until 
 }
 function renderExtra(d) {
   const box = $("extra"), c = d.controls;
-  const key = JSON.stringify([c, d.later, d.now.slice(0, 15)]);
+  const pl = d.power && d.power.live, relay = pl && pl.relay, isOn = relay ? relay === "ON" : !!d.running;
+  const key = JSON.stringify([c, d.later, d.now.slice(0, 15), isOn, pl && pl.state]);
   if (box.dataset.key === key) return; box.dataset.key = key; box.replaceChildren(h("h2", "", "Extra hot water"));
+  const sw = h("div", "swrow"), swb = h("button", "swbtn" + (isOn ? " off" : ""));
+  const sub_ = !isOn ? "" : pl && pl.state === "heating" ? `Heating · ${pl.watts} W` : pl && pl.state === "tank_hot" ? "No draw (tank hot?)" : d.running ? `until ${hm(d.running.until)}` : "";
+  sw.append(h("span", "swdot " + (isOn ? "on" : "off")), h("b", "", isOn ? "ON" : "OFF"), h("span", "grow", sub_), swb);
   if (!c.available) { box.append(h("div", "note", "View-only: no boiler connection is set up.")); return; }
-  if (!c.password_set || !c.logged_in) { box.append(h("div", "note", lockedNote(c))); if (c.password_set) box.append(unlockRow()); return; }
+  if (!c.password_set || !c.logged_in) { sw.removeChild(swb); box.append(sw, h("div", "note", lockedNote(c))); if (c.password_set) box.append(unlockRow()); return; }
   const opts = startOptions(d); EX.start = Math.min(EX.start, opts.length - 1); EX.dur = Math.min(EX.dur, c.max_minutes);
   const mk = (label, inp, val) => { const w = h("div", "ctl"), r = h("div", "row2"); r.append(h("span", "", label), val); w.append(r, inp); return w; };
   const dv = h("b"), di = h("input"); Object.assign(di, {type: "range", min: 5, max: c.max_minutes, step: 5, value: EX.dur}); di.setAttribute("aria-label", "How long");
@@ -428,6 +440,7 @@ function renderExtra(d) {
     si.style.setProperty("--p", (EX.start / Math.max(1, opts.length - 1) * 100) + "%");
     dv.textContent = EX.dur + " min"; sv.textContent = fmt(opts[EX.start]);
     gl.textContent = `Heat ${EX.dur} min ` + (opts[EX.start] == null ? "now" : "at " + fmt(opts[EX.start]));
+    swb.textContent = isOn ? "Turn OFF" : `Turn ON · ${EX.dur} min`;
   };
   di.oninput = si.oninput = upd; upd();
   go.onclick = async () => {
@@ -436,7 +449,12 @@ function renderExtra(d) {
     go.disabled = true; const r = await post("/api/run", at == null ? {minutes: EX.dur} : {minutes: EX.dur, at: fmt(at)});
     toast(r.message); go.disabled = false; box.dataset.key = ""; refresh();
   };
-  box.append(mk("How long", di, dv), mk("Start", si, sv), go);
+  swb.onclick = async () => {
+    if (isOn && !confirm("Switch the boiler off now?")) return;
+    swb.disabled = true; const r = isOn ? await post("/api/stop") : await post("/api/run", {minutes: EX.dur});
+    toast(r.ok ? (isOn ? "Switched off" : r.message) : r.message); box.dataset.key = ""; refresh();
+  };
+  box.append(sw, mk("How long", di, dv), mk("Start", si, sv), go);
   if (d.later) {
     const pnd = h("div", "pending"); pnd.append(h("span", "", `Set: ${d.later.minutes} min at ${hm(d.later.at)}`));
     const x = h("button", "btn ghost sm", "Cancel"); x.onclick = async () => { const r = await post("/api/later/cancel"); toast(r.message); box.dataset.key = ""; refresh(); };

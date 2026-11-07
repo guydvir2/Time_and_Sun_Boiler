@@ -33,7 +33,8 @@ weekly presets) · **History** (charts, weather, activity) · **Settings** · **
 If the Tasmota plug has an energy sensor, the app listens to it (same MQTT topic, `[power]` in config.ini).
 Home shows *Heating now · 1980 W* and the measured minutes / kWh today; every heating session is logged to
 `stored_data/power.jsonl`. "On, no draw" means the relay is on but the element's thermostat has cut off.
-Listen and log only: it changes no decision.
+Listen and log only: it changes no decision. `scale` (default 10) corrects a plug whose voltage, and so power,
+reads 10x too low.
 
 ## Tune the formula
 

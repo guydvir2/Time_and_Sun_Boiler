@@ -137,7 +137,9 @@ class PowerMonitor:
                     self.relay = str(obj[key]).upper()
             e = _energy(obj)
             if e and e.get("Power") is not None:
-                self._reading(float(e["Power"]), e.get("Voltage"), e.get("Current"), datetime.now())
+                k = self.s.power_scale                      # this plug's voltage (so power) reads 1/10: correct it
+                volts = None if e.get("Voltage") is None else float(e["Voltage"]) * k
+                self._reading(float(e["Power"]) * k, volts, e.get("Current"), datetime.now())
         except Exception as ex:
             print(f"⚠️  Power monitor message: {ex}")
 
