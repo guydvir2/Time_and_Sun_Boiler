@@ -18,9 +18,27 @@ def _bool(v) -> bool:
     return str(v).strip().lower() in ("1", "true", "yes", "on")
 
 
+def _env_file():
+    """Secrets from boiler.env next to the code (KEY=VALUE lines). Real environment variables win over it.
+    Lets the app run the same way on a PC, on a VM and in Docker."""
+    path, out = os.path.join(BASE_DIR, "boiler.env"), {}
+    try:
+        if os.name == "posix" and os.stat(path).st_mode & 0o077:
+            print("⚠️  boiler.env is readable by other users: run  chmod 600 boiler.env")
+        with open(path) as f:
+            for ln in f.read().splitlines():
+                ln = ln.strip()
+                if ln and not ln.startswith("#") and "=" in ln:
+                    k, v = ln.split("=", 1)
+                    out[k.strip()] = v.strip().strip('"').strip("'")
+    except (FileNotFoundError, OSError):
+        pass
+    return out
+
+
 class Settings:
     def __init__(self, ini_paths=None, environ=None, json_path=None):
-        env = os.environ if environ is None else environ
+        env = {**_env_file(), **os.environ} if environ is None else environ
         # interpolation=None: '%' is literal (Tasmota topics use %topic%, and passwords may contain '%')
         cp = configparser.ConfigParser(interpolation=None)
         cp.read(ini_paths or [os.path.join(BASE_DIR, "config.ini")])

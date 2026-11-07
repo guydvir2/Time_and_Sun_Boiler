@@ -55,7 +55,8 @@ check that cloud cover is a fair stand-in for sun.
 - **Secrets live only in the server's environment**, never in a file the app reads or writes:
   `DASHBOARD_PASSWORD`, `MQTT_PASSWORD`, `HA_TOKEN`. Keep them in `boiler.env` (copy `boiler.env.example`,
   `chmod 600`, git-ignored) and hand it to the service: `docker run --env-file boiler.env ...` or
-  `EnvironmentFile=/path/boiler.env` in systemd. The Settings tab only shows whether each one is set.
+  `EnvironmentFile=/path/boiler.env` in systemd. Without either (e.g. `python main.py` on a PC) the app reads
+  `boiler.env` from its own folder; real environment variables win over the file. The Settings tab only shows whether each one is set.
 - **Moving an existing install:** BEFORE switching branches run `python3 migrate_secrets.py --clean`. It writes
   `boiler.env`, keeps your location / addresses in `settings.json`, and removes the secrets from the old files.
 
