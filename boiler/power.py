@@ -45,6 +45,8 @@ class PowerMonitor:
         self.connected = False
         self.reading = {"watts": None, "volts": None, "amps": None, "at": None}
         self.relay = None                                # "ON" / "OFF" / None
+        self.relay_since = None                          # when WE saw it change (None = state known only from start-up)
+        self.drew = False                                # any real draw since the relay last went ON
         self.lwt = None
         self.first_seen = None
         self._sess = None                                # open session: {start, last, last_w, kwh, peak}
@@ -127,7 +129,7 @@ class PowerMonitor:
                 self.lwt = body
                 return
             if body.upper() in ("ON", "OFF") and topic.upper().endswith(("/POWER", f"/POWER{n}")):
-                self.relay = body.upper()
+                self._set_relay(body.upper())
                 return
             try:
                 obj = json.loads(body)
@@ -135,7 +137,7 @@ class PowerMonitor:
                 return
             for key in (f"POWER{n}", "POWER"):
                 if isinstance(obj, dict) and str(obj.get(key, "")).upper() in ("ON", "OFF"):
-                    self.relay = str(obj[key]).upper()
+                    self._set_relay(str(obj[key]).upper())
             e = _energy(obj)
             if e and e.get("Power") is not None:
                 k = self.s.power_scale                      # this plug's voltage (so power) reads 1/10: correct it
@@ -144,22 +146,54 @@ class PowerMonitor:
         except Exception as ex:
             print(f"⚠️  Power monitor message: {ex}")
 
+    def _set_relay(self, new):
+        with self._lock:
+            if new != self.relay:
+                first = self.relay is None
+                self.relay = new
+                self.relay_since = None if first else datetime.now()      # start-up: we do not know since when
+                self.drew = False
+
+    def _since_switch(self, now):
+        """Seconds since the relay was switched, or None if unknown / long ago."""
+        return None if self.relay_since is None else (now - self.relay_since).total_seconds()
+
+    def _window(self):
+        """Lag allowed after an ON/OFF: the setting plus one sampling step (readings only come every POLL_SECONDS)."""
+        z = self.s.power_settle_seconds
+        return z + POLL_SECONDS if z > 0 else 0
+
+    def _settling(self, now):
+        """True while the sensor is still catching up with the last ON/OFF."""
+        d = self._since_switch(now)
+        return d is not None and 0 <= d < self._window()
+
     def _reading(self, watts, volts, amps, now):
         with self._lock:
             self.reading = {"watts": watts, "volts": volts, "amps": amps, "at": now}
             self.first_seen = self.first_seen or now
             on = watts >= self.s.power_on_watts
+            if on:
+                self.drew = True
+            stale_off = self.relay == "OFF" and self._settling(now)    # relay already OFF: this is the sensor's lag
             sess = self._sess
             if sess:
                 dt = (now - sess["last"]).total_seconds()
-                if 0 < dt < 600:                           # trapezoid; a long gap is not integrated
+                if 0 < dt < 600 and not stale_off:         # trapezoid; a long gap, or the OFF lag, is not integrated
                     sess["kwh"] += (sess["last_w"] + watts) / 2 * dt / 3600 / 1000
                 sess["last"], sess["last_w"] = now, watts
                 sess["peak"] = max(sess["peak"], watts)
             if on and not sess:
-                self._sess = {"start": now, "last": now, "last_w": watts, "kwh": 0.0, "peak": watts}
+                start = now
+                if self.relay == "ON" and self._settling(now):          # it was really on since the relay switched
+                    start = self.relay_since
+                self._sess = {"start": start, "last": now, "last_w": watts, "kwh": 0.0, "peak": watts}
             elif not on and sess:
-                self._close_session(now, locked=True)
+                end = now
+                if self.relay == "OFF" and self.relay_since and self.relay_since >= sess["start"] \
+                        and (now - self.relay_since).total_seconds() <= self._window():
+                    end = self.relay_since                                # it was really off since the relay switched
+                self._close_session(end, locked=True)
 
     def _tick(self, now):
         """No readings for a while: close an open session at its last reading (the sensor went quiet)."""
@@ -192,7 +226,8 @@ class PowerMonitor:
 
     # ---- what the dashboard shows ----------------------------------------------------------
     def snapshot(self, now=None):
-        """{'state': 'heating'|'idle'|'tank_hot'|'offline'|'waiting', 'watts', 'relay', 'age_s'}"""
+        """{'state': heating | idle | tank_hot | switching_on | switching_off | no_draw | draw_while_off | offline | waiting,
+        'watts', 'relay', 'age_s'}"""
         now = now or datetime.now()
         with self._lock:
             r, relay = dict(self.reading), self.relay
@@ -204,12 +239,19 @@ class PowerMonitor:
             state = "waiting"
         elif age > STALE_SECONDS:
             state = "offline"
-        elif r["watts"] >= self.s.power_on_watts:
-            state = "heating"
-        elif relay == "ON":
-            state = "tank_hot"          # relay is on but the element draws nothing: its thermostat has cut off
         else:
-            state = "idle"
+            on = r["watts"] >= self.s.power_on_watts
+            if self._settling(now):     # inside the lag after an ON/OFF: no alarm, just say what we wait for
+                state = "switching_on" if relay == "ON" and not on else "switching_off" if relay == "OFF" and on else \
+                        "heating" if on else "idle"
+            elif on:
+                state = "draw_while_off" if relay == "OFF" else "heating"
+            elif relay == "ON":
+                # no draw although ON: normal if it was heating before (thermostat cut off = tank hot),
+                # a fault if it never drew since we switched it ON
+                state = "no_draw" if self.relay_since is not None and not self.drew else "tank_hot"
+            else:
+                state = "idle"
         return {"state": state, "watts": None if r["watts"] is None else round(r["watts"]), "relay": relay,
                 "age_s": None if age is None else round(age)}
 
@@ -268,6 +310,10 @@ def row(s, monitor):
         return {"name": "Power sensor", "level": "red", "text": "No readings (is the plug online, has it an energy sensor?)"}
     if st == "waiting":
         return {"name": "Power sensor", "level": "yellow", "text": "Connected, waiting for the first reading"}
+    if st == "no_draw":
+        return {"name": "Power sensor", "level": "red", "text": "Relay is ON but nothing is drawn: check the element / plug"}
+    if st == "draw_while_off":
+        return {"name": "Power sensor", "level": "red", "text": f"Drawing {snap['watts']} W while the relay is OFF"}
     return {"name": "Power sensor", "level": "green", "text": f"{snap['watts']} W"}
 
 

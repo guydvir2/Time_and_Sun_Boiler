@@ -85,6 +85,9 @@ FIELDS = {
     "ha.script_1":        ("homeassistant", "RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID", _str(120, ENTITY), "ha_script_1", False),
     "ha.script_2":        ("homeassistant", "RUN_SCRIPT_2ND_START_BOILER_ENTITY_ID", _str(120, ENTITY), "ha_script_2", False),
     "ha.max_per_boiler":  ("homeassistant", "MAX_DURATION_MINUTES_BOILER", _num(1, 600, True), "ha_max_per_boiler", False),
+    "power.on_watts":     ("power", "on_watts", _num(1, 10000), "power_on_watts", False),
+    "power.scale":        ("power", "scale", _num(0.01, 1000), "power_scale", False),
+    "power.settle_seconds": ("power", "settle_seconds", _num(0, 600), "power_settle_seconds", False),
     "max_manual_minutes": ("dashboard", "max_manual_minutes", _num(10, 600, True), "max_manual_minutes", False),
     "dashboard.password": ("dashboard", "password", _password, "dashboard_password", True),
 }

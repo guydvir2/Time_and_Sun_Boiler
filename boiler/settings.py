@@ -112,6 +112,7 @@ class Settings:
         # --- power sensor (the plug's own energy readings; listen + log only) ---
         self.power_enabled = _bool(g("power", "enabled", fallback="True"))
         self.power_scale = float(g("power", "scale", fallback="10"))            # fixes a Tasmota reading 10x too low
+        self.power_settle_seconds = float(g("power", "settle_seconds", fallback="60"))   # relay <-> sensor lag
         self.power_on_watts = float(g("power", "on_watts", fallback="100"))     # at or above = element is heating
 
         # --- dashboard (read-only web page; shows no secrets) ---

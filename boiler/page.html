@@ -390,8 +390,15 @@ function renderToday(d) {
   if (pw && pw.live) {
     const L = pw.live, m = pw.today;
     const now_ = {heating: `Heating now · ${L.watts} W`, tank_hot: "On, no draw (tank hot?)", idle: "Element idle",
+                  switching_on: "Switching on…", switching_off: "Switching off…",
+                  no_draw: "ON but nothing drawn", draw_while_off: `Drawing ${L.watts} W while OFF`,
                   offline: "Power sensor offline", waiting: "Power sensor: waiting"}[L.state];
     R.append(h("div", "ran", now_ + (m.kwh ? ` · ${m.kwh} kWh today` : "")));
+    if (L.state === "no_draw" || L.state === "draw_while_off") {
+      const a = h("div", "alert"); a.append(ico("alert_triangle"), h("span", "", L.state === "no_draw"
+        ? "The boiler was switched ON but no current is flowing. Check the heating element and the plug."
+        : "Current is flowing although the relay is OFF. Something else is switching the boiler.")); R.append(a);
+    }
   }
 
   /* bottom: weather + confidence */
@@ -720,6 +727,10 @@ function renderSettings() {
                                fld("Run 1 share of the day (%)", "run1_pct", {type: "number", hint: "100 = all in run 1. Less leaves the rest for run 2, for later showers."}),
                                fld("Run 2 time", "run2_at", {type: "time", hint: "When run 2 starts (never before the day's number is final). Empty = right after run 1."})); });
   card("Boiler", c => { c.id = "fullheat"; fullHeat(c); });
+  card("Power sensor", c => { c.append(
+    fld("Settle time (seconds)", "power.settle_seconds", {type: "number", hint: "How long the sensor takes to follow the relay after ON/OFF. Inside this time no alarm is raised and it is not counted as heating."}),
+    fld("Counts as heating from (watts)", "power.on_watts", {type: "number"}),
+    fld("Power multiplier", "power.scale", {type: "number", hint: "10 if the plug reads power 10x too low (voltage bug). 1 if it reads right."})); });
   card("Secrets", c => { c.append(fld("Dashboard password", "dashboard.password", {secret: true}), fld("MQTT broker password", "mqtt.password", {secret: true}), fld("Home Assistant token", "ha.token", {secret: true})); });
   const bar = h("div", "card"); const save = h("button", "btn go", "Save settings"); const undo = h("button", "btn ghost", "Undo changes");
   const st = h("div", "note"); const row = h("div", "row"); row.style.marginTop = "0"; row.append(save, undo); bar.append(row, st); body.append(bar);
