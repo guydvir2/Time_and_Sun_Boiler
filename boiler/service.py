@@ -17,11 +17,11 @@ from .state import (load_last_update, save_last_update, save_attempt, log_decisi
                     load_later, clear_later)
 from .activity import log_event, trim
 from .drivers import build_drivers, start_boiler
-from . import schedule, runs, rolling
+from . import schedule, runs, rolling, missed
 
 TICK_SECONDS = 30
 START_RETRY_MIN = 2          # a failed start is retried every 2 min ...
-START_GIVE_UP_MIN = 120      # ... for up to 2 h after its planned time
+START_GIVE_UP_MIN = missed.LATE_GRACE_MIN   # ... but only this long: later than that we ASK (see missed.py), never fire by ourselves
 
 
 def estimate(s, formula, now):
@@ -110,7 +110,7 @@ class Engine:
             return
         if now > at + timedelta(minutes=START_GIVE_UP_MIN):
             clear_later(s)
-            log_event(s, "manual", f"Gave up the extra {later['minutes']} min set for {at:%H:%M}", False)
+            missed.add(s, f"extra:{later['at']}", "extra", "Extra hot water", later["minutes"], at, "manual")
         elif self._may_try("later", START_RETRY_MIN):
             ok, _ = start_now(s, self.drivers, later["minutes"], "manual", "Extra hot water")
             if ok:
@@ -145,7 +145,7 @@ class Engine:
                     continue
                 if now > start_at + timedelta(minutes=START_GIVE_UP_MIN):
                     run["status"] = "missed"
-                    log_event(s, "auto", f"Gave up run {run['n']} ({run['minutes']} min) planned for {start_at:%H:%M}", False)
+                    missed.add(s, f"run{run['n']}:{plan['date']}", "run", f"Run {run['n']}", run["minutes"], start_at, "auto")
                 elif self._may_try(f"run{run['n']}", START_RETRY_MIN):
                     label = f"Run {run['n']}" + ("" if plan["status"] == "final" else " (on estimate)")
                     ok, used = start_now(s, self.drivers, run["minutes"], "auto", label)
@@ -160,7 +160,8 @@ class Engine:
         for p, too_late in schedule.due_presets(sched, now, preset_done(s)):
             if too_late:
                 mark_preset_done(s, p["id"], today)
-                log_event(s, "preset", f"Skipped '{p['name']}' {p['time']}: the engine was not running then", False)
+                missed.add(s, f"preset:{p['id']}:{today}", "preset", f"Preset '{p['name']}'", p["minutes"],
+                           datetime.combine(now.date(), schedule.parse_hhmm(p["time"])), "preset")
                 continue
             r = load_running(s, now)
             if r and (datetime.fromisoformat(r["until"]) - now).total_seconds() / 60 >= p["minutes"]:

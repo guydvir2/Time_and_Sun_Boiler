@@ -58,7 +58,8 @@ def read(s):
 
 def totals(s, now=None, days=14):
     """{'today': {auto, preset, manual, total}, 'week': total of last 7 days, 'per_day': [{date, auto, preset, manual}]}
-    Minutes still to come in a running run are counted (the device will run them)."""
+    Only minutes that have already elapsed count: a run that is still going adds what has passed, not what is
+    planned (see power.apply_measured for the real, sensor-measured figure)."""
     now = now or datetime.now()
     per = defaultdict(lambda: defaultdict(float))
     for r in read(s):
@@ -66,6 +67,14 @@ def totals(s, now=None, days=14):
             per[r["time"][:10]][r["source"]] += float(r["minutes"])
         except (KeyError, ValueError, TypeError):
             continue
+    run = load_running(s, now)
+    if run:                                           # the part of the running run that has not happened yet
+        try:
+            until = datetime.fromisoformat(run["until"])
+            per[str((until - timedelta(minutes=run["minutes"])).date())][run.get("source", "manual")] -= \
+                (until - now).total_seconds() / 60
+        except (KeyError, ValueError, TypeError):
+            pass
     rows = []
     for i in range(days - 1, -1, -1):
         d = str((now - timedelta(days=i)).date())

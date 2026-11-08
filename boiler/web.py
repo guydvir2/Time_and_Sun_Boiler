@@ -24,7 +24,7 @@ from . import confidence
 from .activity import log_event, read_events
 from . import power as power_mod
 from .drivers import start_boiler, REGISTRY
-from . import runs, schedule
+from . import runs, schedule, missed as missed_mod
 
 PAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "page.html")
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -116,7 +116,8 @@ def build_status(s, driver_names, formula=None, now=None, power=None):
         "running": load_running(s, now),
         "auto": load_auto(s),
         "plan": load_plan(s),
-        "totals": runs.totals(s, now),
+        "totals": power_mod.apply_measured(s, runs.totals(s, now), now, power) if s.power_enabled else runs.totals(s, now),
+        "missed": missed_mod.load(s, now),
         "power": {"live": power.snapshot(now) if power else None, **power_mod.totals(s, now, monitor=power)}
                  if s.power_enabled else None,
         "upcoming": schedule.upcoming(schedule.load(s), now, load_plan(s)),
@@ -382,7 +383,7 @@ class _Handler(BaseHTTPRequestHandler):
             return self._sunshine()
 
         if path not in ("/api/run", "/api/stop", "/api/auto", "/api/later/cancel", "/api/formula", "/api/schedule",
-                        "/api/settings", "/api/settings/test"):
+                        "/api/settings", "/api/settings/test", "/api/missed"):
             return self._json(404, {"ok": False, "message": "Not found"})
         if not c.auth.enabled:
             return self._json(403, {"ok": False, "message": "Controls are off: no dashboard password is set"})
@@ -410,7 +411,10 @@ class _Handler(BaseHTTPRequestHandler):
         if not c.action_lock.acquire(timeout=0.5):
             return self._json(409, {"ok": False, "message": "Another command is still in progress"})
         try:
-            if path == "/api/run":
+            if path == "/api/missed":
+                ok, msg = missed_mod.answer(c.s, c.drivers, str(body.get("id", "")), body.get("action"))
+                self._json(200 if ok else 409, {"ok": ok, "message": msg})
+            elif path == "/api/run":
                 self._run(body)
             else:
                 self._stop()

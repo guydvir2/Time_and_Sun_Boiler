@@ -46,6 +46,7 @@ class PowerMonitor:
         self.reading = {"watts": None, "volts": None, "amps": None, "at": None}
         self.relay = None                                # "ON" / "OFF" / None
         self.lwt = None
+        self.first_seen = None
         self._sess = None                                # open session: {start, last, last_w, kwh, peak}
 
     # ---- config -------------------------------------------------------------------------
@@ -146,6 +147,7 @@ class PowerMonitor:
     def _reading(self, watts, volts, amps, now):
         with self._lock:
             self.reading = {"watts": watts, "volts": volts, "amps": amps, "at": now}
+            self.first_seen = self.first_seen or now
             on = watts >= self.s.power_on_watts
             sess = self._sess
             if sess:
@@ -267,3 +269,28 @@ def row(s, monitor):
     if st == "waiting":
         return {"name": "Power sensor", "level": "yellow", "text": "Connected, waiting for the first reading"}
     return {"name": "Power sensor", "level": "green", "text": f"{snap['watts']} W"}
+
+
+def apply_measured(s, t, now, monitor):
+    """Replace the commanded minutes of runs.totals() by the minutes the plug really drew power, wherever the
+    sensor was listening. Per-source split is kept in proportion (extra heating nobody commanded -> 'manual')."""
+    firsts = [r["start"][:10] for r in read_log(s) if "start" in r]
+    if monitor and monitor.first_seen:
+        firsts.append(str(monitor.first_seen.date()))
+    if not firsts:
+        return t
+    since, today = min(firsts), str(now.date())
+    live = bool(monitor) and monitor.snapshot(now)["state"] not in ("offline", "waiting")
+    pt = totals(s, now, days=len(t["per_day"]), monitor=monitor)["per_day"]
+    rows = []
+    for row, m in zip(t["per_day"], pt):
+        if row["date"] < since or (row["date"] == today and not live):
+            rows.append(row)
+            continue
+        com, meas = sum(row[k] for k in ("auto", "preset", "manual")), m["minutes"]
+        new = {k: round(row[k] * meas / com) for k in ("auto", "preset", "manual")} if com else {"auto": 0, "preset": 0, "manual": meas}
+        rows.append({**row, **new, "measured": True})
+    last = rows[-1]
+    return {"today": {**{k: last[k] for k in ("auto", "preset", "manual")},
+                      "total": sum(last[k] for k in ("auto", "preset", "manual")), "measured": bool(last.get("measured"))},
+            "week": sum(sum(r[k] for k in ("auto", "preset", "manual")) for r in rows[-7:]), "per_day": rows}
