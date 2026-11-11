@@ -769,17 +769,20 @@ function updatesCard(c) {
     const f = h("div", "field"), sel = h("select"), cmd = h("input"), cp = h("button", "btn sm", "Copy");
     d.branches.forEach(b => { const o = h("option", "", `${b.name}  ·  ${b.date}  ·  ${b.sha}${b.current ? "  (running)" : ""}${b.name === d.suggested ? "  (latest)" : ""}`); o.value = b.name; sel.append(o); });
     sel.value = d.suggested; sel.style.width = "100%"; sel.style.maxWidth = "100%"; cmd.readOnly = true; cmd.style.width = "100%"; cmd.style.boxSizing = "border-box"; cmd.style.fontSize = "12px";
-    const show = () => { const b = d.branches.find(x => x.name === sel.value); cmd.value = b ? b.command : ""; };
-    sel.onchange = show; show();
+    let same = () => false;                                    // set below when the Update now button exists
+    const show = () => { const b = d.branches.find(x => x.name === sel.value); cmd.value = b ? b.command : ""; same(b); };
+    sel.onchange = show;
     cp.onclick = async () => { try { await navigator.clipboard.writeText(cmd.value); toast("Copied"); } catch (e) { cmd.select(); toast("Press Ctrl+C"); } };
     const row = h("div", "row"); row.append(cp);
     f.append(h("label", "", "Version to install"), sel, h("div", "hint", "Or run this on the VM (SSH):"), cmd);
     if (d.updater) {
       const go = h("button", "btn go", "Update now"), msg = h("div", "note"); go.onclick = () => runUpdate(sel.value, go, msg);
+      same = b => { const s = !!(b && b.same); go.disabled = s; go.textContent = s ? "Up to date" : "Update now"; msg.textContent = s ? "🟢 You already run this exact version. Nothing to update." : ""; };
       row.prepend(go); out.append(f, row, msg);
     } else {
       out.append(f, row, h("div", "note", "One-click update is not installed on the server yet. Once, on the VM: updater/install.sh"));
     }
+    show();
   };
   btn.onclick = () => check(true);
 }

@@ -26,3 +26,17 @@ def test_unknown_running_version_and_command_is_quoted():
     r = updates.summarize(B + [{"name": "a b;rm", "sha": "d" * 40, "date": "", "message": ""}], {"branch": "", "commit": ""})
     assert r["level"] == "yellow" and "unknown" in r["text"].lower()
     assert [x["command"] for x in r["branches"] if x["name"] == "a b;rm"][0].endswith("./deploy.sh 'a b;rm'")
+
+
+def test_same_flag_and_no_update_when_on_latest(monkeypatch):
+    run = {"branch": "feature/open-controls", "commit": "bbbbbbb"}
+    rows = {x["name"]: x for x in updates.summarize(B, run)["branches"]}
+    assert rows["feature/open-controls"]["same"] and not rows["master"]["same"]
+    monkeypatch.setenv("UPDATER_TOKEN", "t")
+    monkeypatch.setattr(updates, "running", lambda: run)
+    monkeypatch.setitem(updates._cache, "branches", B)
+    monkeypatch.setitem(updates._cache, "at", __import__("time").time())
+    called = []
+    monkeypatch.setattr(updates, "_updater", lambda *a, **k: called.append(a))
+    ok, msg = updates.start_update("feature/open-controls")
+    assert not ok and "Nothing to update" in msg and not called            # the updater is never asked

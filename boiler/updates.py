@@ -72,7 +72,8 @@ def summarize(branches, run):
     else:
         level, text = "yellow", f"Your branch '{run['branch']}' is not on GitHub any more. Latest is {suggested}"
     rows = [{"name": b["name"], "sha": b["sha"][:7], "date": b["date"][:10], "message": b["message"],
-             "current": b is cur, "command": command(b["name"])} for b in bs]
+             "current": b is cur, "command": command(b["name"]),
+             "same": bool(run["commit"] and b["sha"].startswith(run["commit"]))} for b in bs]
     return {"ok": True, "running": run, "branches": rows, "suggested": suggested, "level": level, "text": text,
             "updater": updater_configured()}
 
@@ -98,9 +99,18 @@ def start_update(branch):
     """(ok, message). Only branches GitHub listed in the last check are accepted."""
     if not updater_configured():
         return False, "One-click update is not installed on the server (run updater/install.sh)"
-    known = {b["name"] for b in (_cache["branches"] or [])}
-    if branch not in known:
+    with _lock:                                              # fresh view of GitHub if the last check is older than a minute
+        if _cache["branches"] is None or time.time() - _cache["at"] > 60:
+            try:
+                _cache["branches"], _cache["at"] = fetch_branches(), time.time()
+            except requests.RequestException as e:
+                return False, f"Could not reach GitHub ({type(e).__name__})"
+        found = next((b for b in _cache["branches"] if b["name"] == branch), None)
+    if not found:
         return False, "Unknown branch. Press 'Check for updates' first."
+    commit = running()["commit"]
+    if commit and found["sha"].startswith(commit):
+        return False, f"Already running the latest of {branch} ({commit[:7]}). Nothing to update."
     try:
         r = _updater("POST", "/update", json={"branch": branch})
         return r.status_code == 202, (r.json().get("message") if r.headers.get("content-type", "").startswith("application/json") else f"Updater error {r.status_code}")
