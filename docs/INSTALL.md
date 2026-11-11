@@ -114,6 +114,8 @@ Before trusting it with the real boiler: try a lamp on the plug, or "Test mode (
 
 ## Update to a newer version
 
+Switching branch? `git fetch origin && git checkout <branch>` first. Same branch: `git pull`.
+
 ```
 cd ~/pythons/dockers/Time_and_Sun_Boiler
 git pull
@@ -141,6 +143,12 @@ docker start <OLD>
 | `port is already allocated` | Old container still on 8080 | `docker stop <OLD>` |
 | Dashboard says setup needed after phase 3 | `settings.json` not copied | Repeat the `docker cp` lines, then `docker restart boilermind` |
 | Run/Stop buttons locked | `DASHBOARD_PASSWORD` empty in `boiler.env` | Set it, then `docker rm -f boilermind` and the phase 5 line |
+
+## Who can do what
+
+- **No password (anyone on your network):** see the page, extra hot water, Run/Stop, "heat now", cancel a timed run.
+  Still limited by "max minutes per run" and protected against other websites.
+- **Dashboard password (admin):** Settings, Schedule, formula tuning, pause/resume, setup wizard.
 
 ## Notes
 

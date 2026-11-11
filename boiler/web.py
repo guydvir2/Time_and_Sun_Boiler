@@ -1,8 +1,9 @@
 """Dashboard: one page (page.html) + a small JSON API. Standard library only.
 
 Runs as a thread inside the service (so one process), or alone:  python dashboard.py  (view-only)
-Reading is open on your network. Anything that SWITCHES the boiler (Run / Stop) needs the dashboard
-password (env DASHBOARD_PASSWORD); with no password set, controls are off.
+Reading and operating the boiler (extra hot water, Run / Stop, heat-now) are open on your network.
+Admin actions (settings, schedule, formula, pause) need the dashboard password (env DASHBOARD_PASSWORD);
+with no password set, they are off.
 The API never exposes secrets.
 """
 import csv
@@ -30,6 +31,8 @@ PAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "page.html"
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 TUNE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tune.html")
 COOKIE = "boiler_session"
+# Operating the boiler needs no password (anyone on the network can use the buttons); everything else is admin.
+OPEN_PATHS = ("/api/run", "/api/stop", "/api/later/cancel", "/api/missed")
 CSRF_HEADER = ("X-Requested-With", "boiler-ui")      # a cross-site page cannot send this without our consent
 FORECAST_TTL = 1800                                  # seconds
 SERVICES_TTL = 60                                    # seconds between live link checks
@@ -387,10 +390,11 @@ class _Handler(BaseHTTPRequestHandler):
         if path not in ("/api/run", "/api/stop", "/api/auto", "/api/later/cancel", "/api/formula", "/api/schedule",
                         "/api/settings", "/api/settings/test", "/api/missed"):
             return self._json(404, {"ok": False, "message": "Not found"})
-        if not c.auth.enabled:
-            return self._json(403, {"ok": False, "message": "Controls are off: no dashboard password is set"})
-        if not c.auth.valid(self._token()):
-            return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
+        if path not in OPEN_PATHS:                    # admin actions: dashboard password required
+            if not c.auth.enabled:
+                return self._json(403, {"ok": False, "message": "Controls are off: no dashboard password is set"})
+            if not c.auth.valid(self._token()):
+                return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
         if path == "/api/auto":                       # pause/resume needs no driver
             return self._auto(body)
         if path == "/api/later/cancel":

@@ -297,7 +297,7 @@ function unlockRow(after) {
   const row = h("div", "row"); row.append(pw, go); return row;
 }
 function lockedNote(c) {
-  return c.password_set ? "Locked. Enter the password to switch the boiler or change settings."
+  return c.password_set ? "Admin area. Enter the password to change settings."
                         : "Locked. Set DASHBOARD_PASSWORD in boiler.env on the server and restart to enable controls.";
 }
 
@@ -367,7 +367,7 @@ function renderToday(d) {
     const what = {manual: "extra", auto: "daily run", preset: "preset"}[d.running.source] || d.running.source;
     R.append(h("div", "lbl", `Boiler on · ${what}`), big(left, "min left"), kv("Off at", hm(d.running.until)));
     const v = viaChip(d, true); if (v) R.append(v);
-    if (d.controls.can_stop && d.controls.logged_in) {
+    if (d.controls.can_stop) {
       const st = h("button", "tstop"); st.append(ico("player_stop"), document.createTextNode("Stop"));
       st.onclick = async () => { if (!confirm("Switch the boiler off now?")) return; st.disabled = true; const r = await post("/api/stop"); toast(r.ok ? "Stopped" : r.message); refresh(); };
       R.append(st);
@@ -421,15 +421,15 @@ function renderToday(d) {
 /* ---------- runs that did not start: ask, never fire late by ourselves ---------- */
 function renderMissed(d) {
   const box = $("missedbox"), items = d.missed || [], c = d.controls;
-  const key = JSON.stringify([items, c.logged_in]); if (box.dataset.key === key) return; box.dataset.key = key; box.replaceChildren();
+  const key = JSON.stringify([items, c.available]); if (box.dataset.key === key) return; box.dataset.key = key; box.replaceChildren();
   for (const m of items) {
     const card = h("div", "alert"); card.append(ico("alert_triangle"));
     const t = h("div"); t.append(h("b", "", `${m.label} did not start`), h("div", "tiny", `Planned ${m.minutes} min at ${hm(m.planned_at)}. Heat now?`)); card.append(t);
-    if (c.password_set && c.logged_in && c.available) {
+    if (c.available) {
       const go = h("button", "btn sm go", `Heat ${m.minutes} min now`), no = h("button", "btn ghost sm", "Skip");
       const send = async a => { go.disabled = no.disabled = true; const r = await post("/api/missed", {id: m.id, action: a}); toast(r.message); box.dataset.key = ""; refresh(); };
       go.onclick = () => send("fire"); no.onclick = () => send("skip"); card.append(go, no);
-    } else card.append(h("div", "tiny", "Unlock to answer."));
+    } else card.append(h("div", "tiny", "No boiler connection is set up."));
     box.append(card);
   }
 }
@@ -450,7 +450,6 @@ function renderExtra(d) {
   const sub_ = !isOn ? "" : pl && pl.state === "heating" ? `Heating · ${pl.watts} W` : pl && pl.state === "tank_hot" ? "No draw (tank hot?)" : d.running ? `until ${hm(d.running.until)}` : "";
   sw.append(h("span", "swdot " + (isOn ? "on" : "off")), h("b", "", isOn ? "ON" : "OFF"), h("span", "grow", sub_), swb);
   if (!c.available) { box.append(h("div", "note", "View-only: no boiler connection is set up.")); return; }
-  if (!c.password_set || !c.logged_in) { sw.removeChild(swb); box.append(sw, h("div", "note", lockedNote(c))); if (c.password_set) box.append(unlockRow()); return; }
   const opts = startOptions(d); EX.start = Math.min(EX.start, opts.length - 1); EX.dur = Math.min(EX.dur, c.max_minutes);
   const mk = (label, inp, val) => { const w = h("div", "ctl"), r = h("div", "row2"); r.append(h("span", "", label), val); w.append(r, inp); return w; };
   const dv = h("b"), di = h("input"); Object.assign(di, {type: "range", min: 5, max: c.max_minutes, step: 5, value: EX.dur}); di.setAttribute("aria-label", "How long");
