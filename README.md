@@ -11,7 +11,21 @@ How the day works:
   that later went up, run 2 tops up the difference. No run is longer than "max on per run".
 - `UPDATE_AFTER` is no longer used.
 
-## Run
+## Install with Docker (recommended on a server)
+
+Full step-by-step with progress tracker and troubleshooting: [docs/INSTALL.md](docs/INSTALL.md).
+
+```
+git clone https://github.com/guydvir2/time_and_sun_boiler && cd time_and_sun_boiler
+git checkout fix/engine-safety
+cp boiler.env.example boiler.env && chmod 600 boiler.env && nano boiler.env   # set DASHBOARD_PASSWORD (+ MQTT_PASSWORD)
+docker compose up -d --build
+docker compose logs -f                                                         # Ctrl+C to leave the log
+```
+Open `http://<server>:8080`, finish the setup wizard. Update later: `git pull && docker compose up -d --build`.
+Everything you set up is kept in `./data`, so updates never lose it. Set `TZ` in `docker-compose.yml` to your time zone.
+
+## Run without Docker
 
 ```
 python3 -m venv .venv

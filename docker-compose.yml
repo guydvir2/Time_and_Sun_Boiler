@@ -1,0 +1,12 @@
+services:
+  boiler:
+    build: .
+    container_name: boilermind
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file: boiler.env              # secrets: DASHBOARD_PASSWORD, MQTT_PASSWORD, HA_TOKEN
+    environment:
+      TZ: Asia/Jerusalem              # run times follow this clock: set your own time zone
+    volumes:
+      - ./data:/data                  # settings, state and history live here (survives updates)

@@ -33,6 +33,8 @@ button,input{font:inherit;color:inherit}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0 12px}
 .brand{display:flex;align-items:center;gap:10px;font:700 21px Bricolage,Figtree,sans-serif;letter-spacing:-.02em}
 .brand svg{width:34px;height:34px}
+.ver{display:inline-flex;align-items:center;gap:4px;max-width:210px;font:600 11px/1 Figtree,sans-serif;letter-spacing:0;color:var(--mute);background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:4px 8px;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ver svg{width:11px;height:11px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .pill{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--mute);background:var(--card);border:1px solid var(--line);padding:5px 11px;border-radius:999px;max-width:55vw}
 .pill i{width:9px;height:9px;border-radius:50%;background:var(--mute);flex:none}
 .pill.green i{background:var(--ok)}.pill.yellow i{background:var(--warn)}.pill.red i{background:var(--bad)}
@@ -183,6 +185,10 @@ input[type=time]{width:128px}.pcard input{width:100%}
 .autocard .t{font:600 18px Bricolage,Figtree,sans-serif}.autocard .s{font-size:13.5px;color:var(--mute)}
 .autocard.paused{background:#FFF1D2}.autocard.paused .s{color:#8A5A00}
 @media (prefers-color-scheme:dark){.autocard.paused{background:#3A2E12}.autocard.paused .s{color:#F2C96B}}
+.holdbar{display:flex;align-items:center;gap:10px;background:#FFF1D2;color:#8A5A00;border-radius:16px;padding:12px 16px;margin-bottom:12px;font-size:14.5px}
+.holdbar[hidden]{display:none}.holdbar b{font-weight:600}.holdbar .tiny{color:inherit;opacity:.9}.holdbar svg{flex:none;width:22px;height:22px}
+@media (prefers-color-scheme:dark){.holdbar{background:#3A2E12;color:#F2C96B}}
+body.onhold #today,body.onhold #next{filter:grayscale(1);opacity:.5}
 .tog{position:relative;flex:none;width:56px;height:32px;border:0;border-radius:99px;background:var(--ok);cursor:pointer;padding:0}
 .tog::after{content:"";position:absolute;top:3px;left:27px;width:26px;height:26px;border-radius:50%;background:#fff;transition:left .15s}
 .tog.off{background:#B8C7D1}.tog.off::after{left:3px}
@@ -198,8 +204,9 @@ input[type=time]{width:128px}.pcard input{width:100%}
 .via .logo{color:inherit}
 </style></head><body>
 <main>
+<div class="holdbar" id="holdbar" hidden></div>
 <header>
-  <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="13" r="7" fill="var(--sun)"/><path d="M2 22c4-3 7-3 10 0s8 3 11 0 5-3 7-2v9H2z" fill="var(--water)"/></svg>BoilerMind</div>
+  <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="13" r="7" fill="var(--sun)"/><path d="M2 22c4-3 7-3 10 0s8 3 11 0 5-3 7-2v9H2z" fill="var(--water)"/></svg>BoilerMind<a class="ver" id="ver" href="#settings" hidden></a></div>
   <div class="links" id="links" aria-label="Connections"></div>
 </header>
 <nav id="nav">
@@ -215,7 +222,6 @@ input[type=time]{width:128px}.pcard input{width:100%}
 
 <!-- ============ HOME ============ -->
 <section class="tab" id="t-home">
-  <div id="autobox"></div>
   <div id="missedbox"></div>
   <div class="tgrid" id="today"><div class="tl"><div class="lbl">Loading…</div></div></div>
   <div class="extra" id="extra"></div>
@@ -249,7 +255,8 @@ input[type=time]{width:128px}.pcard input{width:100%}
 <!-- ============ SETTINGS ============ -->
 <section class="tab" id="t-settings">
   <div class="card" id="services"><h2>Connections<small id="svwhen"></small></h2><div id="sv" class="note">Checking…</div></div>
-  <div id="settings-body"><div class="card note">Loading…</div></div></section>
+  <div id="settings-body"><div class="card note">Loading…</div></div>
+  <div id="autobox"></div></section>
 
 <!-- ============ SETUP WIZARD ============ -->
 <section class="tab" id="t-setup"><div id="setup-body"></div></section>
@@ -293,12 +300,14 @@ addEventListener("hashchange", showTab);
 function unlockRow(after) {
   const pw = h("input", "wide"); pw.type = "password"; pw.placeholder = "Dashboard password"; pw.autocomplete = "current-password";
   const go = h("button", "btn go", "Unlock");
-  go.onclick = async () => { const r = await post("/api/login", {password: pw.value}); pw.value = ""; toast(r.ok ? "Unlocked" : r.message); ctlKey = ""; await refresh(); if (after) after(); };
+  go.onclick = async () => { const r = await post("/api/login", {password: pw.value}); pw.value = ""; toast(r.ok ? "Unlocked" : r.message); ctlKey = ""; await refresh();
+    if (r.ok && S && !S.controls.logged_in) toast("Password OK, but this browser did not keep the login. If the page is inside Home Assistant, open it in its own tab.");
+    if (after) after(); };
   pw.addEventListener("keydown", e => { if (e.key === "Enter") go.click(); });
   const row = h("div", "row"); row.append(pw, go); return row;
 }
 function lockedNote(c) {
-  return c.password_set ? "Locked. Enter the password to switch the boiler or change settings."
+  return c.password_set ? "Admin area. Enter the password to change settings."
                         : "Locked. Set DASHBOARD_PASSWORD in boiler.env on the server and restart to enable controls.";
 }
 
@@ -368,7 +377,7 @@ function renderToday(d) {
     const what = {manual: "extra", auto: "daily run", preset: "preset"}[d.running.source] || d.running.source;
     R.append(h("div", "lbl", `Boiler on · ${what}`), big(left, "min left"), kv("Off at", hm(d.running.until)));
     const v = viaChip(d, true); if (v) R.append(v);
-    if (d.controls.can_stop && d.controls.logged_in) {
+    if (d.controls.can_stop) {
       const st = h("button", "tstop"); st.append(ico("player_stop"), document.createTextNode("Stop"));
       st.onclick = async () => { if (!confirm("Switch the boiler off now?")) return; st.disabled = true; const r = await post("/api/stop"); toast(r.ok ? "Stopped" : r.message); refresh(); };
       R.append(st);
@@ -426,15 +435,15 @@ const money = (d, v) => `${d.energy.currency}${Number(v || 0).toFixed(2)}`;
 /* ---------- runs that did not start: ask, never fire late by ourselves ---------- */
 function renderMissed(d) {
   const box = $("missedbox"), items = d.missed || [], c = d.controls;
-  const key = JSON.stringify([items, c.logged_in]); if (box.dataset.key === key) return; box.dataset.key = key; box.replaceChildren();
+  const key = JSON.stringify([items, c.available]); if (box.dataset.key === key) return; box.dataset.key = key; box.replaceChildren();
   for (const m of items) {
     const card = h("div", "alert"); card.append(ico("alert_triangle"));
     const t = h("div"); t.append(h("b", "", `${m.label} did not start`), h("div", "tiny", `Planned ${m.minutes} min at ${hm(m.planned_at)}. Heat now?`)); card.append(t);
-    if (c.password_set && c.logged_in && c.available) {
+    if (c.available) {
       const go = h("button", "btn sm go", `Heat ${m.minutes} min now`), no = h("button", "btn ghost sm", "Skip");
       const send = async a => { go.disabled = no.disabled = true; const r = await post("/api/missed", {id: m.id, action: a}); toast(r.message); box.dataset.key = ""; refresh(); };
       go.onclick = () => send("fire"); no.onclick = () => send("skip"); card.append(go, no);
-    } else card.append(h("div", "tiny", "Unlock to answer."));
+    } else card.append(h("div", "tiny", "No boiler connection is set up."));
     box.append(card);
   }
 }
@@ -455,7 +464,6 @@ function renderExtra(d) {
   const sub_ = !isOn ? "" : pl && pl.state === "heating" ? `Heating · ${pl.watts} W` : pl && pl.state === "tank_hot" ? "No draw (tank hot?)" : d.running ? `until ${hm(d.running.until)}` : "";
   sw.append(h("span", "swdot " + (isOn ? "on" : "off")), h("b", "", isOn ? "ON" : "OFF"), h("span", "grow", sub_), swb);
   if (!c.available) { box.append(h("div", "note", "View-only: no boiler connection is set up.")); return; }
-  if (!c.password_set || !c.logged_in) { sw.removeChild(swb); box.append(sw, h("div", "note", lockedNote(c))); if (c.password_set) box.append(unlockRow()); return; }
   const opts = startOptions(d); EX.start = Math.min(EX.start, opts.length - 1); EX.dur = Math.min(EX.dur, c.max_minutes);
   const mk = (label, inp, val) => { const w = h("div", "ctl"), r = h("div", "row2"); r.append(h("span", "", label), val); w.append(r, inp); return w; };
   const dv = h("b"), di = h("input"); Object.assign(di, {type: "range", min: 5, max: c.max_minutes, step: 5, value: EX.dur}); di.setAttribute("aria-label", "How long");
@@ -491,20 +499,28 @@ function renderExtra(d) {
   }
 }
 
-/* ---------- footer: today so far + pause ---------- */
+/* ---------- on hold: seen by everyone; the switch itself is admin-only, at the bottom of Settings ---------- */
 function renderFoot(d) {
-  const box = $("foot"); box.replaceChildren();
-  const on = d.auto.enabled, card = h("div", "autocard" + (on ? "" : " paused"));
+  const on = d.auto.enabled;
+  document.body.classList.toggle("onhold", !on);
+  const hb = $("holdbar"); hb.hidden = on; hb.replaceChildren();
+  if (!on) {
+    const since = d.auto.since ? ` since ${d.auto.since.slice(8, 10)}/${d.auto.since.slice(5, 7)} ${hm(d.auto.since)}` : "";
+    const x = h("div"); x.append(h("b", "", "On hold" + since), h("div", "tiny", "Nothing runs by itself. Extra hot water still works."));
+    hb.append(ico("alert_triangle"), x);
+  }
+  const box = $("autobox"); box.replaceChildren();
+  if (!d.controls.logged_in) return;                         // admin only: unlock in Settings first
+  const card = h("div", "autocard" + (on ? "" : " paused"));
   const txt = h("div"); txt.append(h("div", "t", on ? "Active" : "On hold"),
     h("div", "s", on ? "Heating by the sun, plus your presets" : "Nothing runs by itself. Extra hot water still works"));
   const sw = h("button", "tog" + (on ? "" : " off")); sw.type = "button"; sw.setAttribute("role", "switch");
   sw.setAttribute("aria-checked", String(on)); sw.setAttribute("aria-label", "Active");
   sw.onclick = async () => {
-    if (!d.controls.logged_in) { toast("Unlock first (Extra hot water box)"); return; }
     if (on && !confirm("Put on hold? Daily runs and presets stop. Extra hot water still works.")) return;
     sw.disabled = true; const r = await post("/api/auto", {enabled: !on}); toast(r.message); refresh(); refreshServices();
   };
-  card.append(txt, sw); $("autobox").replaceChildren(card);
+  card.append(txt, sw); box.append(card);
 }
 
 /* which link switches the boiler */
@@ -709,8 +725,11 @@ async function saveChanges() {
 }
 async function loadSettings() {
   const body = $("settings-body");
-  if (S && S.controls.password_set && !S.controls.logged_in) { const c = h("div", "card"); c.append(h("h2", "", "Settings"), h("div", "note", lockedNote(S.controls)), unlockRow(loadSettings)); body.replaceChildren(c); return; }
-  if (!await fetchSettings()) return; CHG = {}; renderSettings();
+  if (!S) await refresh();                                   // opened directly / after a reload: status not here yet
+  const locked = () => { const c = h("div", "card"); c.append(h("h2", "", "Settings"), h("div", "note", lockedNote(S ? S.controls : {password_set: true})), unlockRow(loadSettings)); body.replaceChildren(c); };
+  if (S && S.controls.password_set && !S.controls.logged_in) return locked();
+  if (!await fetchSettings()) return locked();
+  CHG = {}; renderSettings();
 }
 function fullHeat(c) {
   const f = S && S.formula && S.formula.full;
@@ -723,6 +742,64 @@ function fullHeat(c) {
   const b = h("button", "btn sm", "Save"); b.onclick = async () => { const v = inp.value === "" ? 0 : Number(inp.value);
     const r = await post("/api/formula", {formula: Object.assign({}, f, {full_heat: v})}); toast(r.ok ? "Saved. Applies from the next estimate" : r.message); if (r.ok) refresh(); };
   const row = h("div", "row"); row.append(b); c.append(w, row);
+}
+async function runUpdate(branch, btn, msg) {
+  if (!confirm(`Update to ${branch}? The page goes offline for about a minute while BoilerMind restarts.`)) return;
+  btn.disabled = true; msg.textContent = "Starting…";
+  const r = await post("/api/updates/start", {branch});
+  if (!r.ok) { msg.textContent = "🔴 " + r.message; btn.disabled = false; return; }
+  msg.textContent = "🟡 Updating… the page reconnects by itself (about 1-2 minutes).";
+  let sawDown = false, ticks = 0;
+  const timer = setInterval(async () => {
+    ticks++;
+    let up = false; try { up = (await fetch("/healthz", {cache: "no-store"})).ok; } catch (e) {}
+    if (!up) { sawDown = true; msg.textContent = "🟡 Restarting…"; return; }
+    if (sawDown) { clearInterval(timer); msg.textContent = "🟢 Back online. Reloading…"; setTimeout(() => location.reload(), 1200); return; }
+    if (ticks % 3 === 0) {                                    // still up: did the update fail before the swap?
+      try { const s = await (await fetch("/api/updates/status", {cache: "no-store"})).json();
+        if (s.state === "failed") { clearInterval(timer); msg.textContent = "🔴 Update failed: " + (s.log || []).slice(-3).join(" | "); btn.disabled = false; }
+        else if (s.state === "done") { clearInterval(timer); location.reload(); }
+      } catch (e) {}
+    }
+    if (ticks > 100) { clearInterval(timer); msg.textContent = "🟡 Taking long. Check the server."; btn.disabled = false; }
+  }, 3000);
+}
+function updatesCard(c) {
+  const out = h("div"), btn = h("button", "btn sm", "Check for updates"); btn.style.marginBottom = "10px";
+  c.append(h("div", "note", "Looks on GitHub for newer versions. Nothing changes until you press Update now (or run the command yourself)."), btn, out);
+  const check = async (refresh) => {
+    btn.disabled = true; out.replaceChildren(h("div", "note", "Checking…"));
+    let d; try { d = await (await fetch("/api/updates" + (refresh ? "?refresh=1" : ""), {cache: "no-store"})).json(); } catch (e) { d = {ok: false, message: "Network error"}; }
+    btn.disabled = false; out.replaceChildren();
+    if (!d.ok) { out.append(h("div", "note", "🔴 " + (d.message || "Failed"))); return; }
+    out.append(h("div", "note", (d.level === "green" ? "🟢 " : "🟡 ") + d.text));
+    const f = h("div", "field"), sel = h("select"), cmd = h("input"), cp = h("button", "btn sm", "Copy");
+    d.branches.forEach(b => { const o = h("option", "", `${b.name}  ·  ${b.date}  ·  ${b.sha}${b.current ? "  (running)" : ""}${b.name === d.suggested ? "  (latest)" : ""}`); o.value = b.name; sel.append(o); });
+    sel.value = d.suggested; sel.style.width = "100%"; sel.style.maxWidth = "100%"; cmd.readOnly = true; cmd.style.width = "100%"; cmd.style.boxSizing = "border-box"; cmd.style.fontSize = "12px";
+    let same = () => false;                                    // set below when the Update now button exists
+    const show = () => { const b = d.branches.find(x => x.name === sel.value); cmd.value = b ? b.command : ""; same(b); };
+    sel.onchange = show;
+    cp.onclick = async () => { try { await navigator.clipboard.writeText(cmd.value); toast("Copied"); } catch (e) { cmd.select(); toast("Press Ctrl+C"); } };
+    const row = h("div", "row"); row.append(cp);
+    f.append(h("label", "", "Version to install"), sel, h("div", "hint", "Or run this on the VM (SSH):"), cmd);
+    if (d.updater) {
+      const go = h("button", "btn go", "Update now"), msg = h("div", "note"); go.onclick = () => runUpdate(sel.value, go, msg);
+      same = b => { const s = !!(b && b.same); go.disabled = s; go.textContent = s ? "Up to date" : "Update now"; msg.textContent = s ? "🟢 You already run this exact version. Nothing to update." : ""; };
+      row.prepend(go); out.append(f, row, msg);
+    } else {
+      out.append(f, row, h("div", "note", "One-click update is not installed on the server yet. Once, on the VM: updater/install.sh"));
+    }
+    show();
+  };
+  btn.onclick = () => check(true);
+}
+function renderVer(d) {
+  const v = $("ver"), b = d.build || {};
+  if (!b.commit) { v.hidden = true; return; }
+  v.hidden = false; v.replaceChildren();
+  v.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 7v10M18 10c0 5-8 3-12 7"/></svg>');
+  v.append(document.createTextNode(`${(b.branch || "?").replace(/^(feature|fix)\//, "")} · ${b.commit}`));
+  v.title = `Running ${b.branch} @ ${b.commit}. Click: Settings > Updates`;
 }
 function renderSettings() {
   const body = $("settings-body"); body.replaceChildren();
@@ -740,6 +817,7 @@ function renderSettings() {
     fld("Settle time (seconds)", "power.settle_seconds", {type: "number", hint: "How long the sensor takes to follow the relay after ON/OFF. Inside this time no alarm is raised and it is not counted as heating."}),
     fld("Counts as heating from (watts)", "power.on_watts", {type: "number"}),
     fld("Power multiplier", "power.scale", {type: "number", hint: "10 if the plug reads power 10x too low (voltage bug). 1 if it reads right."})); });
+  card("Updates", c => updatesCard(c));
   card("Secrets", c => { c.append(fld("Dashboard password", "dashboard.password", {secret: true}), fld("MQTT broker password", "mqtt.password", {secret: true}), fld("Home Assistant token", "ha.token", {secret: true})); });
   const bar = h("div", "card"); const save = h("button", "btn go", "Save settings"); const undo = h("button", "btn ghost", "Undo changes");
   const st = h("div", "note"); const row = h("div", "row"); row.style.marginTop = "0"; row.append(save, undo); bar.append(row, st); body.append(bar);
@@ -796,7 +874,7 @@ async function refresh() {
     const r = await fetch("/api/status", {cache: "no-store"}); if (!r.ok) throw 0; const d = await r.json(); S = d;
     if ((d.controls.needs_setup || !d.controls.password_set) && !WIZ_SEEN && location.hash !== "#setup") { WIZ_SEEN = true; location.hash = "#setup"; }
     const fh = $("fullheat"); if (fh && !fh.dataset.ok) fullHeat(fh);
-    renderToday(d); renderMissed(d); renderExtra(d); renderFoot(d); renderLinks(); renderNext(d); renderHistory(d); renderForecast();
+    renderVer(d); renderToday(d); renderMissed(d); renderExtra(d); renderFoot(d); renderLinks(); renderNext(d); renderHistory(d); renderForecast();
   } catch (e) { const t = $("today"); t.replaceChildren(h("div", "tl")); t.firstChild.append(h("div", "lbl", "Can't reach the boiler service")); }
 }
 async function refreshForecast() { try { FC = await (await fetch("/api/forecast", {cache: "no-store"})).json(); } catch (e) { FC = {error: "Forecast unavailable"}; } if (S) { renderToday(S); renderForecast(); } }

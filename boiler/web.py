@@ -1,8 +1,9 @@
 """Dashboard: one page (page.html) + a small JSON API. Standard library only.
 
 Runs as a thread inside the service (so one process), or alone:  python dashboard.py  (view-only)
-Reading is open on your network. Anything that SWITCHES the boiler (Run / Stop) needs the dashboard
-password (env DASHBOARD_PASSWORD); with no password set, controls are off.
+Reading and operating the boiler (extra hot water, Run / Stop, heat-now) are open on your network.
+Admin actions (settings, schedule, formula, pause) need the dashboard password (env DASHBOARD_PASSWORD);
+with no password set, they are off.
 The API never exposes secrets.
 """
 import csv
@@ -18,18 +19,20 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import APP_VERSION
 from .formula import Formula, explain, load_formula, compute_duration, base_minutes
-from .state import (load_last_update, load_attempt, load_running, load_auto, set_auto, load_plan,
+from .state import (mark_pulse_check, load_last_update, load_attempt, load_running, load_auto, set_auto, load_plan,
                     record_weather, save_later, clear_later, load_later)
 from . import confidence
 from .activity import log_event, read_events
 from . import power as power_mod
 from .drivers import start_boiler, REGISTRY
-from . import runs, schedule, missed as missed_mod
+from . import runs, schedule, missed as missed_mod, updates
 
 PAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "page.html")
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 TUNE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tune.html")
 COOKIE = "boiler_session"
+# Operating the boiler needs no password (anyone on the network can use the buttons); everything else is admin.
+OPEN_PATHS = ("/api/run", "/api/stop", "/api/later/cancel", "/api/missed")
 CSRF_HEADER = ("X-Requested-With", "boiler-ui")      # a cross-site page cannot send this without our consent
 FORECAST_TTL = 1800                                  # seconds
 SERVICES_TTL = 60                                    # seconds between live link checks
@@ -86,6 +89,8 @@ def health(s, now, last_update, attempt):
         if plan.get("minutes") is not None:
             if plan["status"] == "final":
                 return "green", f"Final for today: {plan['minutes']} min"
+            if attempt and not attempt.get("ok") and str(attempt.get("time", ""))[:10] == today:
+                return "yellow", f"Weather unavailable: keeping the last estimate ({plan['minutes']} min)"
             return "green", f"Estimate {plan['minutes']} min, final after {plan['lock_at'][11:16]}"
     if attempt and not attempt.get("ok") and str(attempt.get("time", ""))[:10] == today:
         return "red", attempt.get("message", "Weather unavailable")
@@ -111,6 +116,7 @@ def build_status(s, driver_names, formula=None, now=None, power=None):
 
     return {
         "version": APP_VERSION,
+        "build": updates.running(),                   # branch + commit this container was built from
         "now": now.isoformat(timespec="seconds"),
         "health": {"level": level, "text": text},
         "running": load_running(s, now),
@@ -330,6 +336,17 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
             from . import setup
             self._json(200, dict(setup.values(c.s), controls=self._controls()))
+        elif path == "/api/updates/status":           # admin: progress of a one-click update
+            if c.auth.enabled and not c.auth.valid(self._token()):
+                return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
+            self._json(200, updates.update_status())
+        elif path == "/api/updates":                  # admin: which versions exist, which runs, the update command
+            if c.auth.enabled and not c.auth.valid(self._token()):
+                return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
+            try:
+                self._json(200, updates.check(refresh="refresh=1" in self.path))
+            except Exception as e:
+                self._json(502, {"ok": False, "message": f"Could not reach GitHub ({type(e).__name__})"})
         elif path == "/api/geocode":
             from urllib.parse import urlparse, parse_qs
             from . import setup
@@ -356,7 +373,7 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(403, {"ok": False, "message": "Forbidden"})
         try:
             n = int(self.headers.get("Content-Length", "0"))
-            body = json.loads(self.rfile.read(min(n, 2048)) or b"{}") if n > 0 else {}
+            body = json.loads(self.rfile.read(min(n, 16384)) or b"{}") if n > 0 else {}
             if not isinstance(body, dict):
                 body = {}
         except (ValueError, OSError):
@@ -384,12 +401,18 @@ class _Handler(BaseHTTPRequestHandler):
             return self._sunshine()
 
         if path not in ("/api/run", "/api/stop", "/api/auto", "/api/later/cancel", "/api/formula", "/api/schedule",
-                        "/api/settings", "/api/settings/test", "/api/missed"):
+                        "/api/settings", "/api/settings/test", "/api/missed", "/api/updates/start"):
             return self._json(404, {"ok": False, "message": "Not found"})
-        if not c.auth.enabled:
-            return self._json(403, {"ok": False, "message": "Controls are off: no dashboard password is set"})
-        if not c.auth.valid(self._token()):
-            return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
+        if path not in OPEN_PATHS:                    # admin actions: dashboard password required
+            if not c.auth.enabled:
+                return self._json(403, {"ok": False, "message": "Controls are off: no dashboard password is set"})
+            if not c.auth.valid(self._token()):
+                return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
+        if path == "/api/updates/start":              # admin: ask the host updater to run deploy.sh <branch>
+            branch = str(body.get("branch", ""))
+            ok, msg = updates.start_update(branch)
+            log_event(c.s, "manual", f"Update to {branch}: {msg}", ok)
+            return self._json(200 if ok else 502, {"ok": ok, "message": msg})
         if path == "/api/auto":                       # pause/resume needs no driver
             return self._auto(body)
         if path == "/api/later/cancel":
@@ -440,7 +463,7 @@ class _Handler(BaseHTTPRequestHandler):
             save_later(s, when, m)
             log_event(s, "manual", f"Extra {m} min set for {when:%H:%M}", True)
             return self._json(200, {"ok": True, "message": f"Set: {m} min at {when:%H:%M}"})
-        ok, used = start_boiler(c.drivers, m)
+        ok, used = start_boiler(c.drivers, m, s)
         if ok:
             runs.record_start(s, m, "manual")
             log_event(s, "manual", f"Manual run {m} min via {used}", True)
@@ -580,6 +603,7 @@ class _Handler(BaseHTTPRequestHandler):
         for d in capable:
             if d.stop():
                 runs.record_stop(s)
+                mark_pulse_check(s, datetime.now())          # the engine verifies PulseTime == 0 next tick
                 log_event(s, "manual", f"Manual stop via {d.name}", True)
                 return self._json(200, {"ok": True, "message": f"Stopped (via {d.name})"})
         log_event(s, "manual", "Manual stop FAILED", False)

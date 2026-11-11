@@ -1,0 +1,179 @@
+# BoilerMind: install on the server (Docker)
+
+Target: Debian VM `192.168.30.12`, user `guyd`, folder `~/pythons/dockers/Time_and_Sun_Boiler`.
+Run every command in a terminal **on the VM**, one line at a time, in the folder named in each phase.
+
+## Progress (updated only after a phase is confirmed on the VM)
+
+| Phase | What | Status |
+|---|---|---|
+| 0 | Before you start | 🟢 Docker works. No old boiler container on this VM (only `MQTT_Cockpit`, a different app: leave it) |
+| 1 | Get the code, right branch | 🟢 Done: Dockerfile is the new one. Latest code is on branch `feature/open-controls` |
+| 2 | Secrets file `boiler.env` | 🟡 Created in the install folder; the container started with it. Password check happens in phase 7 |
+| 3 | Carry over data from the old container | ⬜ Skipped for now: no old container found here. Fresh start |
+| 4 | Build the image | 🟢 Done: `docker build -t boilermind .` finished (11/11 steps, 12.7 s) |
+| 5 | Start it | 🟢 Done: container `boilermind` running, engine "waiting for setup" (BoilerMind v2.2.0) |
+| 6 | Check it is alive | 🟢 Done: page opens in the browser |
+| 7 | First-run setup in the browser | 🟡 Page and Settings reachable. Real Tasmota plug not confirmed yet (use Test mode until then) |
+| 8 | Show it inside Home Assistant (optional) | 🟢 Done: dashboard "Webpage" card works (viewing). Settings login: open the page in its own tab |
+| 9 | Switch to the real Tasmota plug | ⬜ Not done |
+
+Key: 🟢 done and confirmed · 🟡 started or partly done · ⬜ not done
+
+---
+
+## Phase 0: Before you start
+
+- Docker must work: `docker --version`.
+- This VM's Docker has **no `docker compose`**. Use the plain `docker` commands below.
+- Find the old container, so you can stop it later (two copies must never run: both would switch the boiler):
+  ```
+  docker ps --format '{{.Names}}  {{.Image}}'
+  ```
+  Write its name down. Called `<OLD>` below.
+
+## Phase 1: Get the code, on the right branch
+
+```
+mkdir -p ~/pythons/dockers && cd ~/pythons/dockers
+git clone -b feature/open-controls https://github.com/guydvir2/Time_and_Sun_Boiler
+cd Time_and_Sun_Boiler
+```
+
+Check it is the new web app, not the old desktop one:
+```
+git branch --show-current
+head -3 Dockerfile
+```
+Expected: `feature/open-controls` (the latest), and a Dockerfile starting `FROM python:3.12-slim` (no `python3-tk`).
+
+Already have the folder? Switch it instead:
+```
+git fetch origin
+git checkout feature/open-controls
+git pull
+```
+
+## Phase 2: Secrets file
+
+Secrets live only in `boiler.env` (never in git, never in the app's settings).
+```
+cp boiler.env.example boiler.env
+chmod 600 boiler.env
+nano boiler.env
+```
+Set:
+- `DASHBOARD_PASSWORD=` a long password (needed for Run/Stop and Settings)
+- `MQTT_PASSWORD=` the **new** MQTT password
+- `HA_TOKEN=` only if Home Assistant is used as a driver
+
+Save in nano: Ctrl+O, Enter, Ctrl+X.
+
+## Phase 3: Carry over data from the old container (skip for a fresh start)
+
+Stop the old container first, then copy its files into `data/`:
+```
+OLD=<name from phase 0>
+W=$(docker inspect -f '{{.Config.WorkingDir}}' $OLD); echo $W
+docker stop $OLD
+mkdir -p data
+docker cp $OLD:$W/settings.json data/
+docker cp $OLD:$W/state.json data/
+docker cp $OLD:$W/stored_data data/
+```
+"no such file" on a line means that file lived elsewhere: note it in the troubleshooting table.
+
+## Phase 4: Build the image
+
+```
+docker build -t boilermind .
+```
+Keep the dot at the end. About a minute or two.
+
+## Phase 5: Start it
+
+```
+docker run -d --name boilermind --restart unless-stopped -p 8080:8080 --env-file boiler.env -e TZ=Asia/Jerusalem -v "$PWD/data:/data" boilermind
+```
+One long line. `data/` is where settings, state and history live, so updates never lose them.
+Change `TZ` to your own time zone if it is not Asia/Jerusalem.
+
+## Phase 6: Check it is alive
+
+```
+docker logs --tail 20 boilermind
+curl http://localhost:8080/healthz
+```
+Expected: log lines with "BoilerMind", and `ok` from the second command.
+
+## Phase 7: First-run setup in the browser
+
+Open `http://192.168.30.12:8080`. A fresh install shows the setup wizard (password check, town, how the
+boiler is switched, "hot by" time). With data copied in phase 3 it opens straight to the home screen.
+Before trusting it with the real boiler: try a lamp on the plug, or "Test mode (switches nothing)" first.
+
+---
+
+## Update to a newer version
+
+`git pull` only updates the branch you are on. Always do the `checkout` line too, or you rebuild the old code.
+
+```
+cd ~/pythons/dockers/Time_and_Sun_Boiler
+git fetch origin
+git checkout feature/open-controls
+git pull
+git log --oneline -1
+docker build -t boilermind .
+docker rm -f boilermind
+```
+then the phase 5 `docker run` line again, then reload the page with Ctrl+F5. `data/` is untouched.
+
+## Roll back to the old app
+
+```
+docker rm -f boilermind
+docker start <OLD>
+```
+
+## Troubleshooting (things that already went wrong)
+
+| What you see | Cause | Fix |
+|---|---|---|
+| `open boiler.env: no such file` / `grep: boiler.env: No such file` | `boiler.env` was created in another folder | Phase 2 in the folder you build from; check with `ls -a` |
+| `container name "/boilermind" is already in use` | It was already started by an earlier try | Check `docker ps`: if running, nothing to do. To redo: `docker rm -f boilermind`, then the phase 5 line |
+| `unknown shorthand flag: 'd' in -d` | This Docker has no `compose` add-on | Use the plain `docker build` / `docker run` lines (or `sudo apt install docker-compose-v2`) |
+| `open Dockerfile: no such file or directory` | Wrong folder, or an old checkout without the Dockerfile | `pwd`, `ls`; then phase 1 switch commands |
+| Build shows `python3-tk` | Folder is on old branch `v_2.0` (desktop app) | `git checkout feature/open-controls && git pull` |
+| `port is already allocated` | Old container still on 8080 | `docker stop <OLD>` |
+| Dashboard says setup needed after phase 3 | `settings.json` not copied | Repeat the `docker cp` lines, then `docker restart boilermind` |
+| Page looks the same after an update | `git pull` on the wrong branch, or the container was not recreated | Full update block above (with `checkout`), then Ctrl+F5 |
+| Settings: password typed but no settings (inside Home Assistant) | Browser drops the login for an embedded page | Open `http://192.168.30.12:8080` in its own tab |
+| Settings stays on "Loading…" | Bug in older versions when opened directly | Update to the latest branch |
+| Run/Stop buttons locked | `DASHBOARD_PASSWORD` empty in `boiler.env` | Set it, then `docker rm -f boilermind` and the phase 5 line |
+
+## Phase 8 (optional): Show it inside Home Assistant
+
+HA: Settings → Dashboards → add a dashboard "Boiler" (tick "Show in sidebar") → edit → view type **Panel** →
+add a **Webpage** card → URL `http://192.168.30.12:8080`. Works while HA itself is on plain `http://`.
+Limit: a browser does not keep the admin login for a page embedded from another address. For Settings, open
+`http://192.168.30.12:8080` in its own tab.
+
+## Phase 9: Switch to the real Tasmota plug
+
+Only after the old way of running the boiler is switched off (two controllers must never run it).
+Settings → Boiler connection → Tasmota plug (MQTT): broker `192.168.30.2`, user, topic `DvirHome/WaterHeater`,
+full topic `%topic%/%prefix%/`. Press **Test** first (it switches nothing), then Save.
+
+## Who can do what
+
+- **No password (anyone on your network):** see the page, extra hot water, Run/Stop, "heat now", cancel a timed run.
+  Still limited by "max minutes per run" and protected against other websites.
+- **Dashboard password (admin):** Settings (the Active / On hold switch is at the bottom), Schedule, formula tuning, setup wizard.
+- **On hold:** every user sees an amber bar and greyed-out cards; extra hot water still works.
+
+## Notes
+
+- Repo moved: the address is now `github.com/guydvir2/Time_and_Sun_Boiler` (capital letters). The old one redirects.
+- Every command above was checked against this repo's files. Commands marked in the Progress table as
+  confirmed were run on the VM; the rest are still untested there.
