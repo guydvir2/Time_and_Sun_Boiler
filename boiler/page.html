@@ -183,6 +183,10 @@ input[type=time]{width:128px}.pcard input{width:100%}
 .autocard .t{font:600 18px Bricolage,Figtree,sans-serif}.autocard .s{font-size:13.5px;color:var(--mute)}
 .autocard.paused{background:#FFF1D2}.autocard.paused .s{color:#8A5A00}
 @media (prefers-color-scheme:dark){.autocard.paused{background:#3A2E12}.autocard.paused .s{color:#F2C96B}}
+.holdbar{display:flex;align-items:center;gap:10px;background:#FFF1D2;color:#8A5A00;border-radius:16px;padding:12px 16px;margin-bottom:12px;font-size:14.5px}
+.holdbar[hidden]{display:none}.holdbar b{font-weight:600}.holdbar .tiny{color:inherit;opacity:.9}.holdbar svg{flex:none;width:22px;height:22px}
+@media (prefers-color-scheme:dark){.holdbar{background:#3A2E12;color:#F2C96B}}
+body.onhold #today,body.onhold #next{filter:grayscale(1);opacity:.5}
 .tog{position:relative;flex:none;width:56px;height:32px;border:0;border-radius:99px;background:var(--ok);cursor:pointer;padding:0}
 .tog::after{content:"";position:absolute;top:3px;left:27px;width:26px;height:26px;border-radius:50%;background:#fff;transition:left .15s}
 .tog.off{background:#B8C7D1}.tog.off::after{left:3px}
@@ -198,6 +202,7 @@ input[type=time]{width:128px}.pcard input{width:100%}
 .via .logo{color:inherit}
 </style></head><body>
 <main>
+<div class="holdbar" id="holdbar" hidden></div>
 <header>
   <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="13" r="7" fill="var(--sun)"/><path d="M2 22c4-3 7-3 10 0s8 3 11 0 5-3 7-2v9H2z" fill="var(--water)"/></svg>BoilerMind</div>
   <div class="links" id="links" aria-label="Connections"></div>
@@ -215,7 +220,6 @@ input[type=time]{width:128px}.pcard input{width:100%}
 
 <!-- ============ HOME ============ -->
 <section class="tab" id="t-home">
-  <div id="autobox"></div>
   <div id="missedbox"></div>
   <div class="tgrid" id="today"><div class="tl"><div class="lbl">Loading…</div></div></div>
   <div class="extra" id="extra"></div>
@@ -248,7 +252,8 @@ input[type=time]{width:128px}.pcard input{width:100%}
 <!-- ============ SETTINGS ============ -->
 <section class="tab" id="t-settings">
   <div class="card" id="services"><h2>Connections<small id="svwhen"></small></h2><div id="sv" class="note">Checking…</div></div>
-  <div id="settings-body"><div class="card note">Loading…</div></div></section>
+  <div id="settings-body"><div class="card note">Loading…</div></div>
+  <div id="autobox"></div></section>
 
 <!-- ============ SETUP WIZARD ============ -->
 <section class="tab" id="t-setup"><div id="setup-body"></div></section>
@@ -485,20 +490,28 @@ function renderExtra(d) {
   }
 }
 
-/* ---------- footer: today so far + pause ---------- */
+/* ---------- on hold: seen by everyone; the switch itself is admin-only, at the bottom of Settings ---------- */
 function renderFoot(d) {
-  const box = $("foot"); box.replaceChildren();
-  const on = d.auto.enabled, card = h("div", "autocard" + (on ? "" : " paused"));
+  const on = d.auto.enabled;
+  document.body.classList.toggle("onhold", !on);
+  const hb = $("holdbar"); hb.hidden = on; hb.replaceChildren();
+  if (!on) {
+    const since = d.auto.since ? ` since ${d.auto.since.slice(8, 10)}/${d.auto.since.slice(5, 7)} ${hm(d.auto.since)}` : "";
+    const x = h("div"); x.append(h("b", "", "On hold" + since), h("div", "tiny", "Nothing runs by itself. Extra hot water still works."));
+    hb.append(ico("alert_triangle"), x);
+  }
+  const box = $("autobox"); box.replaceChildren();
+  if (!d.controls.logged_in) return;                         // admin only: unlock in Settings first
+  const card = h("div", "autocard" + (on ? "" : " paused"));
   const txt = h("div"); txt.append(h("div", "t", on ? "Active" : "On hold"),
     h("div", "s", on ? "Heating by the sun, plus your presets" : "Nothing runs by itself. Extra hot water still works"));
   const sw = h("button", "tog" + (on ? "" : " off")); sw.type = "button"; sw.setAttribute("role", "switch");
   sw.setAttribute("aria-checked", String(on)); sw.setAttribute("aria-label", "Active");
   sw.onclick = async () => {
-    if (!d.controls.logged_in) { toast("Unlock first (Extra hot water box)"); return; }
     if (on && !confirm("Put on hold? Daily runs and presets stop. Extra hot water still works.")) return;
     sw.disabled = true; const r = await post("/api/auto", {enabled: !on}); toast(r.message); refresh(); refreshServices();
   };
-  card.append(txt, sw); $("autobox").replaceChildren(card);
+  card.append(txt, sw); box.append(card);
 }
 
 /* which link switches the boiler */
