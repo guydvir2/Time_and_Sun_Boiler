@@ -233,6 +233,7 @@ input[type=time]{width:128px}.pcard input{width:100%}
 <section class="tab" id="t-history">
   <div class="card"><h2>Minutes run<small>last 14 days</small></h2><div id="ranchart"></div>
     <div class="chips" style="justify-content:flex-start;margin-top:8px"><span class="chip"><i class="sw auto"></i>auto</span><span class="chip"><i class="sw preset"></i>preset</span><span class="chip"><i class="sw manual"></i>manual</span></div></div>
+  <div class="card"><h2>Cost<small>last 14 days</small></h2><div id="costchart"></div><div id="costnote" class="note"></div></div>
   <div class="card"><h2>Weather</h2><div id="fnow" class="note">Loading forecast…</div><div id="fdays"></div><div id="wx" style="margin-top:8px"></div></div>
   <div class="card"><h2>All activity</h2><div id="actall"></div></div>
   <div class="card"><h2>Details</h2><div class="kv" id="kv"></div><h2 style="margin-top:16px">Temperature to minutes</h2><div id="fx"></div></div>
@@ -376,7 +377,9 @@ function renderToday(d) {
 
   const t = d.totals.today, parts = [];
   if (t.auto) parts.push(`auto ${t.auto}`); if (t.preset) parts.push(`preset ${t.preset}`); if (t.manual) parts.push(`extra ${t.manual}`);
-  R.append(h("div", "ran", t.total ? `Ran today ${t.total} min` + (parts.length > 1 ? ` (${parts.join(", ")})` : "") : "Not run yet today"));
+  R.append(h("div", "ran", t.total ? `Ran today ${t.total} min` + (parts.length > 1 ? ` (${parts.join(", ")})` : "") + ` · ${money(d, t.cost)}` : "Not run yet today"));
+  if (d.segments.length) { const tk = h("div", "tiny");
+    tk.textContent = d.segments.map(x => `${x.start.slice(11)} ${x.minutes} min ${money(d, x.cost)}`).join("  ·  "); R.append(tk); }
 
   /* bottom: weather + confidence */
   const W = h("div", "tw");
@@ -394,6 +397,8 @@ function renderToday(d) {
   L.append(h("div", "tiny", `Min run ${d.min_run} min`));
   box.append(L, R, W);
 }
+
+const money = (d, v) => `${d.energy.currency}${Number(v || 0).toFixed(2)}`;
 
 /* ---------- extra hot water ---------- */
 let EX = {dur: 30, start: 0};
@@ -542,7 +547,7 @@ function bars(box, rows, keys, colors, maxFloor, label) {
   rows.forEach((r, i) => { let y = H; const x = x0 + i * slot + (slot - bw) / 2;
     keys.forEach((k, j) => { const v = r[k] || 0; if (!v) return; const bh = (v / maxY) * (H - 10); y -= bh;
       const a = el("rect", {x, y, width: bw, height: bh, rx: 2, fill: colors[j](r)}); if (r.replay) a.setAttribute("opacity", .45);
-      a.append(el("title", {}, `${r.date}: ${v} min ${k === "minutes" ? "" : k}`)); svg.append(a); }); });
+      a.append(el("title", {}, `${r.date}: ${k === "cost" ? v.toFixed(2) : v + " min"} ${k === "minutes" || k === "cost" ? "" : k}`)); svg.append(a); }); });
   svg.append(el("text", {x: x0, y: H + 15, class: "lbl"}, rows[0].date.slice(5)));
   svg.append(el("text", {x: W, y: H + 15, class: "lbl", "text-anchor": "end"}, rows[rows.length - 1].date.slice(5)));
   box.append(svg);
@@ -555,6 +560,8 @@ function spark(vals, label, color) {
 }
 function renderHistory(d) {
   bars($("ranchart"), d.totals.per_day, ["auto", "preset", "manual"], [() => "var(--heat)", () => "var(--water)", () => "var(--ink)"], 60, "Minutes run per day");
+  const cc = $("costchart"); if (cc) { bars(cc, d.totals.per_day, ["cost"], [() => "var(--heat)"], 1, `Cost per day (${d.energy.currency})`);
+    const n = $("costnote"); if (n) n.textContent = `Last 7 days ${money(d, d.totals.week_cost)} · estimate at ${d.energy.kw} kW × ${d.energy.currency}${d.energy.price_kwh}/kWh`; }
   const wx = $("wx"); wx.replaceChildren();
   if (d.weather.length) wx.append(spark(d.weather.map(r => r.temp), "Today °C", "var(--heat)"), spark(d.weather.map(r => r.clouds), "Clouds %", "var(--mute)"));
   events($("actall"), d.activity, 15, d.now.slice(0, 10));
@@ -674,6 +681,8 @@ function renderSettings() {
                                fld("Min run (minutes)", "min_run", {type: "number", hint: "A daily run shorter than this is skipped: not worth switching on."}),
                                fld("Run 1 share of the day (%)", "run1_pct", {type: "number", hint: "100 = all in run 1. Less leaves the rest for run 2, for later showers."}),
                                fld("Run 2 time", "run2_at", {type: "time", hint: "When run 2 starts (never before the day's number is final). Empty = right after run 1."})); });
+  card("Energy price", c => { c.append(fld("Boiler power (kW)", "energy.boiler_kw", {type: "number", hint: "The heater's rating, e.g. 3. Cost = minutes on × kW × price."}),
+                                   fld("Price per kWh", "energy.price_kwh", {type: "number", hint: "Israel household tariff from 1 Jul 2026: 0.635 incl. VAT (63.52 agorot). Update when the tariff changes."})); });
   card("Boiler", c => { c.id = "fullheat"; fullHeat(c); });
   card("Password", c => { c.append(fld("New dashboard password", "dashboard.password", {type: "password", secret: true, hint: "At least 6 characters. Everyone is logged out after a change."})); });
   const bar = h("div", "card"); const save = h("button", "btn go", "Save settings"); const undo = h("button", "btn ghost", "Undo changes");

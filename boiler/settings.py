@@ -90,6 +90,11 @@ class Settings:
         self.dashboard_password = env.get("DASHBOARD_PASSWORD") or g("dashboard", "password", fallback="")
         self.max_manual_minutes = int(g("dashboard", "max_manual_minutes", fallback="180"))
 
+        # --- energy cost (estimate: minutes on x boiler power x price) ---
+        self.boiler_kw = float(g("energy", "boiler_kw", fallback="3.0"))          # heater power; set it to yours
+        self.price_kwh = float(g("energy", "price_kwh", fallback="0.635"))        # IL household, incl. 18% VAT (Jul 2026: 63.52 agorot)
+        self.currency = g("energy", "currency", fallback="₪")
+
         # --- paths ---
         self.state_file = os.path.join(BASE_DIR, "state.json")
         self.stored_dir = os.path.join(BASE_DIR, "stored_data")

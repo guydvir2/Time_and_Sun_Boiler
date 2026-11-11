@@ -56,6 +56,12 @@ def read(s):
         return []
 
 
+def cost_of(s, minutes):
+    """(kWh, cost) of `minutes` on time: an estimate from the heater's rated power and the price per kWh."""
+    kwh = max(0.0, minutes) / 60 * s.boiler_kw
+    return kwh, kwh * s.price_kwh
+
+
 def totals(s, now=None, days=14):
     """{'today': {auto, preset, manual, total}, 'week': total of last 7 days, 'per_day': [{date, auto, preset, manual}]}
     Minutes still to come in a running run are counted (the device will run them)."""
@@ -69,10 +75,13 @@ def totals(s, now=None, days=14):
     rows = []
     for i in range(days - 1, -1, -1):
         d = str((now - timedelta(days=i)).date())
-        rows.append({"date": d, **{k: max(0, round(per[d][k])) for k in SOURCES}})
+        row = {"date": d, **{k: max(0, round(per[d][k])) for k in SOURCES}}
+        row["kwh"], row["cost"] = (round(x, 2) for x in cost_of(s, sum(row[k] for k in SOURCES)))
+        rows.append(row)
     t = rows[-1]
-    return {"today": {**{k: t[k] for k in SOURCES}, "total": sum(t[k] for k in SOURCES)},
-            "week": sum(sum(r[k] for k in SOURCES) for r in rows[-7:]), "per_day": rows}
+    week_min = sum(sum(r[k] for k in SOURCES) for r in rows[-7:])
+    return {"today": {**{k: t[k] for k in SOURCES}, "total": sum(t[k] for k in SOURCES), "kwh": t["kwh"], "cost": t["cost"]},
+            "week": week_min, "week_cost": round(sum(r["cost"] for r in rows[-7:]), 2), "per_day": rows}
 
 
 def segments(s, day, now=None):
@@ -91,5 +100,12 @@ def segments(s, day, now=None):
             segs.append({"start": t, "end": t + timedelta(minutes=m), "source": r.get("source", "manual")})
         elif segs:
             segs[-1]["end"] = min(segs[-1]["end"], t)
-    return [{"start": x["start"].isoformat(timespec="minutes"), "end": x["end"].isoformat(timespec="minutes"),
-             "source": x["source"]} for x in segs if x["end"] > x["start"]]
+    out = []
+    for x in segs:
+        if x["end"] <= x["start"]:
+            continue
+        mins = (x["end"] - x["start"]).total_seconds() / 60
+        kwh, cost = cost_of(s, mins)
+        out.append({"start": x["start"].isoformat(timespec="minutes"), "end": x["end"].isoformat(timespec="minutes"),
+                    "source": x["source"], "minutes": round(mins), "kwh": round(kwh, 2), "cost": round(cost, 2)})
+    return out

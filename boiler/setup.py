@@ -67,6 +67,8 @@ FIELDS = {
     "location.latitude":  ("location", "latitude", _num(-90, 90), "latitude", False),
     "location.longitude": ("location", "longitude", _num(-180, 180), "longitude", False),
     "min_run":            ("parameters", "MIN_RUN", _num(0, 60, True), "min_run", False),
+    "energy.boiler_kw":   ("energy", "boiler_kw", _num(0.1, 20), "boiler_kw", False),
+    "energy.price_kwh":   ("energy", "price_kwh", _num(0, 10), "price_kwh", False),
     "run1_pct":           ("parameters", "RUN1_PERCENT", _num(10, 100, True), "run1_pct", False),
     "run2_at":            ("parameters", "RUN2_AT", lambda v: v if v == "" else _hhmm(v), "run2_at", False),
     "drivers":            ("output", "drivers", _drivers, "driver_names", False),

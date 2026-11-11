@@ -119,6 +119,7 @@ def build_status(s, driver_names, formula=None, now=None):
         "upcoming": schedule.upcoming(schedule.load(s), now, load_plan(s)),
         "ready_by": schedule.load(s)["ready_by"],
         "segments": runs.segments(s, today, now),
+        "energy": {"kw": s.boiler_kw, "price_kwh": s.price_kwh, "currency": s.currency},
         "today": todays, "base": base,
         "last": hist[-1] if hist else None,
         "check_every_min": s.sleep_minutes, "run1_pct": s.run1_pct, "run2_at": s.run2_at, "min_run": s.min_run,
