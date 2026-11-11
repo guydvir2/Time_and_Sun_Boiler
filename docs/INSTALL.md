@@ -8,10 +8,10 @@ Run every command in a terminal **on the VM**, one line at a time, in the folder
 | Phase | What | Status |
 |---|---|---|
 | 0 | Before you start | 🟢 Docker works on the VM (`docker build` ran). Old container still to stop |
-| 1 | Get the code, right branch | 🟡 Cloned. Folder was on `v_2.0` (old app): switch to `fix/engine-safety` |
+| 1 | Get the code, right branch | 🟢 Done: on `fix/engine-safety`, Dockerfile is the new one (python:3.12-slim) |
 | 2 | Secrets file `boiler.env` | 🟡 Created from the example. Contents not confirmed |
 | 3 | Carry over data from the old container | ⬜ Not done |
-| 4 | Build the image | ⬜ Not done |
+| 4 | Build the image | 🟢 Done: `docker build -t boilermind .` finished (11/11 steps, 12.7 s) |
 | 5 | Start it | ⬜ Not done |
 | 6 | Check it is alive | ⬜ Not done |
 | 7 | First-run setup in the browser | ⬜ Not done |
