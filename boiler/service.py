@@ -14,7 +14,7 @@ from .formula import Formula, daily_mean, explain, load_formula
 from .weather import get_day, csv_path, save_csv
 from .state import (load_last_update, save_last_update, save_attempt, log_decision, save_heartbeat,
                     auto_enabled, save_plan, load_plan, preset_done, mark_preset_done, load_running,
-                    load_later, clear_later, load_pulse_check, clear_pulse_check)
+                    load_later, clear_later, load_pulse_check, clear_pulse_check, mark_pulse_check)
 from .activity import log_event, trim
 from .drivers import build_drivers, start_boiler, tasmota_if_defined
 from . import schedule, runs, rolling, missed
@@ -238,6 +238,8 @@ def main():
     print("=" * 60)
 
     eng = Engine(s, app.drivers)
+    if tasmota_if_defined(s) and not load_pulse_check(s):
+        mark_pulse_check(s, datetime.now())    # every start: verify the plug's PulseTime is 0 (once no run is active)
     last_note, seen = None, app.version
     while True:
         try:
