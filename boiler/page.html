@@ -396,8 +396,6 @@ function renderToday(d) {
   const t = d.totals.today, parts = [];
   if (t.auto) parts.push(`auto ${t.auto}`); if (t.preset) parts.push(`preset ${t.preset}`); if (t.manual) parts.push(`extra ${t.manual}`);
   R.append(h("div", "ran", t.total ? `${t.measured ? "Heated" : "Ran"} today ${t.total} min` + (parts.length > 1 ? ` (${parts.join(", ")})` : "") + ` · ${money(d, t.cost)}` : "Not run yet today"));
-  if (d.segments.length) { const tk = h("div", "tiny");
-    tk.textContent = d.segments.map(x => `${x.start.slice(11)} ${x.minutes} min ${money(d, x.cost)}`).join("  ·  "); R.append(tk); }
   const pw = d.power;                                  /* measured by the plug's current sensor */
   if (pw && pw.live) {
     const L = pw.live, m = pw.today;
