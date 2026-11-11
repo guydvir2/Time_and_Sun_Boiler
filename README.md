@@ -13,6 +13,8 @@ How the day works:
 
 ## Install with Docker (recommended on a server)
 
+Full step-by-step with progress tracker and troubleshooting: [docs/INSTALL.md](docs/INSTALL.md).
+
 ```
 git clone https://github.com/guydvir2/time_and_sun_boiler && cd time_and_sun_boiler
 git checkout fix/engine-safety
