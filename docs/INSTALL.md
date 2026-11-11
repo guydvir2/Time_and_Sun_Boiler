@@ -9,11 +9,11 @@ Run every command in a terminal **on the VM**, one line at a time, in the folder
 |---|---|---|
 | 0 | Before you start | 🟢 Docker works. No old boiler container on this VM (only `MQTT_Cockpit`, a different app: leave it) |
 | 1 | Get the code, right branch | 🟢 Done: on `fix/engine-safety`, Dockerfile is the new one (python:3.12-slim) |
-| 2 | Secrets file `boiler.env` | 🔴 Missing in the install folder (an earlier `cp` ran in another folder): create it now |
+| 2 | Secrets file `boiler.env` | 🟡 Created in the install folder; the container started with it. Password check happens in phase 7 |
 | 3 | Carry over data from the old container | ⬜ Skipped for now: no old container found here. Fresh start |
 | 4 | Build the image | 🟢 Done: `docker build -t boilermind .` finished (11/11 steps, 12.7 s) |
-| 5 | Start it | ⬜ Not done |
-| 6 | Check it is alive | ⬜ Not done |
+| 5 | Start it | 🟢 Done: container `boilermind` running, engine "waiting for setup" (BoilerMind v2.2.0) |
+| 6 | Check it is alive | 🟡 Logs look right; `curl /healthz` and the browser page not confirmed yet |
 | 7 | First-run setup in the browser | ⬜ Not done |
 
 Key: 🟢 done and confirmed · 🟡 started or partly done · ⬜ not done
@@ -134,6 +134,7 @@ docker start <OLD>
 | What you see | Cause | Fix |
 |---|---|---|
 | `open boiler.env: no such file` / `grep: boiler.env: No such file` | `boiler.env` was created in another folder | Phase 2 in the folder you build from; check with `ls -a` |
+| `container name "/boilermind" is already in use` | It was already started by an earlier try | Check `docker ps`: if running, nothing to do. To redo: `docker rm -f boilermind`, then the phase 5 line |
 | `unknown shorthand flag: 'd' in -d` | This Docker has no `compose` add-on | Use the plain `docker build` / `docker run` lines (or `sudo apt install docker-compose-v2`) |
 | `open Dockerfile: no such file or directory` | Wrong folder, or an old checkout without the Dockerfile | `pwd`, `ls`; then phase 1 switch commands |
 | Build shows `python3-tk` | Folder is on old branch `v_2.0` (desktop app) | `git checkout fix/engine-safety && git pull` |
