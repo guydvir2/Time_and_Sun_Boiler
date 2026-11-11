@@ -15,6 +15,7 @@ REPO = os.environ.get("UPDATE_REPO", "guydvir2/Time_and_Sun_Boiler")
 APP_FOLDER = os.environ.get("UPDATE_APP_FOLDER", "~/pythons/dockers/Time_and_Sun_Boiler")
 CACHE_SECONDS = 600            # GitHub allows 60 anonymous calls/hour; a check costs ~1 per branch
 MAX_BRANCHES = 20
+UPDATER_URL = os.environ.get("UPDATER_URL", "http://host.docker.internal:8099")   # the host updater (updater/install.sh)
 
 _lock = threading.Lock()
 _cache = {"at": 0.0, "branches": None}
@@ -72,7 +73,8 @@ def summarize(branches, run):
         level, text = "yellow", f"Your branch '{run['branch']}' is not on GitHub any more. Latest is {suggested}"
     rows = [{"name": b["name"], "sha": b["sha"][:7], "date": b["date"][:10], "message": b["message"],
              "current": b is cur, "command": command(b["name"])} for b in bs]
-    return {"ok": True, "running": run, "branches": rows, "suggested": suggested, "level": level, "text": text}
+    return {"ok": True, "running": run, "branches": rows, "suggested": suggested, "level": level, "text": text,
+            "updater": updater_configured()}
 
 
 def check(refresh=False):
@@ -80,3 +82,35 @@ def check(refresh=False):
         if refresh or _cache["branches"] is None or time.time() - _cache["at"] > CACHE_SECONDS:
             _cache["branches"], _cache["at"] = fetch_branches(), time.time()
         return summarize(_cache["branches"], running())
+
+
+# ---- one-click update: ask the host updater service (the app itself has no Docker access) ----
+def updater_configured():
+    return bool(os.environ.get("UPDATER_TOKEN", ""))
+
+
+def _updater(method, path, **kw):
+    return requests.request(method, UPDATER_URL + path, headers={"X-Updater-Token": os.environ.get("UPDATER_TOKEN", "")},
+                            timeout=8, **kw)
+
+
+def start_update(branch):
+    """(ok, message). Only branches GitHub listed in the last check are accepted."""
+    if not updater_configured():
+        return False, "One-click update is not installed on the server (run updater/install.sh)"
+    known = {b["name"] for b in (_cache["branches"] or [])}
+    if branch not in known:
+        return False, "Unknown branch. Press 'Check for updates' first."
+    try:
+        r = _updater("POST", "/update", json={"branch": branch})
+        return r.status_code == 202, (r.json().get("message") if r.headers.get("content-type", "").startswith("application/json") else f"Updater error {r.status_code}")
+    except requests.RequestException as e:
+        return False, f"Updater service not reachable ({type(e).__name__}). Is boilermind-updater running?"
+
+
+def update_status():
+    try:
+        r = _updater("GET", "/status")
+        return r.json() if r.ok else {"ok": False, "state": "unreachable", "message": f"Updater error {r.status_code}"}
+    except (requests.RequestException, ValueError) as e:
+        return {"ok": False, "state": "unreachable", "message": f"Updater service not reachable ({type(e).__name__})"}

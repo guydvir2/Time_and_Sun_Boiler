@@ -25,7 +25,7 @@ from . import confidence
 from .activity import log_event, read_events
 from . import power as power_mod
 from .drivers import start_boiler, REGISTRY
-from . import runs, schedule, missed as missed_mod
+from . import runs, schedule, missed as missed_mod, updates
 
 PAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "page.html")
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -116,6 +116,7 @@ def build_status(s, driver_names, formula=None, now=None, power=None):
 
     return {
         "version": APP_VERSION,
+        "build": updates.running(),                   # branch + commit this container was built from
         "now": now.isoformat(timespec="seconds"),
         "health": {"level": level, "text": text},
         "running": load_running(s, now),
@@ -334,10 +335,13 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
             from . import setup
             self._json(200, dict(setup.values(c.s), controls=self._controls()))
+        elif path == "/api/updates/status":           # admin: progress of a one-click update
+            if c.auth.enabled and not c.auth.valid(self._token()):
+                return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
+            self._json(200, updates.update_status())
         elif path == "/api/updates":                  # admin: which versions exist, which runs, the update command
             if c.auth.enabled and not c.auth.valid(self._token()):
                 return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
-            from . import updates
             try:
                 self._json(200, updates.check(refresh="refresh=1" in self.path))
             except Exception as e:
@@ -396,13 +400,18 @@ class _Handler(BaseHTTPRequestHandler):
             return self._sunshine()
 
         if path not in ("/api/run", "/api/stop", "/api/auto", "/api/later/cancel", "/api/formula", "/api/schedule",
-                        "/api/settings", "/api/settings/test", "/api/missed"):
+                        "/api/settings", "/api/settings/test", "/api/missed", "/api/updates/start"):
             return self._json(404, {"ok": False, "message": "Not found"})
         if path not in OPEN_PATHS:                    # admin actions: dashboard password required
             if not c.auth.enabled:
                 return self._json(403, {"ok": False, "message": "Controls are off: no dashboard password is set"})
             if not c.auth.valid(self._token()):
                 return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
+        if path == "/api/updates/start":              # admin: ask the host updater to run deploy.sh <branch>
+            branch = str(body.get("branch", ""))
+            ok, msg = updates.start_update(branch)
+            log_event(c.s, "manual", f"Update to {branch}: {msg}", ok)
+            return self._json(200 if ok else 502, {"ok": ok, "message": msg})
         if path == "/api/auto":                       # pause/resume needs no driver
             return self._auto(body)
         if path == "/api/later/cancel":

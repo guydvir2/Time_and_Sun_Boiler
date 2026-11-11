@@ -33,6 +33,8 @@ button,input{font:inherit;color:inherit}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0 12px}
 .brand{display:flex;align-items:center;gap:10px;font:700 21px Bricolage,Figtree,sans-serif;letter-spacing:-.02em}
 .brand svg{width:34px;height:34px}
+.ver{display:inline-flex;align-items:center;gap:4px;max-width:210px;font:600 11px/1 Figtree,sans-serif;letter-spacing:0;color:var(--mute);background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:4px 8px;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ver svg{width:11px;height:11px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .pill{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--mute);background:var(--card);border:1px solid var(--line);padding:5px 11px;border-radius:999px;max-width:55vw}
 .pill i{width:9px;height:9px;border-radius:50%;background:var(--mute);flex:none}
 .pill.green i{background:var(--ok)}.pill.yellow i{background:var(--warn)}.pill.red i{background:var(--bad)}
@@ -204,7 +206,7 @@ body.onhold #today,body.onhold #next{filter:grayscale(1);opacity:.5}
 <main>
 <div class="holdbar" id="holdbar" hidden></div>
 <header>
-  <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="13" r="7" fill="var(--sun)"/><path d="M2 22c4-3 7-3 10 0s8 3 11 0 5-3 7-2v9H2z" fill="var(--water)"/></svg>BoilerMind</div>
+  <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="13" r="7" fill="var(--sun)"/><path d="M2 22c4-3 7-3 10 0s8 3 11 0 5-3 7-2v9H2z" fill="var(--water)"/></svg>BoilerMind<a class="ver" id="ver" href="#settings" hidden></a></div>
   <div class="links" id="links" aria-label="Connections"></div>
 </header>
 <nav id="nav">
@@ -734,9 +736,30 @@ function fullHeat(c) {
     const r = await post("/api/formula", {formula: Object.assign({}, f, {full_heat: v})}); toast(r.ok ? "Saved. Applies from the next estimate" : r.message); if (r.ok) refresh(); };
   const row = h("div", "row"); row.append(b); c.append(w, row);
 }
+async function runUpdate(branch, btn, msg) {
+  if (!confirm(`Update to ${branch}? The page goes offline for about a minute while BoilerMind restarts.`)) return;
+  btn.disabled = true; msg.textContent = "Starting…";
+  const r = await post("/api/updates/start", {branch});
+  if (!r.ok) { msg.textContent = "🔴 " + r.message; btn.disabled = false; return; }
+  msg.textContent = "🟡 Updating… the page reconnects by itself (about 1-2 minutes).";
+  let sawDown = false, ticks = 0;
+  const timer = setInterval(async () => {
+    ticks++;
+    let up = false; try { up = (await fetch("/healthz", {cache: "no-store"})).ok; } catch (e) {}
+    if (!up) { sawDown = true; msg.textContent = "🟡 Restarting…"; return; }
+    if (sawDown) { clearInterval(timer); msg.textContent = "🟢 Back online. Reloading…"; setTimeout(() => location.reload(), 1200); return; }
+    if (ticks % 3 === 0) {                                    // still up: did the update fail before the swap?
+      try { const s = await (await fetch("/api/updates/status", {cache: "no-store"})).json();
+        if (s.state === "failed") { clearInterval(timer); msg.textContent = "🔴 Update failed: " + (s.log || []).slice(-3).join(" | "); btn.disabled = false; }
+        else if (s.state === "done") { clearInterval(timer); location.reload(); }
+      } catch (e) {}
+    }
+    if (ticks > 100) { clearInterval(timer); msg.textContent = "🟡 Taking long. Check the server."; btn.disabled = false; }
+  }, 3000);
+}
 function updatesCard(c) {
   const out = h("div"), btn = h("button", "btn sm", "Check for updates"); btn.style.marginBottom = "10px";
-  c.append(h("div", "note", "Looks on GitHub for newer versions. It never changes anything by itself: you paste one command on the server."), btn, out);
+  c.append(h("div", "note", "Looks on GitHub for newer versions. Nothing changes until you press Update now (or run the command yourself)."), btn, out);
   const check = async (refresh) => {
     btn.disabled = true; out.replaceChildren(h("div", "note", "Checking…"));
     let d; try { d = await (await fetch("/api/updates" + (refresh ? "?refresh=1" : ""), {cache: "no-store"})).json(); } catch (e) { d = {ok: false, message: "Network error"}; }
@@ -745,15 +768,28 @@ function updatesCard(c) {
     out.append(h("div", "note", (d.level === "green" ? "🟢 " : "🟡 ") + d.text));
     const f = h("div", "field"), sel = h("select"), cmd = h("input"), cp = h("button", "btn sm", "Copy");
     d.branches.forEach(b => { const o = h("option", "", `${b.name}  ·  ${b.date}  ·  ${b.sha}${b.current ? "  (running)" : ""}${b.name === d.suggested ? "  (latest)" : ""}`); o.value = b.name; sel.append(o); });
-    sel.value = d.suggested; cmd.readOnly = true; cmd.style.width = "100%";
+    sel.value = d.suggested; sel.style.width = "100%"; sel.style.maxWidth = "100%"; cmd.readOnly = true; cmd.style.width = "100%"; cmd.style.boxSizing = "border-box"; cmd.style.fontSize = "12px";
     const show = () => { const b = d.branches.find(x => x.name === sel.value); cmd.value = b ? b.command : ""; };
     sel.onchange = show; show();
     cp.onclick = async () => { try { await navigator.clipboard.writeText(cmd.value); toast("Copied"); } catch (e) { cmd.select(); toast("Press Ctrl+C"); } };
     const row = h("div", "row"); row.append(cp);
-    f.append(h("label", "", "Version to install"), sel, h("div", "hint", "Run this on the VM (SSH):"), cmd);
-    out.append(f, row);
+    f.append(h("label", "", "Version to install"), sel, h("div", "hint", "Or run this on the VM (SSH):"), cmd);
+    if (d.updater) {
+      const go = h("button", "btn go", "Update now"), msg = h("div", "note"); go.onclick = () => runUpdate(sel.value, go, msg);
+      row.prepend(go); out.append(f, row, msg);
+    } else {
+      out.append(f, row, h("div", "note", "One-click update is not installed on the server yet. Once, on the VM: updater/install.sh"));
+    }
   };
   btn.onclick = () => check(true);
+}
+function renderVer(d) {
+  const v = $("ver"), b = d.build || {};
+  if (!b.commit) { v.hidden = true; return; }
+  v.hidden = false; v.replaceChildren();
+  v.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 7v10M18 10c0 5-8 3-12 7"/></svg>');
+  v.append(document.createTextNode(`${(b.branch || "?").replace(/^(feature|fix)\//, "")} · ${b.commit}`));
+  v.title = `Running ${b.branch} @ ${b.commit}. Click: Settings > Updates`;
 }
 function renderSettings() {
   const body = $("settings-body"); body.replaceChildren();
@@ -826,7 +862,7 @@ async function refresh() {
     const r = await fetch("/api/status", {cache: "no-store"}); if (!r.ok) throw 0; const d = await r.json(); S = d;
     if ((d.controls.needs_setup || !d.controls.password_set) && !WIZ_SEEN && location.hash !== "#setup") { WIZ_SEEN = true; location.hash = "#setup"; }
     const fh = $("fullheat"); if (fh && !fh.dataset.ok) fullHeat(fh);
-    renderToday(d); renderMissed(d); renderExtra(d); renderFoot(d); renderLinks(); renderNext(d); renderHistory(d); renderForecast();
+    renderVer(d); renderToday(d); renderMissed(d); renderExtra(d); renderFoot(d); renderLinks(); renderNext(d); renderHistory(d); renderForecast();
   } catch (e) { const t = $("today"); t.replaceChildren(h("div", "tl")); t.firstChild.append(h("div", "lbl", "Can't reach the boiler service")); }
 }
 async function refreshForecast() { try { FC = await (await fetch("/api/forecast", {cache: "no-store"})).json(); } catch (e) { FC = {error: "Forecast unavailable"}; } if (S) { renderToday(S); renderForecast(); } }

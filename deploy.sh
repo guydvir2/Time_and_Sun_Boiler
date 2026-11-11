@@ -32,12 +32,19 @@ fi
 echo "🟡 1/3  Backing up data/ and boiler.env"
 mkdir -p "$BACKUP_DIR"
 BACKUP="$BACKUP_DIR/boiler-$STAMP.tgz"
-# the container runs as root, so files it wrote in data/ can be root-owned: fall back to sudo for those
+# the container runs as root, so files it wrote in data/ can be root-owned. Then back up from inside a
+# throw-away container (no sudo needed, works from the update service too); plain sudo is the last resort.
 if ! ( umask 077; tar czf "$BACKUP" data boiler.env ) 2>/dev/null; then
-    echo "🟡 Some files in data/ are owned by root (written by the container): using sudo for the backup"
     rm -f "$BACKUP"
-    sudo tar czf "$BACKUP" data boiler.env
-    sudo chown "$(id -u):$(id -g)" "$BACKUP" && chmod 600 "$BACKUP"
+    echo "🟡 Some files in data/ are owned by root (written by the container): backing up through Docker"
+    if docker image inspect "$NAME" >/dev/null 2>&1 && docker run --rm --entrypoint sh -v "$PWD:/w" -w /w "$NAME" \
+           -c "umask 077 && tar czf .backup.tmp data boiler.env && chown $(id -u):$(id -g) .backup.tmp" 2>/dev/null; then
+        mv .backup.tmp "$BACKUP"
+    else
+        rm -f .backup.tmp
+        sudo tar czf "$BACKUP" data boiler.env
+        sudo chown "$(id -u):$(id -g)" "$BACKUP" && chmod 600 "$BACKUP"
+    fi
 fi
 echo "🟢 Backup: $BACKUP ($(du -h "$BACKUP" | cut -f1))"
 
@@ -47,7 +54,7 @@ docker build --build-arg BUILD_BRANCH="$(git rev-parse --abbrev-ref HEAD)" \
 
 echo "🟡 3/3  Recreating the container (data/ is mounted, nothing is lost)"
 docker rm -f "$NAME" >/dev/null 2>&1 || true
-docker run -d --name "$NAME" --restart unless-stopped -p "$PORT:8080" --env-file boiler.env \
+docker run -d --name "$NAME" --restart unless-stopped --add-host=host.docker.internal:host-gateway -p "$PORT:8080" --env-file boiler.env \
     -e TZ="$TZ_NAME" -v "$PWD/data:/data" "$NAME" >/dev/null
 sleep 6
 
