@@ -734,6 +734,27 @@ function fullHeat(c) {
     const r = await post("/api/formula", {formula: Object.assign({}, f, {full_heat: v})}); toast(r.ok ? "Saved. Applies from the next estimate" : r.message); if (r.ok) refresh(); };
   const row = h("div", "row"); row.append(b); c.append(w, row);
 }
+function updatesCard(c) {
+  const out = h("div"), btn = h("button", "btn sm", "Check for updates"); btn.style.marginBottom = "10px";
+  c.append(h("div", "note", "Looks on GitHub for newer versions. It never changes anything by itself: you paste one command on the server."), btn, out);
+  const check = async (refresh) => {
+    btn.disabled = true; out.replaceChildren(h("div", "note", "Checking…"));
+    let d; try { d = await (await fetch("/api/updates" + (refresh ? "?refresh=1" : ""), {cache: "no-store"})).json(); } catch (e) { d = {ok: false, message: "Network error"}; }
+    btn.disabled = false; out.replaceChildren();
+    if (!d.ok) { out.append(h("div", "note", "🔴 " + (d.message || "Failed"))); return; }
+    out.append(h("div", "note", (d.level === "green" ? "🟢 " : "🟡 ") + d.text));
+    const f = h("div", "field"), sel = h("select"), cmd = h("input"), cp = h("button", "btn sm", "Copy");
+    d.branches.forEach(b => { const o = h("option", "", `${b.name}  ·  ${b.date}  ·  ${b.sha}${b.current ? "  (running)" : ""}${b.name === d.suggested ? "  (latest)" : ""}`); o.value = b.name; sel.append(o); });
+    sel.value = d.suggested; cmd.readOnly = true; cmd.style.width = "100%";
+    const show = () => { const b = d.branches.find(x => x.name === sel.value); cmd.value = b ? b.command : ""; };
+    sel.onchange = show; show();
+    cp.onclick = async () => { try { await navigator.clipboard.writeText(cmd.value); toast("Copied"); } catch (e) { cmd.select(); toast("Press Ctrl+C"); } };
+    const row = h("div", "row"); row.append(cp);
+    f.append(h("label", "", "Version to install"), sel, h("div", "hint", "Run this on the VM (SSH):"), cmd);
+    out.append(f, row);
+  };
+  btn.onclick = () => check(true);
+}
 function renderSettings() {
   const body = $("settings-body"); body.replaceChildren();
   const card = (title, fill) => { const c = h("div", "card"); c.append(h("h2", "", title)); fill(c); body.append(c); return c; };
@@ -748,6 +769,7 @@ function renderSettings() {
     fld("Settle time (seconds)", "power.settle_seconds", {type: "number", hint: "How long the sensor takes to follow the relay after ON/OFF. Inside this time no alarm is raised and it is not counted as heating."}),
     fld("Counts as heating from (watts)", "power.on_watts", {type: "number"}),
     fld("Power multiplier", "power.scale", {type: "number", hint: "10 if the plug reads power 10x too low (voltage bug). 1 if it reads right."})); });
+  card("Updates", c => updatesCard(c));
   card("Secrets", c => { c.append(fld("Dashboard password", "dashboard.password", {secret: true}), fld("MQTT broker password", "mqtt.password", {secret: true}), fld("Home Assistant token", "ha.token", {secret: true})); });
   const bar = h("div", "card"); const save = h("button", "btn go", "Save settings"); const undo = h("button", "btn ghost", "Undo changes");
   const st = h("div", "note"); const row = h("div", "row"); row.style.marginTop = "0"; row.append(save, undo); bar.append(row, st); body.append(bar);

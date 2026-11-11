@@ -42,7 +42,8 @@ fi
 echo "🟢 Backup: $BACKUP ($(du -h "$BACKUP" | cut -f1))"
 
 echo "🟡 2/3  Rebuilding the image"
-docker build -t "$NAME" .
+docker build --build-arg BUILD_BRANCH="$(git rev-parse --abbrev-ref HEAD)" \
+    --build-arg BUILD_COMMIT="$(git rev-parse --short HEAD)" -t "$NAME" .
 
 echo "🟡 3/3  Recreating the container (data/ is mounted, nothing is lost)"
 docker rm -f "$NAME" >/dev/null 2>&1 || true

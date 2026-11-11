@@ -5,6 +5,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
+ARG BUILD_BRANCH=unknown
+ARG BUILD_COMMIT=unknown
+ENV BUILD_BRANCH=$BUILD_BRANCH BUILD_COMMIT=$BUILD_COMMIT
 VOLUME /data
 EXPOSE 8080
 HEALTHCHECK --interval=60s --timeout=5s CMD python -c "import urllib.request as u; u.urlopen('http://127.0.0.1:8080/healthz', timeout=4)"

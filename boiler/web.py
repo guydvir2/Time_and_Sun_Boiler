@@ -334,6 +334,14 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
             from . import setup
             self._json(200, dict(setup.values(c.s), controls=self._controls()))
+        elif path == "/api/updates":                  # admin: which versions exist, which runs, the update command
+            if c.auth.enabled and not c.auth.valid(self._token()):
+                return self._json(401, {"ok": False, "message": "Locked. Enter the password first."})
+            from . import updates
+            try:
+                self._json(200, updates.check(refresh="refresh=1" in self.path))
+            except Exception as e:
+                self._json(502, {"ok": False, "message": f"Could not reach GitHub ({type(e).__name__})"})
         elif path == "/api/geocode":
             from urllib.parse import urlparse, parse_qs
             from . import setup
