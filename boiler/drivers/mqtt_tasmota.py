@@ -60,8 +60,9 @@ class TasmotaMqttDriver(Driver):
             c.username_pw_set(s.mqtt_user, s.mqtt_password)
         return c
 
-    def _exchange(self, commands, expect):
-        """Publish commands (in order) and wait for the device to report Power<n> == expect."""
+    def _exchange(self, commands, expect=None, match=None, force_confirm=False):
+        """Publish commands (in order) and wait for the device to confirm: either Power<n> == expect, or
+        match(flat_result_text) is true for a /RESULT message (used to verify PulseTime)."""
         s = self.s
         n = s.tasmota_relay
         stat_all = self.topic("stat", "#")
@@ -84,11 +85,13 @@ class TasmotaMqttDriver(Driver):
         def on_message(c, userdata, msg):
             body = msg.payload.decode(errors="replace").upper()
             topic = msg.topic.upper()
-            if topic.endswith(("/POWER", f"/POWER{n}")) and body == expect:
+            if expect and topic.endswith(("/POWER", f"/POWER{n}")) and body == expect:
                 confirmed.set()
             elif topic.endswith("/RESULT"):
                 flat = body.replace(" ", "")
-                if f'"POWER{n}":"{expect}"' in flat or f'"POWER":"{expect}"' in flat:
+                if expect and (f'"POWER{n}":"{expect}"' in flat or f'"POWER":"{expect}"' in flat):
+                    confirmed.set()
+                elif match and match(flat):
                     confirmed.set()
 
         c = self._client()
@@ -105,12 +108,13 @@ class TasmotaMqttDriver(Driver):
                 if not info.is_published():
                     print(f"❌ MQTT: publish to {topic} not acknowledged")
                     return False
-            if not s.tasmota_confirm:
+            if not s.tasmota_confirm and not force_confirm:
                 return True
+            what = expect or "the PulseTime reply"
             if confirmed.wait(s.tasmota_confirm_timeout):
-                print(f"✅ MQTT: Tasmota confirmed the relay is {expect}")
+                print(f"✅ MQTT: Tasmota confirmed {what if not expect else 'the relay is ' + expect}")
                 return True
-            print(f"❌ MQTT: commands sent but the device did not confirm {expect} within "
+            print(f"❌ MQTT: commands sent but the device did not confirm {what} within "
                   f"{s.tasmota_confirm_timeout}s (is the topic right? is it online?)")
             return False
         except Exception as e:
@@ -203,5 +207,23 @@ class TasmotaMqttDriver(Driver):
     def stop(self) -> bool:
         s = self.s
         cmd_power = self.topic("cmnd", f"Power{s.tasmota_relay}")
-        print(f"📡 MQTT {s.mqtt_host}:{s.mqtt_port}: {cmd_power} OFF")
-        return self._exchange([(cmd_power, "OFF")], "OFF")
+        cmd_pulse = self.topic("cmnd", f"PulseTime{s.tasmota_relay}")
+        print(f"📡 MQTT {s.mqtt_host}:{s.mqtt_port}: {cmd_power} OFF (+ PulseTime cleared)")
+        return self._exchange([(cmd_power, "OFF"), (cmd_pulse, "0")], "OFF")
+
+    def arm(self, minutes: int) -> bool:
+        """Set the device's self-shut-off timer WITHOUT switching anything (the backup for a run that
+        another driver, e.g. Home Assistant, performs). True when the device answered."""
+        n = self.s.tasmota_relay
+        cmd = self.topic("cmnd", f"PulseTime{n}")
+        value = pulsetime_value(minutes)
+        print(f"📡 MQTT: {cmd} {value} ({minutes} min backup timeout)")
+        return self._exchange([(cmd, str(value))], match=lambda flat: f'"PULSETIME{n}"' in flat, force_confirm=True)
+
+    def clear_pulse(self) -> bool:
+        """Set PulseTime to 0 and VERIFY the device reports it as 0 (so a later switch-ON, from anywhere,
+        is never cut short by an old run's timer)."""
+        n = self.s.tasmota_relay
+        cmd = self.topic("cmnd", f"PulseTime{n}")
+        print(f"📡 MQTT: {cmd} 0 (verify it reads 0)")
+        return self._exchange([(cmd, "0")], match=lambda flat: f'"PULSETIME{n}":{{"SET":0' in flat, force_confirm=True)

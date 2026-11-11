@@ -110,6 +110,23 @@ def save_heartbeat(s):
     _update(s, heartbeat=datetime.now().isoformat(timespec="seconds"))
 
 
+def mark_pulse_check(s, at):
+    """A run was started (or stopped): once `at` has passed, the Tasmota PulseTime must be verified as 0."""
+    _update(s, pulse_check=at.isoformat(timespec="seconds"))
+
+
+def load_pulse_check(s):
+    v = _read_state(s).get("pulse_check")
+    try:
+        return datetime.fromisoformat(v) if v else None
+    except ValueError:
+        return None
+
+
+def clear_pulse_check(s):
+    _update(s, pulse_check=None)
+
+
 def load_heartbeat(s):
     return _read_state(s).get("heartbeat")
 

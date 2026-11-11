@@ -19,7 +19,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import APP_VERSION
 from .formula import Formula, explain, load_formula, compute_duration, base_minutes
-from .state import (load_last_update, load_attempt, load_running, load_auto, set_auto, load_plan,
+from .state import (mark_pulse_check, load_last_update, load_attempt, load_running, load_auto, set_auto, load_plan,
                     record_weather, save_later, clear_later, load_later)
 from . import confidence
 from .activity import log_event, read_events
@@ -445,7 +445,7 @@ class _Handler(BaseHTTPRequestHandler):
             save_later(s, when, m)
             log_event(s, "manual", f"Extra {m} min set for {when:%H:%M}", True)
             return self._json(200, {"ok": True, "message": f"Set: {m} min at {when:%H:%M}"})
-        ok, used = start_boiler(c.drivers, m)
+        ok, used = start_boiler(c.drivers, m, s)
         if ok:
             runs.record_start(s, m, "manual")
             log_event(s, "manual", f"Manual run {m} min via {used}", True)
@@ -585,6 +585,7 @@ class _Handler(BaseHTTPRequestHandler):
         for d in capable:
             if d.stop():
                 runs.record_stop(s)
+                mark_pulse_check(s, datetime.now())          # the engine verifies PulseTime == 0 next tick
                 log_event(s, "manual", f"Manual stop via {d.name}", True)
                 return self._json(200, {"ok": True, "message": f"Stopped (via {d.name})"})
         log_event(s, "manual", "Manual stop FAILED", False)
