@@ -8,13 +8,15 @@ Run every command in a terminal **on the VM**, one line at a time, in the folder
 | Phase | What | Status |
 |---|---|---|
 | 0 | Before you start | 🟢 Docker works. No old boiler container on this VM (only `MQTT_Cockpit`, a different app: leave it) |
-| 1 | Get the code, right branch | 🟢 Done: on `fix/engine-safety`, Dockerfile is the new one (python:3.12-slim) |
+| 1 | Get the code, right branch | 🟢 Done: Dockerfile is the new one. Latest code is on branch `feature/open-controls` |
 | 2 | Secrets file `boiler.env` | 🟡 Created in the install folder; the container started with it. Password check happens in phase 7 |
 | 3 | Carry over data from the old container | ⬜ Skipped for now: no old container found here. Fresh start |
 | 4 | Build the image | 🟢 Done: `docker build -t boilermind .` finished (11/11 steps, 12.7 s) |
 | 5 | Start it | 🟢 Done: container `boilermind` running, engine "waiting for setup" (BoilerMind v2.2.0) |
-| 6 | Check it is alive | 🟡 Logs look right; `curl /healthz` and the browser page not confirmed yet |
-| 7 | First-run setup in the browser | ⬜ Not done |
+| 6 | Check it is alive | 🟢 Done: page opens in the browser |
+| 7 | First-run setup in the browser | 🟡 Page and Settings reachable. Real Tasmota plug not confirmed yet (use Test mode until then) |
+| 8 | Show it inside Home Assistant (optional) | 🟢 Done: dashboard "Webpage" card works (viewing). Settings login: open the page in its own tab |
+| 9 | Switch to the real Tasmota plug | ⬜ Not done |
 
 Key: 🟢 done and confirmed · 🟡 started or partly done · ⬜ not done
 
@@ -34,7 +36,7 @@ Key: 🟢 done and confirmed · 🟡 started or partly done · ⬜ not done
 
 ```
 mkdir -p ~/pythons/dockers && cd ~/pythons/dockers
-git clone -b fix/engine-safety https://github.com/guydvir2/Time_and_Sun_Boiler
+git clone -b feature/open-controls https://github.com/guydvir2/Time_and_Sun_Boiler
 cd Time_and_Sun_Boiler
 ```
 
@@ -43,12 +45,12 @@ Check it is the new web app, not the old desktop one:
 git branch --show-current
 head -3 Dockerfile
 ```
-Expected: `fix/engine-safety`, and a Dockerfile starting `FROM python:3.12-slim` (no `python3-tk`).
+Expected: `feature/open-controls` (the latest), and a Dockerfile starting `FROM python:3.12-slim` (no `python3-tk`).
 
 Already have the folder? Switch it instead:
 ```
 git fetch origin
-git checkout fix/engine-safety
+git checkout feature/open-controls
 git pull
 ```
 
@@ -114,15 +116,18 @@ Before trusting it with the real boiler: try a lamp on the plug, or "Test mode (
 
 ## Update to a newer version
 
-Switching branch? `git fetch origin && git checkout <branch>` first. Same branch: `git pull`.
+`git pull` only updates the branch you are on. Always do the `checkout` line too, or you rebuild the old code.
 
 ```
 cd ~/pythons/dockers/Time_and_Sun_Boiler
+git fetch origin
+git checkout feature/open-controls
 git pull
+git log --oneline -1
 docker build -t boilermind .
 docker rm -f boilermind
 ```
-then the phase 5 `docker run` line again. `data/` is untouched.
+then the phase 5 `docker run` line again, then reload the page with Ctrl+F5. `data/` is untouched.
 
 ## Roll back to the old app
 
@@ -139,16 +144,33 @@ docker start <OLD>
 | `container name "/boilermind" is already in use` | It was already started by an earlier try | Check `docker ps`: if running, nothing to do. To redo: `docker rm -f boilermind`, then the phase 5 line |
 | `unknown shorthand flag: 'd' in -d` | This Docker has no `compose` add-on | Use the plain `docker build` / `docker run` lines (or `sudo apt install docker-compose-v2`) |
 | `open Dockerfile: no such file or directory` | Wrong folder, or an old checkout without the Dockerfile | `pwd`, `ls`; then phase 1 switch commands |
-| Build shows `python3-tk` | Folder is on old branch `v_2.0` (desktop app) | `git checkout fix/engine-safety && git pull` |
+| Build shows `python3-tk` | Folder is on old branch `v_2.0` (desktop app) | `git checkout feature/open-controls && git pull` |
 | `port is already allocated` | Old container still on 8080 | `docker stop <OLD>` |
 | Dashboard says setup needed after phase 3 | `settings.json` not copied | Repeat the `docker cp` lines, then `docker restart boilermind` |
+| Page looks the same after an update | `git pull` on the wrong branch, or the container was not recreated | Full update block above (with `checkout`), then Ctrl+F5 |
+| Settings: password typed but no settings (inside Home Assistant) | Browser drops the login for an embedded page | Open `http://192.168.30.12:8080` in its own tab |
+| Settings stays on "Loading…" | Bug in older versions when opened directly | Update to the latest branch |
 | Run/Stop buttons locked | `DASHBOARD_PASSWORD` empty in `boiler.env` | Set it, then `docker rm -f boilermind` and the phase 5 line |
+
+## Phase 8 (optional): Show it inside Home Assistant
+
+HA: Settings → Dashboards → add a dashboard "Boiler" (tick "Show in sidebar") → edit → view type **Panel** →
+add a **Webpage** card → URL `http://192.168.30.12:8080`. Works while HA itself is on plain `http://`.
+Limit: a browser does not keep the admin login for a page embedded from another address. For Settings, open
+`http://192.168.30.12:8080` in its own tab.
+
+## Phase 9: Switch to the real Tasmota plug
+
+Only after the old way of running the boiler is switched off (two controllers must never run it).
+Settings → Boiler connection → Tasmota plug (MQTT): broker `192.168.30.2`, user, topic `DvirHome/WaterHeater`,
+full topic `%topic%/%prefix%/`. Press **Test** first (it switches nothing), then Save.
 
 ## Who can do what
 
 - **No password (anyone on your network):** see the page, extra hot water, Run/Stop, "heat now", cancel a timed run.
   Still limited by "max minutes per run" and protected against other websites.
-- **Dashboard password (admin):** Settings, Schedule, formula tuning, pause/resume, setup wizard.
+- **Dashboard password (admin):** Settings (the Active / On hold switch is at the bottom), Schedule, formula tuning, setup wizard.
+- **On hold:** every user sees an amber bar and greyed-out cards; extra hot water still works.
 
 ## Notes
 

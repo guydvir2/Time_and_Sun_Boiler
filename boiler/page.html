@@ -297,7 +297,9 @@ addEventListener("hashchange", showTab);
 function unlockRow(after) {
   const pw = h("input", "wide"); pw.type = "password"; pw.placeholder = "Dashboard password"; pw.autocomplete = "current-password";
   const go = h("button", "btn go", "Unlock");
-  go.onclick = async () => { const r = await post("/api/login", {password: pw.value}); pw.value = ""; toast(r.ok ? "Unlocked" : r.message); ctlKey = ""; await refresh(); if (after) after(); };
+  go.onclick = async () => { const r = await post("/api/login", {password: pw.value}); pw.value = ""; toast(r.ok ? "Unlocked" : r.message); ctlKey = ""; await refresh();
+    if (r.ok && S && !S.controls.logged_in) toast("Password OK, but this browser did not keep the login. If the page is inside Home Assistant, open it in its own tab.");
+    if (after) after(); };
   pw.addEventListener("keydown", e => { if (e.key === "Enter") go.click(); });
   const row = h("div", "row"); row.append(pw, go); return row;
 }
@@ -714,8 +716,11 @@ async function saveChanges() {
 }
 async function loadSettings() {
   const body = $("settings-body");
-  if (S && S.controls.password_set && !S.controls.logged_in) { const c = h("div", "card"); c.append(h("h2", "", "Settings"), h("div", "note", lockedNote(S.controls)), unlockRow(loadSettings)); body.replaceChildren(c); return; }
-  if (!await fetchSettings()) return; CHG = {}; renderSettings();
+  if (!S) await refresh();                                   // opened directly / after a reload: status not here yet
+  const locked = () => { const c = h("div", "card"); c.append(h("h2", "", "Settings"), h("div", "note", lockedNote(S ? S.controls : {password_set: true})), unlockRow(loadSettings)); body.replaceChildren(c); };
+  if (S && S.controls.password_set && !S.controls.logged_in) return locked();
+  if (!await fetchSettings()) return locked();
+  CHG = {}; renderSettings();
 }
 function fullHeat(c) {
   const f = S && S.formula && S.formula.full;
