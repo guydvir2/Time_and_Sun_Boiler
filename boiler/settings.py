@@ -117,6 +117,9 @@ class Settings:
         self.power_settle_seconds = float(g("power", "settle_seconds", fallback="60"))   # relay <-> sensor lag
         self.power_on_watts = float(g("power", "on_watts", fallback="100"))     # at or above = element is heating
 
+        # --- safety watchdog: the relay is ON but no run of ours is active (wall button, HA, a Tasmota rule ...) ---
+        self.max_unplanned_on = int(g("safety", "max_unplanned_on_minutes", fallback="180"))   # 0 = watchdog off
+
         # --- dashboard (read-only web page; shows no secrets) ---
         self.dashboard_enabled = _bool(g("dashboard", "enabled", fallback="True"))
         self.dashboard_host = g("dashboard", "host", fallback="0.0.0.0")   # 127.0.0.1 = this machine only

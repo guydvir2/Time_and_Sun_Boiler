@@ -100,8 +100,9 @@ def update_estimate(s, formula, now):
 class Engine:
     """One tick = one look at the clock. Kept as a class so tests can drive it without sleeping."""
 
-    def __init__(self, s, drivers):
-        self.s, self.drivers = s, drivers
+    def __init__(self, s, drivers, power=None):
+        self.s, self.drivers, self.power = s, drivers, power
+        self.unplanned_since = None           # when we first saw the relay ON with no run of ours active
         self.next_decision_try = 0.0          # monotonic: next estimate (hourly; after a failure every SLEEP_MINUTES)
         self.fetch_failed = False
         self.last_try = {}                    # start retries: key -> monotonic
@@ -149,10 +150,35 @@ class Engine:
             else:
                 log_event(s, "service", "Tasmota PulseTime could NOT be verified as 0 (will retry)", False)
 
+    def _watchdog(self, now):
+        """Safety: relay ON (seen over MQTT) but no run of ours is active -> something else switched it on, and
+        nothing will switch it off. After max_unplanned_on minutes switch it OFF. Works while paused."""
+        s, p = self.s, self.power
+        limit = s.max_unplanned_on
+        relay = p.relay if p else None
+        if not limit or relay != "ON" or load_running(s, now):
+            self.unplanned_since = None
+            return
+        if self.unplanned_since is None:
+            self.unplanned_since = now            # count from the moment we first see it unplanned
+            return
+        if (now - self.unplanned_since).total_seconds() < limit * 60 or not self._may_try("watchdog", 5):
+            return
+        capable = [d for d in self.drivers if d.supports_stop]
+        for d in capable:
+            if d.stop():
+                runs.record_stop(s)
+                mark_pulse_check(s, now)
+                log_event(s, "safety", f"Boiler was ON for {limit} min without a run of this app: switched OFF via {d.name}", True)
+                self.unplanned_since = None
+                return
+        log_event(s, "safety", f"Boiler ON for {limit}+ min without a run, and it could NOT be switched off. Check it!", False)
+
     def tick(self, now=None):
         s, now = self.s, now or datetime.now()
         save_heartbeat(s)
         self._pulse_guard(now)                 # runs even when paused
+        self._watchdog(now)                    # so does the safety watchdog
         self._later(now)                       # a user-set extra run goes ahead even when paused
         today = str(now.date())
 
@@ -237,7 +263,7 @@ def main():
         print(f"   👉 Finish setup in the dashboard: http://<this-machine>:{s.dashboard_port}/#setup")
     print("=" * 60)
 
-    eng = Engine(s, app.drivers)
+    eng = Engine(s, app.drivers, app.power)
     if tasmota_if_defined(s) and not load_pulse_check(s):
         mark_pulse_check(s, datetime.now())    # every start: verify the plug's PulseTime is 0 (once no run is active)
     last_note, seen = None, app.version
@@ -246,7 +272,7 @@ def main():
             app.maybe_reload()
             if app.version != seen:              # settings saved on the dashboard: use them now
                 seen = app.version
-                eng = Engine(app.s, app.drivers)
+                eng = Engine(app.s, app.drivers, app.power)
                 print(f"🔄 settings reloaded, drivers: {', '.join(d.name for d in app.drivers) or 'none'}")
             state = eng.tick() if app.drivers else "waiting for setup"
         except Exception as e:                   # one bad tick must not kill the engine

@@ -90,6 +90,7 @@ FIELDS = {
     "power.on_watts":     ("power", "on_watts", _num(1, 10000), "power_on_watts", False),
     "power.scale":        ("power", "scale", _num(0.01, 1000), "power_scale", False),
     "power.settle_seconds": ("power", "settle_seconds", _num(0, 600), "power_settle_seconds", False),
+    "safety.max_unplanned_on": ("safety", "max_unplanned_on_minutes", _num(0, 1440, True), "max_unplanned_on", False),
     "max_manual_minutes": ("dashboard", "max_manual_minutes", _num(10, 600, True), "max_manual_minutes", False),
     "dashboard.password": ("dashboard", "password", _password, "dashboard_password", True),
 }

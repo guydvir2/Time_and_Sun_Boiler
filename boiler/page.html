@@ -815,6 +815,8 @@ function renderSettings() {
     fld("Settle time (seconds)", "power.settle_seconds", {type: "number", hint: "How long the sensor takes to follow the relay after ON/OFF. Inside this time no alarm is raised and it is not counted as heating."}),
     fld("Counts as heating from (watts)", "power.on_watts", {type: "number"}),
     fld("Power multiplier", "power.scale", {type: "number", hint: "10 if the plug reads power 10x too low (voltage bug). 1 if it reads right."})); });
+  card("Safety", c => { c.append(
+    fld("Switch OFF after (minutes)", "safety.max_unplanned_on", {type: "number", hint: "If the boiler is ON but no run of this app is active (wall button, Home Assistant, a timer), it is switched OFF after this long. 0 = never."})); });
   card("Updates", c => updatesCard(c));
   card("Secrets", c => { c.append(fld("Dashboard password", "dashboard.password", {secret: true}), fld("MQTT broker password", "mqtt.password", {secret: true}), fld("Home Assistant token", "ha.token", {secret: true})); });
   const bar = h("div", "card"); const save = h("button", "btn go", "Save settings"); const undo = h("button", "btn ghost", "Undo changes");
