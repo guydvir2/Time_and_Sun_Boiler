@@ -21,7 +21,13 @@ STAMP="$(date +%F_%H%M%S)"
 echo "🟡 1/4  Backing up data/ and boiler.env"
 mkdir -p "$BACKUP_DIR"
 BACKUP="$BACKUP_DIR/boiler-$STAMP.tgz"
-( umask 077; tar czf "$BACKUP" data boiler.env )            # holds secrets: owner-only
+# the container runs as root, so files it wrote in data/ can be root-owned: fall back to sudo for those
+if ! ( umask 077; tar czf "$BACKUP" data boiler.env ) 2>/dev/null; then
+    echo "🟡 Some files in data/ are owned by root (written by the container): using sudo for the backup"
+    rm -f "$BACKUP"
+    sudo tar czf "$BACKUP" data boiler.env
+    sudo chown "$(id -u):$(id -g)" "$BACKUP" && chmod 600 "$BACKUP"
+fi
 echo "🟢 Backup: $BACKUP ($(du -h "$BACKUP" | cut -f1))"
 
 echo "🟡 2/4  Updating the code"
