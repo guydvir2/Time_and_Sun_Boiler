@@ -28,6 +28,14 @@ weekly presets) · **History** (charts, weather, activity) · **Settings** · **
 
 `dashboard.py` runs the page alone, view-only (it never switches anything).
 
+## Power sensor (current sensor on the plug)
+
+If the Tasmota plug has an energy sensor, the app listens to it (same MQTT topic, `[power]` in config.ini).
+Home shows *Heating now · 1980 W* and the measured minutes / kWh today; every heating session is logged to
+`stored_data/power.jsonl`. "On, no draw" means the relay is on but the element's thermostat has cut off.
+Listen and log only: it changes no decision. `scale` (default 10) corrects a plug whose voltage, and so power,
+reads 10x too low.
+
 ## Tune the formula
 
 `http://<this-machine>:8080/tune`: move sliders and see what every saved day would have got.
@@ -40,12 +48,17 @@ check that cloud cover is a fair stand-in for sun.
 `python backfill.py` fills the history chart from the weather files already in `stored_data/`
 (what the current formula would have decided). Those days show faded, marked "replayed". Safe to repeat.
 
-## Config
+## Config and secrets (two places, no more)
 
-- `config.ini`: settings (tracked). Pick drivers under `[output] drivers = ...`
-  (`dryrun`, `mqtt_tasmota`, `homeassistant`; a list means "next one only if the previous failed").
-- `config.local.ini` (git-ignored) or env vars: secrets (`HA_TOKEN`, `MQTT_PASSWORD`).
-  See `config.local.ini.example`.
+- `config.ini` (in git): harmless defaults only. No location, no addresses, no secrets.
+- `settings.json` (git-ignored, owner-only): **your** values, saved by the Settings tab / setup wizard.
+- **Secrets live only in the server's environment**, never in a file the app reads or writes:
+  `DASHBOARD_PASSWORD`, `MQTT_PASSWORD`, `HA_TOKEN`. Keep them in `boiler.env` (copy `boiler.env.example`,
+  `chmod 600`, git-ignored) and hand it to the service: `docker run --env-file boiler.env ...` or
+  `EnvironmentFile=/path/boiler.env` in systemd. Without either (e.g. `python main.py` on a PC) the app reads
+  `boiler.env` from its own folder; real environment variables win over the file. The Settings tab only shows whether each one is set.
+- **Moving an existing install:** BEFORE switching branches run `python3 migrate_secrets.py --clean`. It writes
+  `boiler.env`, keeps your location / addresses in `settings.json`, and removes the secrets from the old files.
 
 ## Safe first runs
 

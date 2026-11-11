@@ -54,7 +54,7 @@ def _link_rows(s, name):
     return rows
 
 
-def check_all(s, forecast):
+def check_all(s, forecast, power=None):
     """Engine, auto-run, weather, then every configured link (HA, MQTT + plug), problems first."""
     names = [n for n, configured in LINKS if n in s.driver_names or configured(s)]
     if "dryrun" in s.driver_names:
@@ -62,5 +62,9 @@ def check_all(s, forecast):
     with ThreadPoolExecutor(max_workers=4) as ex:
         links = [r for rows in ex.map(lambda n: _link_rows(s, n), names) for r in rows]
     rows = [engine_row(s), auto_row(s), weather_row(forecast)] + links
+    from . import power as _power
+    pr = _power.row(s, power)
+    if pr:
+        rows.append(pr)
     order = {"red": 0, "yellow": 1, "grey": 2, "green": 3}
     return sorted(rows, key=lambda r: order.get(r["level"], 9))

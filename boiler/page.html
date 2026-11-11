@@ -167,6 +167,11 @@ input[type=time]{width:128px}.pcard input{width:100%}
 .tiny{font-size:13px;color:var(--deeptx);margin-top:8px}
 .tr.on{background:var(--heat);color:#fff}
 .tr.on .lbl,.tr.on .big small,.tr.on .kvs span,.tr.on .tiny{color:#FFE0D6}
+.swrow{display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:12px 14px;border-radius:16px;background:var(--card)}
+.swdot{width:14px;height:14px;border-radius:50%;background:#B7C4CE}.swdot.on{background:var(--heat);box-shadow:0 0 0 4px rgba(255,110,64,.25)}
+.swrow b{font-size:20px;min-width:44px}.swrow .grow{flex:1;font-size:13px;color:var(--mute)}
+.swbtn{min-height:44px;border:0;border-radius:12px;padding:0 18px;font:700 15px Figtree,sans-serif;cursor:pointer;background:var(--heat);color:#fff}
+.swbtn.off{background:var(--ink)}.swbtn:disabled{opacity:.5}
 .tstop{margin-top:auto;min-height:40px;border:0;border-radius:12px;background:#fff;color:var(--heat);font:600 15px Figtree,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
 .tr .tstop{margin-top:12px}
 .tw .trust,.tw .alert{margin-top:0}
@@ -202,13 +207,16 @@ input[type=time]{width:128px}.pcard input{width:100%}
   <a href="#schedule" data-tab="schedule"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Schedule</a>
   <a href="#history" data-tab="history"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>History</a>
   <a href="#settings" data-tab="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</a>
-  <a href="/tune"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Tune</a>
+  <a href="#tune" data-tab="tune"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Tune</a>
 </nav>
 <noscript>This page needs JavaScript.</noscript>
+
+<section class="tab" id="t-tune"><iframe id="tuneframe" title="Tune the formula" style="width:100%;height:calc(100vh - 150px);min-height:520px;border:0"></iframe></section>
 
 <!-- ============ HOME ============ -->
 <section class="tab" id="t-home">
   <div id="autobox"></div>
+  <div id="missedbox"></div>
   <div class="tgrid" id="today"><div class="tl"><div class="lbl">Loading…</div></div></div>
   <div class="extra" id="extra"></div>
   <div id="foot"></div>
@@ -270,11 +278,12 @@ let tt; function toast(m) { const t = $("toast"); t.textContent = m; t.style.dis
 /* ---------- tabs ---------- */
 function showTab() {
   const name = (location.hash || "#home").slice(1);
-  const id = ["home", "schedule", "history", "settings", "setup"].includes(name) ? name : "home";
+  const id = ["home", "schedule", "history", "settings", "tune", "setup"].includes(name) ? name : "home";
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.id === "t-" + id));
   document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("on", a.dataset.tab === id));
   if (id === "schedule" && !SCH) loadSchedule();
   if (id === "settings") loadSettings();
+  if (id === "tune" && !$("tuneframe").src) $("tuneframe").src = "/tune?embed=1";
   if (id === "setup") startWizard();
   document.querySelector("nav").style.display = id === "setup" ? "none" : "";
 }
@@ -290,7 +299,7 @@ function unlockRow(after) {
 }
 function lockedNote(c) {
   return c.password_set ? "Locked. Enter the password to switch the boiler or change settings."
-                        : "Locked. Set a dashboard password in config.local.ini and restart to enable controls.";
+                        : "Locked. Set DASHBOARD_PASSWORD in boiler.env on the server and restart to enable controls.";
 }
 
 /* ---------- icons ---------- */
@@ -377,9 +386,23 @@ function renderToday(d) {
 
   const t = d.totals.today, parts = [];
   if (t.auto) parts.push(`auto ${t.auto}`); if (t.preset) parts.push(`preset ${t.preset}`); if (t.manual) parts.push(`extra ${t.manual}`);
-  R.append(h("div", "ran", t.total ? `Ran today ${t.total} min` + (parts.length > 1 ? ` (${parts.join(", ")})` : "") + ` · ${money(d, t.cost)}` : "Not run yet today"));
+  R.append(h("div", "ran", t.total ? `${t.measured ? "Heated" : "Ran"} today ${t.total} min` + (parts.length > 1 ? ` (${parts.join(", ")})` : "") + ` · ${money(d, t.cost)}${t.measured ? "" : " est."}` : "Not run yet today"));
   if (d.segments.length) { const tk = h("div", "tiny");
-    tk.textContent = d.segments.map(x => `${x.start.slice(11)} ${x.minutes} min ${money(d, x.cost)}`).join("  ·  "); R.append(tk); }
+    tk.textContent = d.segments.map(x => `${x.start.slice(11)} ${x.minutes} min ${money(d, x.cost)}${x.measured ? "" : " est."}`).join("  ·  "); R.append(tk); }
+  const pw = d.power;                                  /* measured by the plug's current sensor */
+  if (pw && pw.live) {
+    const L = pw.live, m = pw.today;
+    const now_ = {heating: `Heating now · ${L.watts} W`, tank_hot: "On, no draw (tank hot?)", idle: "Element idle",
+                  switching_on: "Switching on…", switching_off: "Switching off…",
+                  no_draw: "ON but nothing drawn", draw_while_off: `Drawing ${L.watts} W while OFF`,
+                  offline: "Power sensor offline", waiting: "Power sensor: waiting"}[L.state];
+    R.append(h("div", "ran", now_ + (m.kwh ? ` · ${m.kwh} kWh today` : "")));
+    if (L.state === "no_draw" || L.state === "draw_while_off") {
+      const a = h("div", "alert"); a.append(ico("alert_triangle"), h("span", "", L.state === "no_draw"
+        ? "The boiler was switched ON but no current is flowing. Check the heating element and the plug."
+        : "Current is flowing although the relay is OFF. Something else is switching the boiler.")); R.append(a);
+    }
+  }
 
   /* bottom: weather + confidence */
   const W = h("div", "tw");
@@ -400,6 +423,22 @@ function renderToday(d) {
 
 const money = (d, v) => `${d.energy.currency}${Number(v || 0).toFixed(2)}`;
 
+/* ---------- runs that did not start: ask, never fire late by ourselves ---------- */
+function renderMissed(d) {
+  const box = $("missedbox"), items = d.missed || [], c = d.controls;
+  const key = JSON.stringify([items, c.logged_in]); if (box.dataset.key === key) return; box.dataset.key = key; box.replaceChildren();
+  for (const m of items) {
+    const card = h("div", "alert"); card.append(ico("alert_triangle"));
+    const t = h("div"); t.append(h("b", "", `${m.label} did not start`), h("div", "tiny", `Planned ${m.minutes} min at ${hm(m.planned_at)}. Heat now?`)); card.append(t);
+    if (c.password_set && c.logged_in && c.available) {
+      const go = h("button", "btn sm go", `Heat ${m.minutes} min now`), no = h("button", "btn ghost sm", "Skip");
+      const send = async a => { go.disabled = no.disabled = true; const r = await post("/api/missed", {id: m.id, action: a}); toast(r.message); box.dataset.key = ""; refresh(); };
+      go.onclick = () => send("fire"); no.onclick = () => send("skip"); card.append(go, no);
+    } else card.append(h("div", "tiny", "Unlock to answer."));
+    box.append(card);
+  }
+}
+
 /* ---------- extra hot water ---------- */
 let EX = {dur: 30, start: 0};
 const pad2 = x => String(x).padStart(2, "0");
@@ -409,10 +448,14 @@ function startOptions(d) {            // 0 = now, then every quarter hour until 
 }
 function renderExtra(d) {
   const box = $("extra"), c = d.controls;
-  const key = JSON.stringify([c, d.later, d.now.slice(0, 15)]);
+  const pl = d.power && d.power.live, relay = pl && pl.relay, isOn = relay ? relay === "ON" : !!d.running;
+  const key = JSON.stringify([c, d.later, d.now.slice(0, 15), isOn, pl && pl.state]);
   if (box.dataset.key === key) return; box.dataset.key = key; box.replaceChildren(h("h2", "", "Extra hot water"));
+  const sw = h("div", "swrow"), swb = h("button", "swbtn" + (isOn ? " off" : ""));
+  const sub_ = !isOn ? "" : pl && pl.state === "heating" ? `Heating · ${pl.watts} W` : pl && pl.state === "tank_hot" ? "No draw (tank hot?)" : d.running ? `until ${hm(d.running.until)}` : "";
+  sw.append(h("span", "swdot " + (isOn ? "on" : "off")), h("b", "", isOn ? "ON" : "OFF"), h("span", "grow", sub_), swb);
   if (!c.available) { box.append(h("div", "note", "View-only: no boiler connection is set up.")); return; }
-  if (!c.password_set || !c.logged_in) { box.append(h("div", "note", lockedNote(c))); if (c.password_set) box.append(unlockRow()); return; }
+  if (!c.password_set || !c.logged_in) { sw.removeChild(swb); box.append(sw, h("div", "note", lockedNote(c))); if (c.password_set) box.append(unlockRow()); return; }
   const opts = startOptions(d); EX.start = Math.min(EX.start, opts.length - 1); EX.dur = Math.min(EX.dur, c.max_minutes);
   const mk = (label, inp, val) => { const w = h("div", "ctl"), r = h("div", "row2"); r.append(h("span", "", label), val); w.append(r, inp); return w; };
   const dv = h("b"), di = h("input"); Object.assign(di, {type: "range", min: 5, max: c.max_minutes, step: 5, value: EX.dur}); di.setAttribute("aria-label", "How long");
@@ -426,6 +469,7 @@ function renderExtra(d) {
     si.style.setProperty("--p", (EX.start / Math.max(1, opts.length - 1) * 100) + "%");
     dv.textContent = EX.dur + " min"; sv.textContent = fmt(opts[EX.start]);
     gl.textContent = `Heat ${EX.dur} min ` + (opts[EX.start] == null ? "now" : "at " + fmt(opts[EX.start]));
+    swb.textContent = isOn ? "Turn OFF" : `Turn ON · ${EX.dur} min`;
   };
   di.oninput = si.oninput = upd; upd();
   go.onclick = async () => {
@@ -434,7 +478,12 @@ function renderExtra(d) {
     go.disabled = true; const r = await post("/api/run", at == null ? {minutes: EX.dur} : {minutes: EX.dur, at: fmt(at)});
     toast(r.message); go.disabled = false; box.dataset.key = ""; refresh();
   };
-  box.append(mk("How long", di, dv), mk("Start", si, sv), go);
+  swb.onclick = async () => {
+    if (isOn && !confirm("Switch the boiler off now?")) return;
+    swb.disabled = true; const r = isOn ? await post("/api/stop") : await post("/api/run", {minutes: EX.dur});
+    toast(r.ok ? (isOn ? "Switched off" : r.message) : r.message); box.dataset.key = ""; refresh();
+  };
+  box.append(sw, mk("How long", di, dv), mk("Start", si, sv), go);
   if (d.later) {
     const pnd = h("div", "pending"); pnd.append(h("span", "", `Set: ${d.later.minutes} min at ${hm(d.later.at)}`));
     const x = h("button", "btn ghost sm", "Cancel"); x.onclick = async () => { const r = await post("/api/later/cancel"); toast(r.message); box.dataset.key = ""; refresh(); };
@@ -591,7 +640,10 @@ const fld = (label, key, opt = {}) => {
   const w = h("div", "field"), id = "f-" + key.replace(/\W/g, "_"); const l = h("label", "", label); l.htmlFor = id;
   const inp = h("input"); inp.id = id; inp.type = opt.type || "text"; if (opt.ph) inp.placeholder = opt.ph;
   const v = SET[key];
-  if (opt.secret) inp.placeholder = v && v.set ? "Saved. Type to replace it" : (opt.ph || "Not set");
+  if (opt.secret) {                                  /* secrets live in the server's environment, never here */
+    const ok = v && v.set; const s_ = h("div", "hint", ok ? `🟢 Set in the server environment (${v.env}).` : `🟡 Not set. Add ${v ? v.env : "it"} to boiler.env on the server and restart.`);
+    w.append(l, s_); if (opt.hint && !ok) w.append(h("div", "hint", opt.hint)); return w;
+  }
   else if (v !== null && v !== undefined) inp.value = Array.isArray(v) ? v.join(",") : v;
   if (key in CHG && !opt.secret) inp.value = CHG[key];
   inp.oninput = () => { let x = inp.value; if (opt.type === "number") x = x === "" ? "" : Number(x);
@@ -684,7 +736,11 @@ function renderSettings() {
   card("Energy price", c => { c.append(fld("Boiler power (kW)", "energy.boiler_kw", {type: "number", hint: "The heater's rating, e.g. 3. Cost = minutes on × kW × price."}),
                                    fld("Price per kWh", "energy.price_kwh", {type: "number", hint: "Israel household tariff from 1 Jul 2026: 0.635 incl. VAT (63.52 agorot). Update when the tariff changes."})); });
   card("Boiler", c => { c.id = "fullheat"; fullHeat(c); });
-  card("Password", c => { c.append(fld("New dashboard password", "dashboard.password", {type: "password", secret: true, hint: "At least 6 characters. Everyone is logged out after a change."})); });
+  card("Power sensor", c => { c.append(
+    fld("Settle time (seconds)", "power.settle_seconds", {type: "number", hint: "How long the sensor takes to follow the relay after ON/OFF. Inside this time no alarm is raised and it is not counted as heating."}),
+    fld("Counts as heating from (watts)", "power.on_watts", {type: "number"}),
+    fld("Power multiplier", "power.scale", {type: "number", hint: "10 if the plug reads power 10x too low (voltage bug). 1 if it reads right."})); });
+  card("Secrets", c => { c.append(fld("Dashboard password", "dashboard.password", {secret: true}), fld("MQTT broker password", "mqtt.password", {secret: true}), fld("Home Assistant token", "ha.token", {secret: true})); });
   const bar = h("div", "card"); const save = h("button", "btn go", "Save settings"); const undo = h("button", "btn ghost", "Undo changes");
   const st = h("div", "note"); const row = h("div", "row"); row.style.marginTop = "0"; row.append(save, undo); bar.append(row, st); body.append(bar);
   onChange = (redraw) => { if (redraw) { const y = scrollY; renderSettings(); scrollTo(0, y); return; } save.disabled = undo.disabled = !Object.keys(CHG).length; st.textContent = Object.keys(CHG).length ? "You have unsaved changes." : "All saved."; };
@@ -709,13 +765,9 @@ function renderWizard() {
   onChange = (redraw) => { if (redraw) renderWizard(); };
   if (STEP === 0) {
     k.append(h("h1", "", "Welcome to BoilerMind"), h("div", "note", "It reads the weather each day and runs your electric boiler only as long as the sun did not heat the water. First, protect this page with a password."));
-    const pw = h("input", "wide"); pw.type = "password"; pw.placeholder = "Choose a password"; pw.autocomplete = "new-password";
-    const pw2 = h("input", "wide"); pw2.type = "password"; pw2.placeholder = "Type it again"; pw2.autocomplete = "new-password";
-    const f = h("div", "field"); f.append(pw, pw2, h("div", "hint", "At least 6 characters. Needed to switch the boiler and change settings."));
-    k.append(f, nav); next.textContent = "Create password";
-    next.onclick = async () => { if (pw.value !== pw2.value) { toast("The two passwords are different"); return; }
-      const r = await post("/api/setup/password", {password: pw.value}); toast(r.message);
-      if (r.ok) { await refresh(); await fetchSettings(); STEP = 1; renderWizard(); } };
+    const f = h("div", "field"); f.append(h("div", "hint", "Passwords are never typed into this page. On the server, put  DASHBOARD_PASSWORD=your-password  in boiler.env (see boiler.env.example), restart the service, then press the button."));
+    k.append(f, nav); next.textContent = "I did it, continue";
+    next.onclick = async () => { await refresh(); if (S && S.controls.password_set) { startWizard(); } else toast("Not set yet: DASHBOARD_PASSWORD is empty on the server"); };
   } else if (STEP === 1) {
     k.append(h("h1", "", "Where is the boiler?"), h("div", "note", "Used for the local weather and sunrise times."));
     placeSearch(k); k.append(nav);
@@ -744,7 +796,7 @@ async function refresh() {
     const r = await fetch("/api/status", {cache: "no-store"}); if (!r.ok) throw 0; const d = await r.json(); S = d;
     if ((d.controls.needs_setup || !d.controls.password_set) && !WIZ_SEEN && location.hash !== "#setup") { WIZ_SEEN = true; location.hash = "#setup"; }
     const fh = $("fullheat"); if (fh && !fh.dataset.ok) fullHeat(fh);
-    renderToday(d); renderExtra(d); renderFoot(d); renderLinks(); renderNext(d); renderHistory(d); renderForecast();
+    renderToday(d); renderMissed(d); renderExtra(d); renderFoot(d); renderLinks(); renderNext(d); renderHistory(d); renderForecast();
   } catch (e) { const t = $("today"); t.replaceChildren(h("div", "tl")); t.firstChild.append(h("div", "lbl", "Can't reach the boiler service")); }
 }
 async function refreshForecast() { try { FC = await (await fetch("/api/forecast", {cache: "no-store"})).json(); } catch (e) { FC = {error: "Forecast unavailable"}; } if (S) { renderToday(S); renderForecast(); } }

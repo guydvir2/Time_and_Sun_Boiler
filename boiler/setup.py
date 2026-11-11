@@ -87,9 +87,15 @@ FIELDS = {
     "ha.script_1":        ("homeassistant", "RUN_SCRIPT_1ST_START_BOILER_ENTITY_ID", _str(120, ENTITY), "ha_script_1", False),
     "ha.script_2":        ("homeassistant", "RUN_SCRIPT_2ND_START_BOILER_ENTITY_ID", _str(120, ENTITY), "ha_script_2", False),
     "ha.max_per_boiler":  ("homeassistant", "MAX_DURATION_MINUTES_BOILER", _num(1, 600, True), "ha_max_per_boiler", False),
+    "power.on_watts":     ("power", "on_watts", _num(1, 10000), "power_on_watts", False),
+    "power.scale":        ("power", "scale", _num(0.01, 1000), "power_scale", False),
+    "power.settle_seconds": ("power", "settle_seconds", _num(0, 600), "power_settle_seconds", False),
     "max_manual_minutes": ("dashboard", "max_manual_minutes", _num(10, 600, True), "max_manual_minutes", False),
     "dashboard.password": ("dashboard", "password", _password, "dashboard_password", True),
 }
+
+
+ENV_NAMES = {"mqtt.password": "MQTT_PASSWORD", "ha.token": "HA_TOKEN", "dashboard.password": "DASHBOARD_PASSWORD"}
 
 
 def values(s):
@@ -97,7 +103,7 @@ def values(s):
     out = {}
     for key, (_, _, _, attr, secret) in FIELDS.items():
         v = getattr(s, attr)
-        out[key] = {"set": bool(v)} if secret else v
+        out[key] = {"set": bool(v), "env": ENV_NAMES[key]} if secret else v
     out["needs_setup"] = s.needs_setup
     out["drivers_available"] = {"mqtt_tasmota": "Tasmota plug (MQTT)", "homeassistant": "Home Assistant",
                                 "dryrun": "Test mode (switches nothing)"}
@@ -112,7 +118,9 @@ def clean(changes):
     for k, v in changes.items():
         if k not in FIELDS:
             raise ValueError(f"'{k}' cannot be changed here")
-        sec, key, check, _, _ = FIELDS[k]
+        sec, key, check, _, secret = FIELDS[k]
+        if secret:
+            raise ValueError(f"{k}: is set in the server's environment ({ENV_NAMES[k]}), not here")
         try:
             out[(sec, key)] = str(check(v))
         except ValueError as e:

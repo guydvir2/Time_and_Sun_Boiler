@@ -29,7 +29,8 @@ input.pw{font:inherit;color:var(--fg);background:var(--card);border:1px solid va
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mute);margin-top:6px}
 .legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:15px;max-width:90vw;display:none;z-index:9}
-</style></head><body><main>
+body.embed .top{display:none}body.embed main{padding-top:0}
+</style></head><body><script>if (new URLSearchParams(location.search).has("embed")) document.body.classList.add("embed");</script><main>
 <div class="top"><b>Tune the formula</b><a href="/">Back to home</a></div>
 
 <div class="card"><h2>Effect on your saved days</h2>

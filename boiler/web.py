@@ -2,7 +2,7 @@
 
 Runs as a thread inside the service (so one process), or alone:  python dashboard.py  (view-only)
 Reading is open on your network. Anything that SWITCHES the boiler (Run / Stop) needs the dashboard
-password (config.local.ini or env DASHBOARD_PASSWORD); with no password set, controls are off.
+password (env DASHBOARD_PASSWORD); with no password set, controls are off.
 The API never exposes secrets.
 """
 import csv
@@ -22,8 +22,9 @@ from .state import (load_last_update, load_attempt, load_running, load_auto, set
                     record_weather, save_later, clear_later, load_later)
 from . import confidence
 from .activity import log_event, read_events
+from . import power as power_mod
 from .drivers import start_boiler, REGISTRY
-from . import runs, schedule
+from . import runs, schedule, missed as missed_mod
 
 PAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "page.html")
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -91,7 +92,7 @@ def health(s, now, last_update, attempt):
     return "yellow", "No estimate yet today"
 
 
-def build_status(s, driver_names, formula=None, now=None):
+def build_status(s, driver_names, formula=None, now=None, power=None):
     formula = formula or Formula()
     now = now or datetime.now()
     today = str(now.date())
@@ -115,10 +116,13 @@ def build_status(s, driver_names, formula=None, now=None):
         "running": load_running(s, now),
         "auto": load_auto(s),
         "plan": load_plan(s),
-        "totals": runs.totals(s, now),
+        "totals": power_mod.apply_measured(s, runs.totals(s, now), now, power) if s.power_enabled else runs.totals(s, now),
+        "missed": missed_mod.load(s, now),
+        "power": {"live": power.snapshot(now) if power else None, **power_mod.totals(s, now, monitor=power)}
+                 if s.power_enabled else None,
         "upcoming": schedule.upcoming(schedule.load(s), now, load_plan(s)),
         "ready_by": schedule.load(s)["ready_by"],
-        "segments": runs.segments(s, today, now),
+        "segments": (power_mod.measure_segments(s, runs.segments(s, today, now), power) if s.power_enabled else runs.segments(s, today, now)),
         "energy": {"kw": s.boiler_kw, "price_kwh": s.price_kwh, "currency": s.currency},
         "today": todays, "base": base,
         "last": hist[-1] if hist else None,
@@ -225,7 +229,7 @@ class Ctx:
         from .services import check_all
         with self.sv_lock:                            # one check round at a time, cached for a minute
             if self.sv["value"] is None or _time.time() - self.sv["t"] > SERVICES_TTL:
-                self.sv = {"t": _time.time(), "value": check_all(self.s, self.forecast())}
+                self.sv = {"t": _time.time(), "value": check_all(self.s, self.forecast(), self.app.power if self.app else None)}
             return self.sv["value"]
 
     @property
@@ -311,7 +315,7 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(500, {"error": str(e)})
         elif path == "/api/status":
             try:
-                st = build_status(c.s, c.names, c.formula)
+                st = build_status(c.s, c.names, c.formula, power=c.app.power if c.app else None)
                 st["controls"] = self._controls()
                 self._json(200, st)
             except Exception as e:                      # never crash the thread on bad data
@@ -380,7 +384,7 @@ class _Handler(BaseHTTPRequestHandler):
             return self._sunshine()
 
         if path not in ("/api/run", "/api/stop", "/api/auto", "/api/later/cancel", "/api/formula", "/api/schedule",
-                        "/api/settings", "/api/settings/test"):
+                        "/api/settings", "/api/settings/test", "/api/missed"):
             return self._json(404, {"ok": False, "message": "Not found"})
         if not c.auth.enabled:
             return self._json(403, {"ok": False, "message": "Controls are off: no dashboard password is set"})
@@ -408,7 +412,10 @@ class _Handler(BaseHTTPRequestHandler):
         if not c.action_lock.acquire(timeout=0.5):
             return self._json(409, {"ok": False, "message": "Another command is still in progress"})
         try:
-            if path == "/api/run":
+            if path == "/api/missed":
+                ok, msg = missed_mod.answer(c.s, c.drivers, str(body.get("id", "")), body.get("action"))
+                self._json(200 if ok else 409, {"ok": ok, "message": msg})
+            elif path == "/api/run":
                 self._run(body)
             else:
                 self._stop()
@@ -489,21 +496,8 @@ class _Handler(BaseHTTPRequestHandler):
 
     # -- settings + setup
     def _first_password(self, body):
-        from . import setup
-        c = self.ctx
-        if c.auth.enabled:
-            return self._json(403, {"ok": False, "message": "A password is already set. Log in instead."})
-        try:
-            cleaned = setup.clean({"dashboard.password": body.get("password")})
-            setup.save(c.s, cleaned)
-        except ValueError as e:
-            return self._json(400, {"ok": False, "message": "Password: " + str(e).split(": ", 1)[-1]})
-        except OSError as e:
-            return self._json(500, {"ok": False, "message": f"Could not save: {e}"})
-        c.settings_changed()
-        log_event(c.s, "manual", "Dashboard password created", True)
-        cookie = f"{COOKIE}={c.auth.grant()}; HttpOnly; SameSite=Strict; Path=/; Max-Age={Auth.TTL}"
-        return self._json(200, {"ok": True, "message": "Password created"}, {"Set-Cookie": cookie})
+        return self._json(403, {"ok": False, "message": "The dashboard password is set with DASHBOARD_PASSWORD in "
+                                                        "the server's environment file, not here."})
 
     def _save_settings(self, body):
         from . import setup

@@ -12,7 +12,7 @@ from datetime import datetime, date, timedelta, time
 
 HHMM = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-PRESET_GRACE_MIN = 15          # engine was down at preset time: still run if at most this late, else skip
+PRESET_GRACE_MIN = 10          # engine was down at preset time: still run if at most this late, else skip
 MAX_PRESETS = 20
 
 
