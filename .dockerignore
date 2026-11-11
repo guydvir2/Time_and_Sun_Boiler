@@ -1,0 +1,9 @@
+.git
+.venv
+__pycache__
+tests
+state.json*
+settings.json*
+boiler.env
+data
+stored_data/*.csv

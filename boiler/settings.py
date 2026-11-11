@@ -46,7 +46,9 @@ class Settings:
         if not ini_paths:
             old_local.read(os.path.join(BASE_DIR, "config.local.ini"))
         # the UI's settings file: default location only when using the default ini files (tests pass their own)
-        self.settings_json = json_path or (None if ini_paths else os.path.join(BASE_DIR, "settings.json"))
+        # BOILER_DATA_DIR: keep everything the app writes in one folder (Docker volume); default = next to the code
+        data_dir = env.get("BOILER_DATA_DIR") or BASE_DIR
+        self.settings_json = json_path or (None if ini_paths else os.path.join(data_dir, "settings.json"))
         if self.settings_json:
             try:
                 with open(self.settings_json) as f:
@@ -124,8 +126,8 @@ class Settings:
         self.max_manual_minutes = int(g("dashboard", "max_manual_minutes", fallback="180"))
 
         # --- paths ---
-        self.state_file = os.path.join(BASE_DIR, "state.json")
-        self.stored_dir = os.path.join(BASE_DIR, "stored_data")
+        self.state_file = os.path.join(data_dir, "state.json")
+        self.stored_dir = os.path.join(data_dir, "stored_data")
         self.decisions_file = os.path.join(self.stored_dir, "decisions.csv")
         self.activity_file = os.path.join(self.stored_dir, "activity.jsonl")
         self.schedule_file = os.path.join(self.stored_dir, "schedule.json")        # ready-by + presets
