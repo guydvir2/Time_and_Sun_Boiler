@@ -122,7 +122,7 @@ def build_status(s, driver_names, formula=None, now=None, power=None):
                  if s.power_enabled else None,
         "upcoming": schedule.upcoming(schedule.load(s), now, load_plan(s)),
         "ready_by": schedule.load(s)["ready_by"],
-        "segments": (power_mod.measure_segments(s, runs.segments(s, today, now), power) if s.power_enabled else runs.segments(s, today, now)),
+        "segments": runs.segments(s, today, now),
         "energy": {"kw": s.boiler_kw, "price_kwh": s.price_kwh, "currency": s.currency},
         "today": todays, "base": base,
         "last": hist[-1] if hist else None,

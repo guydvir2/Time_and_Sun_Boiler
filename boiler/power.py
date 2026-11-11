@@ -335,24 +335,13 @@ def apply_measured(s, t, now, monitor):
             continue
         com, meas = sum(row[k] for k in ("auto", "preset", "manual")), m["minutes"]
         new = {k: round(row[k] * meas / com) for k in ("auto", "preset", "manual")} if com else {"auto": 0, "preset": 0, "manual": meas}
-        rows.append({**row, **new, "measured": True, "kwh": m["kwh"], "cost": round(m["kwh"] * s.price_kwh, 2)})
+        rows.append({**row, **new, "measured": True})
+    for r in rows:                       # cost is always duration x kW x price (simple), on the measured minutes
+        r["kwh"] = round(sum(r[k] for k in ("auto", "preset", "manual")) / 60 * s.boiler_kw, 2)
+        r["cost"] = round(r["kwh"] * s.price_kwh, 2)
     last = rows[-1]
     return {"today": {**{k: last[k] for k in ("auto", "preset", "manual")},
                       "total": sum(last[k] for k in ("auto", "preset", "manual")), "measured": bool(last.get("measured")),
                       "kwh": last["kwh"], "cost": last["cost"]},
             "week": sum(sum(r[k] for k in ("auto", "preset", "manual")) for r in rows[-7:]),
             "week_cost": round(sum(r["cost"] for r in rows[-7:]), 2), "per_day": rows}
-
-
-def measure_segments(s, segs, monitor=None, slack_min=3):
-    """Give each run (segment) its measured kWh/cost: the sensor sessions that started within the run's window.
-    Runs with no session found keep the estimate (no 'measured' flag)."""
-    sessions = [(datetime.fromisoformat(r["start"]), float(r["kwh"])) for r in read_log(s) if "start" in r and "kwh" in r]
-    if monitor and monitor._sess:
-        sessions.append((monitor._sess["start"], monitor._sess["kwh"]))
-    out = []
-    for g in segs:
-        a, b = datetime.fromisoformat(g["start"]), datetime.fromisoformat(g["end"])
-        k = [kwh for st, kwh in sessions if a - timedelta(minutes=slack_min) <= st <= b + timedelta(minutes=slack_min)]
-        out.append({**g, "kwh": round(sum(k), 2), "cost": round(sum(k) * s.price_kwh, 2), "measured": True} if k else g)
-    return out
