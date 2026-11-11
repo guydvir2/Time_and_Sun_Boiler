@@ -3,24 +3,51 @@ log of every decision. The service and the dashboard share this process, so writ
 import os
 import csv
 import json
+import shutil
 import threading
 from datetime import datetime, timedelta
 
 _lock = threading.RLock()
 
 
+def _load_json(path):
+    with open(path) as f:
+        d = json.load(f)
+    if not isinstance(d, dict):
+        raise ValueError("not an object")
+    return d
+
+
 def _read_state(s):
+    """state.json, or its last good copy (.bak) if the main file is damaged (e.g. power cut mid-write)."""
     try:
-        with open(s.state_file) as f:
-            return json.load(f)
-    except (FileNotFoundError, ValueError):
+        return _load_json(s.state_file)
+    except FileNotFoundError:
         return {}
+    except (ValueError, OSError):
+        try:
+            d = _load_json(s.state_file + ".bak")
+            print("⚠️  state.json was damaged: using the last good copy")
+            return d
+        except (ValueError, OSError):
+            print("⚠️  state.json was damaged and there is no good copy: starting empty")
+            return {}
 
 
 def _write_state(s, data):
+    """Write to a temp file, then swap it in: a crash can never leave a half-written state.json."""
+    tmp = s.state_file + ".tmp"
     try:
-        with open(s.state_file, "w") as f:
+        with open(tmp, "w") as f:
             json.dump(data, f)
+            f.flush()
+            os.fsync(f.fileno())
+        try:
+            _load_json(s.state_file)                                   # only a good file becomes the backup
+            shutil.copyfile(s.state_file, s.state_file + ".bak")
+        except (OSError, ValueError):
+            pass
+        os.replace(tmp, s.state_file)
     except OSError as e:
         print(f"⚠️  Could not save state: {e}")
 

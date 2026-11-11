@@ -18,3 +18,4 @@ stored_data/power.jsonl
 boiler.env
 *.env
 !boiler.env.example
+state.json.bak

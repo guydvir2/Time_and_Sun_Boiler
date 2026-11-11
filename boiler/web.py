@@ -86,6 +86,8 @@ def health(s, now, last_update, attempt):
         if plan.get("minutes") is not None:
             if plan["status"] == "final":
                 return "green", f"Final for today: {plan['minutes']} min"
+            if attempt and not attempt.get("ok") and str(attempt.get("time", ""))[:10] == today:
+                return "yellow", f"Weather unavailable: keeping the last estimate ({plan['minutes']} min)"
             return "green", f"Estimate {plan['minutes']} min, final after {plan['lock_at'][11:16]}"
     if attempt and not attempt.get("ok") and str(attempt.get("time", ""))[:10] == today:
         return "red", attempt.get("message", "Weather unavailable")
@@ -355,7 +357,7 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(403, {"ok": False, "message": "Forbidden"})
         try:
             n = int(self.headers.get("Content-Length", "0"))
-            body = json.loads(self.rfile.read(min(n, 2048)) or b"{}") if n > 0 else {}
+            body = json.loads(self.rfile.read(min(n, 16384)) or b"{}") if n > 0 else {}
             if not isinstance(body, dict):
                 body = {}
         except (ValueError, OSError):

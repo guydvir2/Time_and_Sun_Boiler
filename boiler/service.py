@@ -20,6 +20,7 @@ from .drivers import build_drivers, start_boiler
 from . import schedule, runs, rolling, missed
 
 TICK_SECONDS = 30
+FINALIZE_AFTER_MIN = 60      # weather still down this long after the lock time: stop waiting, use the last estimate
 START_RETRY_MIN = 2          # a failed start is retried every 2 min ...
 START_GIVE_UP_MIN = missed.LATE_GRACE_MIN   # ... but only this long: later than that we ASK (see missed.py), never fire by ourselves
 
@@ -40,6 +41,12 @@ def estimate(s, formula, now):
 
 
 def start_now(s, drivers, minutes, source, label):
+    r = load_running(s)
+    if r:                                                  # already heating: a new start must never cut it short
+        left = (datetime.fromisoformat(r["until"]) - datetime.now()).total_seconds() / 60
+        if left >= minutes:
+            log_event(s, source, f"{label} {minutes} min: boiler already ON for another {left:.0f} min, nothing to add", True)
+            return True, "already on"
     ok, used = start_boiler(drivers, minutes)
     if ok:
         runs.record_start(s, minutes, source)
@@ -60,6 +67,14 @@ def update_estimate(s, formula, now):
     res = estimate(s, formula, now)
     if res is None:
         save_attempt(s, False, "No weather data (will retry)")
+        lock = plan.get("lock_at")
+        if plan.get("minutes") is not None and lock and now >= datetime.fromisoformat(lock) + timedelta(minutes=FINALIZE_AFTER_MIN):
+            plan["status"] = "final"                       # weather has been gone for an hour past the lock: use the last estimate
+            save_plan(s, plan)
+            save_last_update(s, now.date())
+            log_event(s, "auto", f"Weather unavailable after the lock time: today's {plan['minutes']} min is final "
+                                 f"(last estimate)", False)
+            return True
         return False
     minutes, t, cc, lock_at, rows = res
     final = now >= lock_at
@@ -88,6 +103,7 @@ class Engine:
     def __init__(self, s, drivers):
         self.s, self.drivers = s, drivers
         self.next_decision_try = 0.0          # monotonic: next estimate (hourly; after a failure every SLEEP_MINUTES)
+        self.fetch_failed = False
         self.last_try = {}                    # start retries: key -> monotonic
 
     def _formula(self):
@@ -126,8 +142,9 @@ class Engine:
         plan = load_plan(s)
         pending_lock = (plan and plan.get("date") == today and plan.get("status") == "estimate"
                         and plan.get("lock_at") and now >= datetime.fromisoformat(plan["lock_at"]))
-        if monotonic() >= self.next_decision_try or pending_lock:
+        if monotonic() >= self.next_decision_try or (pending_lock and not self.fetch_failed):
             ok = update_estimate(s, self._formula(), now)
+            self.fetch_failed = not ok                 # after a failure wait SLEEP_MINUTES, even past the lock time
             self.next_decision_try = monotonic() + 60 * (rolling.ESTIMATE_EVERY_MIN if ok else s.sleep_minutes)
 
         if not auto_enabled(s):
