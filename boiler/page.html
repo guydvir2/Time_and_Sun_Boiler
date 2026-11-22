@@ -53,6 +53,12 @@ h2 small{font-weight:500;color:var(--mute);font-size:13px;margin-left:6px}
 .note{color:var(--mute);font-size:14px}
 .empty{color:var(--mute);text-align:center;padding:14px 0}
 .tab{display:none}.tab.on{display:block}
+/* plan tab */
+.plan{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.plan li{display:flex;gap:10px;align-items:baseline;font-size:15px}
+.plan li i{width:9px;height:9px;border-radius:50%;flex:none;position:relative;top:-1px;background:var(--mute)}
+.plan li.green i{background:var(--ok)}.plan li.yellow i{background:var(--warn)}.plan li.red i{background:var(--bad)}.plan li.grey i{background:var(--line)}
+.plan li b{font-weight:700;color:var(--mute);min-width:1.2em}
 
 /* hero */
 .hero{padding:20px 18px 16px}
@@ -215,6 +221,7 @@ body.onhold #today,body.onhold #next{filter:grayscale(1);opacity:.5}
   <a href="#history" data-tab="history"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>History</a>
   <a href="#settings" data-tab="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</a>
   <a href="#tune" data-tab="tune"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Tune</a>
+  <a href="#plan" data-tab="plan"><svg viewBox="0 0 24 24"><path d="M9 4h6v3H9zM7 5H5v16h14V5h-2"/><path d="M8 11h8M8 15h8M8 19h5"/></svg>Plan</a>
 </nav>
 <noscript>This page needs JavaScript.</noscript>
 
@@ -258,6 +265,9 @@ body.onhold #today,body.onhold #next{filter:grayscale(1);opacity:.5}
   <div id="settings-body"><div class="card note">Loading…</div></div>
   <div id="autobox"></div></section>
 
+<!-- ============ PLAN (admin) ============ -->
+<section class="tab" id="t-plan"><div id="plan-body"></div></section>
+
 <!-- ============ SETUP WIZARD ============ -->
 <section class="tab" id="t-setup"><div id="setup-body"></div></section>
 </main>
@@ -285,12 +295,13 @@ let tt; function toast(m) { const t = $("toast"); t.textContent = m; t.style.dis
 /* ---------- tabs ---------- */
 function showTab() {
   const name = (location.hash || "#home").slice(1);
-  const id = ["home", "schedule", "history", "settings", "tune", "setup"].includes(name) ? name : "home";
+  const id = ["home", "schedule", "history", "settings", "tune", "plan", "setup"].includes(name) ? name : "home";
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.id === "t-" + id));
   document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("on", a.dataset.tab === id));
   if (id === "schedule" && !SCH) loadSchedule();
   if (id === "settings") loadSettings();
   if (id === "tune" && !$("tuneframe").src) $("tuneframe").src = "/tune?embed=1";
+  if (id === "plan") loadPlan();
   if (id === "setup") startWizard();
   document.querySelector("nav").style.display = id === "setup" ? "none" : "";
 }
@@ -646,6 +657,46 @@ function renderForecast() {
   now.textContent = FC.now ? `Now ${Math.round(FC.now.temp)}°C, ${Math.round(FC.now.clouds)}% clouds` + (FC.stale ? " (older data)" : "") : "";
   const today = S ? S.now.slice(0, 10) : "";
   for (const d of FC.days) { const r = h("div", "wxl"); r.append(h("span", "", `${d.date === today ? "Today" : "Tomorrow"}: about ${d.minutes} min`), h("span", "", `${d.mean_temp}°C, ${d.mean_clouds}% clouds, sun ${d.sunrise} to ${d.sunset}`)); days.append(r); }
+}
+
+/* ---------- plan tab (admin): what runs now, what we test, what comes next. Edit PLAN to update it. ---------- */
+const PLAN = [
+  {title: "Now", note: "What decides and switches the boiler today", items: [
+    ["green", "The table decides the minutes and switches the boiler"],
+    ["green", "The current sensor logs real heating time"]]},
+  {title: "Testing", note: "What we are trying to find", items: [
+    ["yellow", "Is the physical model as good as the table?"],
+    ["yellow", "Which days does the table get wrong (about 1 in 10)?"],
+    ["yellow", "How much hot water is used between run 1 and run 2?"],
+    ["yellow", "Does cloud % mislead on partly cloudy days?"],
+    ["yellow", "How far below the tank does the tap read?"]]},
+  {title: "Next", note: "Built one step at a time", items: [
+    ["grey", "1. Model runs in the background, plus a Table · Model · Real line on Home"],
+    ["grey", "2. Day card: table steps beside model steps, with the tank temperature curve"],
+    ["grey", "3. Add a manual tap reading (score only)"]]},
+  {title: "Later", note: "Decide after a few weeks of data", items: [
+    ["grey", "Should readings also correct the day's plan?"],
+    ["grey", "Switch to the model if it scores better than the table"],
+    ["grey", "Use forecast sunshine hours instead of cloud %"],
+    ["grey", "Temperature sensors on the panel pipe and the tank's hot outlet"]]},
+  {title: "Model settings", note: "Used by the background model only; the table is unchanged", items: [
+    ["grey", "Run 1: up to 70°C, ready by 19:00"],
+    ["grey", "Run 2: up to 57°C, ready by 21:00"],
+    ["grey", "No run under 5 minutes; the tank never goes above 70°C"]]},
+];
+function loadPlan() {
+  const body = $("plan-body");
+  if (!S) { body.replaceChildren(h("div", "card note", "Loading…")); return setTimeout(loadPlan, 500); }
+  if (S.controls.password_set && !S.controls.logged_in) {
+    const c = h("div", "card"); c.append(h("h2", "", "Plan"), h("div", "note", lockedNote(S.controls)), unlockRow(loadPlan));
+    return body.replaceChildren(c);
+  }
+  body.replaceChildren(...PLAN.map(sec => {
+    const c = h("div", "card"), t = h("h2", "", sec.title); t.append(h("small", "", sec.note));
+    const ul = h("ul", "plan");
+    for (const [lvl, text] of sec.items) { const li = h("li", lvl); li.append(h("i"), h("span", "", text)); ul.append(li); }
+    c.append(t, ul); return c;
+  }));
 }
 
 /* ---------- settings (shared by the Settings tab and the wizard) ---------- */
