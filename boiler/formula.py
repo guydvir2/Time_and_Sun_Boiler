@@ -11,12 +11,13 @@ from statistics import mean
 class Formula:
     # outdoor mean temperature (°C) -> base ON minutes, linearly interpolated between points
     temp_lut: dict = field(default_factory=lambda: {
-        6: 180, 8: 180, 10: 160, 12: 150, 14: 130, 16: 100,
-        18: 60, 20: 40, 22: 20, 24: 10, 26: 0, 28: 0, 30: 0,
+        8: 180, 10: 160, 12: 150, 14: 130, 16: 100,
+        18: 60, 20: 40, 22: 20, 24: 10, 26: 0,
     })
     cloud_k: float = 0.6          # max extra time from clouds (0.6 = +60%)
-    sun_min_temp: float = 10.0    # below this, clouds are ignored (no sun to lose)
-    sun_max_temp: float = 20.0    # at/above this, clouds count fully
+    sun_min_temp: float = 15.0    # below this, clouds are ignored (cold day: the table already heats long)
+    sun_max_temp: float = 18.0    # from here, clouds count fully
+    sun_off_temp: float = 22.0    # at/above this, clouds are ignored again (warm day: little heating to boost)
     max_on: int = 180             # hard cap, minutes
     full_heat: int = 0            # minutes to heat a fully cold boiler; 0 = use the table as it is
     window_start_offset: int = 2  # analysis window: sunrise + N hours ...
@@ -31,7 +32,7 @@ class Formula:
     def from_dict(cls, d: dict) -> "Formula":
         d = dict(d)
         if "temp_lut" in d:
-            d["temp_lut"] = {float(k): v for k, v in d["temp_lut"].items()}
+            d["temp_lut"] = trim_lut({float(k): v for k, v in d["temp_lut"].items()})
         return cls(**d)
 
     def validate(self) -> list:
@@ -48,13 +49,29 @@ class Formula:
             problems.append(f"Table has values above the max cap ({self.max_on} min); they will be cut.")
         if not 0 <= self.cloud_k <= 2:
             problems.append("Cloud factor should be between 0 and 2.")
-        if self.sun_min_temp >= self.sun_max_temp:
-            problems.append("Sun-sensitivity range is empty (min temp must be below max temp).")
+        if not self.sun_min_temp < self.sun_max_temp <= self.sun_off_temp:
+            problems.append("Cloud range is wrong: need 'Clouds from' < 'Clouds full' ≤ 'Clouds off'.")
         return problems
 
     def blocking_problems(self) -> list:
         """Problems that must stop a save (the 'above cap' note is only a warning)."""
         return [p for p in self.validate() if "will be cut" not in p]
+
+
+LUT_RANGE = (8.0, 26.0)   # the table covers 8..26 °C; colder = the 8 °C value, warmer = the 26 °C value
+
+
+def trim_lut(lut: dict) -> dict:
+    """Keep the table inside LUT_RANGE. Points outside are dropped; the edge values are kept
+    (read from the old table), so older saved formulas with 6/28/30 °C points still load."""
+    if len(lut) < 2:
+        return lut
+    lo, hi = LUT_RANGE
+    tmp = Formula.__new__(Formula); tmp.temp_lut = lut
+    out = {t: v for t, v in lut.items() if lo < t < hi}
+    out[lo] = round(_lut(lo, tmp), 1)
+    out[hi] = round(_lut(hi, tmp), 1)
+    return dict(sorted(out.items()))
 
 
 def base_minutes(T: float, f: Formula) -> float:
@@ -78,7 +95,9 @@ def _lut(T: float, f: Formula) -> float:
 
 
 def cloud_correction(T: float, CC: float, f: Formula) -> float:
-    """alpha: fractional extra time from clouds. Zero when it's too cold for sun to matter."""
+    """alpha: fractional extra time from clouds. Zero below 'from' and from 'off' upward."""
+    if T >= f.sun_off_temp:
+        return 0.0
     st = (T - f.sun_min_temp) / (f.sun_max_temp - f.sun_min_temp)
     st = max(0.0, min(1.0, st))
     return f.cloud_k * (CC / 100.0) * st
@@ -119,7 +138,7 @@ def daily_mean(data, sunrise: int, sunset: int, f: Formula = None):
 # The tuned formula lives in stored_data/formula.json (written by the /tune page).
 # The engine reads it at every daily run, so a saved change applies from the next run, no restart.
 
-LIMITS = {"cloud_k": (0, 2), "sun_min_temp": (-10, 40), "sun_max_temp": (-10, 45), "max_on": (0, 600), "full_heat": (0, 600),
+LIMITS = {"cloud_k": (0, 2), "sun_min_temp": (-10, 40), "sun_max_temp": (-10, 45), "sun_off_temp": (-10, 50), "max_on": (0, 600), "full_heat": (0, 600),
           "window_start_offset": (0, 6), "window_end_offset": (0, 6)}
 
 
