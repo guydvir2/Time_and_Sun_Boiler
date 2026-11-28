@@ -50,7 +50,6 @@ body.embed .top{display:none}body.embed main{padding-top:0}
 </div>
 
 <div class="card"><h2>Temperature → minutes</h2>
-  <div id="curve"></div>
   <div id="lut"></div>
 </div>
 
@@ -114,7 +113,7 @@ function buildSliders() {
 }
 
 /* ---------- preview ---------- */
-function changed() { clearTimeout(timer); timer = setTimeout(preview, 150); drawCurve(); }
+function changed() { clearTimeout(timer); timer = setTimeout(preview, 150); }
 async function preview() {
   const r = await post("/api/tune/preview", {formula: cur});
   if (!r.ok) { $("probs").replaceChildren(h("div", "msg", "🔴 " + r.message)); return; }
@@ -148,20 +147,6 @@ function drawChart() {
   svg.append(el("text", {x: x0, y: H + 14, class: "lbl"}, days[0].date.slice(5)));
   svg.append(el("text", {x: W - 4, y: H + 14, class: "lbl", "text-anchor": "end"}, days[days.length - 1].date.slice(5)));
   box.append(svg);
-}
-function drawCurve() {
-  const box = $("curve"); box.replaceChildren();
-  const a = lutPts(saved), b = lutPts(cur), W = 600, H = 140, x0 = 30;
-  const tmin = Math.min(a[0][0], b[0][0]), tmax = Math.max(a[a.length - 1][0], b[b.length - 1][0]), maxY = Math.max(cur.max_on, saved.max_on);
-  const X = t => x0 + ((t - tmin) / ((tmax - tmin) || 1)) * (W - x0 - 8), Y = v => H - (Math.min(v, maxY) / maxY) * (H - 12);
-  const svg = el("svg", {viewBox: `0 0 ${W} ${H + 18}`, role: "img", "aria-label": "Temperature to minutes curve"});
-  svg.append(el("line", {x1: x0, x2: W, y1: H, y2: H, class: "axis"}));
-  for (const d of D.days) svg.append(el("circle", {cx: X(Math.min(Math.max(d.temp, tmin), tmax)), cy: H + 5, r: 2, fill: "var(--mute)", opacity: .5}));
-  svg.append(el("polyline", {points: a.map(p => `${X(p[0])},${Y(p[1])}`).join(" "), fill: "none", stroke: "var(--old)", "stroke-width": 2}));
-  svg.append(el("polyline", {points: b.map(p => `${X(p[0])},${Y(p[1])}`).join(" "), fill: "none", stroke: "var(--bar)", "stroke-width": 2.5}));
-  svg.append(el("text", {x: x0, y: H + 16, class: "lbl"}, `${tmin}°C`)); svg.append(el("text", {x: W - 8, y: H + 16, class: "lbl", "text-anchor": "end"}, `${tmax}°C`));
-  svg.append(el("text", {x: 0, y: 10, class: "lbl"}, maxY));
-  box.append(svg, h("div", "note", "Dots under the line = the temperatures of your saved days."));
 }
 
 /* ---------- save ---------- */
@@ -231,7 +216,7 @@ async function load() {
   try { const r = await fetch("/api/tune", {cache: "no-store"}); D = await r.json(); if (D.error) throw new Error(D.error); }
   catch (e) { $("sum").textContent = "🔴 Can't load the saved days"; return; }
   saved = copy(D.saved); cur = copy(D.saved); newDays = null;
-  buildSliders(); drawCurve(); drawChart(); renderSun(); renderDaily(); preview();
+  buildSliders(); drawChart(); renderSun(); renderDaily(); preview();
 }
 load();
 </script></body></html>
