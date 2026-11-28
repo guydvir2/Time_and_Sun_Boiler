@@ -477,7 +477,7 @@ class _Handler(BaseHTTPRequestHandler):
         s, f = self.ctx.s, self.ctx.formula
         sun = sunshine.load(s)
         days = tune.replay(s, f, sun)
-        return {"saved": f.to_dict(), "default": Formula().to_dict(), "days": days,
+        return {"saved": f.to_dict(), "default": Formula().to_dict(), "days": days, "daily": tune.daily(s, f),
                 "sunshine": sunshine.verdict(days), "controls": self._controls()}
 
     def _preview(self, body):

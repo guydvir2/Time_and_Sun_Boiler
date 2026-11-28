@@ -26,12 +26,20 @@ input[type=range]{width:100%;accent-color:var(--bar)}
 .btn{appearance:none;border:1px solid var(--line);background:var(--btn);color:var(--fg);border-radius:10px;padding:10px 14px;font-size:15px;font-weight:600;cursor:pointer}
 .btn.go{background:var(--bar);border-color:var(--bar);color:#fff}.btn:disabled{opacity:.5;cursor:default}
 input.pw{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:min(220px,100%)}
+#daily.grid{display:grid;grid-template-columns:auto auto auto auto 1fr;column-gap:10px;row-gap:9px;align-items:center;font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.day{display:contents}.day .bar{display:flex;align-items:center;gap:6px}.day .bar i{display:block;height:10px;border-radius:3px}
+.day .bar b{font-weight:600;white-space:nowrap}.day .dim{color:var(--mute)}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mute);margin-top:6px}
 .legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:15px;max-width:90vw;display:none;z-index:9}
 body.embed .top{display:none}body.embed main{padding-top:0}
 </style></head><body><script>if (new URLSearchParams(location.search).has("embed")) document.body.classList.add("embed");</script><main>
 <div class="top"><b>Tune the formula</b><a href="/">Back to home</a></div>
+
+<div class="card"><h2>Day by day</h2>
+  <div id="daily" class="note">Loading…</div>
+  <div class="legend"><span>🌅 sunrise–sunset</span><span>🌡 low–high °C</span><span>☁ avg clouds</span><span><i style="background:var(--bar);height:8px"></i>auto min</span><span><i style="background:var(--sun);height:8px"></i>added min</span></div>
+</div>
 
 <div class="card"><h2>Effect on your saved days</h2>
   <div id="sum" class="note">Loading…</div>
@@ -195,6 +203,27 @@ function renderSun() {
   if (v.misses && v.misses.length) { ms.append(h("div", "note", "Biggest misses:"));
     for (const m of v.misses) ms.append(h("div", "msg", `${m.date}: forecast ${m.clouds}% clouds, real sun ${m.sun_pct}% (${m.gap > 0 ? "sunnier" : "darker"} than expected)`)); }
 }
+/* ---------- day by day ---------- */
+function renderDaily() {
+  const box = $("daily"); box.replaceChildren(); box.className = "grid";
+  const rows = D.daily || []; if (!rows.length) { box.className = "note"; box.textContent = "No days yet."; return; }
+  const maxM = Math.max(60, ...rows.map(r => r.auto + r.added));
+  const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], hh = x => String(x).padStart(2, "0");
+  for (const r of rows) {
+    const dt = new Date(r.date + "T12:00"), row = h("div", "day");
+    row.append(h("span", "", `${DAYS[dt.getDay()]} ${r.date.slice(8)}/${r.date.slice(5, 7)}`));
+    const wx = r.lo !== null;
+    row.append(h("span", wx ? "" : "dim", wx ? `🌅${hh(r.sunrise)}–${hh(r.sunset)}` : "—"));
+    row.append(h("span", wx ? "" : "dim", wx ? `🌡${r.lo}–${r.hi}°` : "—"));
+    row.append(h("span", wx ? "" : "dim", wx && r.clouds !== null ? `☁${r.clouds}%` : "—"));
+    const bar = h("div", "bar"), W = v => `${(v / maxM) * 70}%`;
+    const a = h("i"); a.style.cssText = `width:${W(r.auto)};background:var(--bar)`;
+    const b = h("i"); b.style.cssText = `width:${W(r.added)};background:var(--sun);margin-left:-6px`;
+    const tot = r.auto + r.added;
+    bar.append(a, b, h("b", tot ? "" : "dim", tot ? (r.added ? `${r.auto}+${r.added}` : `${r.auto}`) + " min" : "off"));
+    row.append(bar); box.append(row);
+  }
+}
 $("fetch").onclick = async () => { const b = $("fetch"); b.disabled = true; toast("Downloading…");
   const r = await post("/api/sunshine"); toast((r.ok ? "✅ " : "❌ ") + r.message); b.disabled = false; if (r.ok) load(); };
 
@@ -202,7 +231,7 @@ async function load() {
   try { const r = await fetch("/api/tune", {cache: "no-store"}); D = await r.json(); if (D.error) throw new Error(D.error); }
   catch (e) { $("sum").textContent = "🔴 Can't load the saved days"; return; }
   saved = copy(D.saved); cur = copy(D.saved); newDays = null;
-  buildSliders(); drawCurve(); drawChart(); renderSun(); preview();
+  buildSliders(); drawCurve(); drawChart(); renderSun(); renderDaily(); preview();
 }
 load();
 </script></body></html>

@@ -57,3 +57,23 @@ def compare(current, new):
     return {"days": len(diffs), "avg_current": round(mean(by.values())), "avg_new": round(mean(r["minutes"] for r in new)),
             "changed": sum(1 for x in diffs if x), "more": sum(1 for x in diffs if x > 0),
             "less": sum(1 for x in diffs if x < 0), "max_up": max(diffs + [0]), "max_down": min(diffs + [0])}
+
+
+def daily(s, formula, now=None, days=14):
+    """One row per day, newest first: what the weather was and how long the boiler ran.
+    [{date, sunrise, sunset, lo, hi, clouds, auto, added}]. Weather fields are None on days with no saved file;
+    sunrise/sunset are whole hours (the saved file covers sunrise..sunset)."""
+    from . import runs
+    wx = {d["date"]: d for d in saved_days(s)}
+    out = []
+    for r in reversed(runs.totals(s, now, days=days)["per_day"]):
+        row = {"date": r["date"], "auto": r["auto"], "added": r["preset"] + r["manual"],
+               "sunrise": None, "sunset": None, "lo": None, "hi": None, "clouds": None}
+        d = wx.get(r["date"])
+        if d:
+            temps = [x["temp"] for x in d["rows"]]
+            _, cc = daily_mean(d["rows"], d["sunrise"], d["sunset"], formula)
+            row.update(sunrise=d["sunrise"], sunset=d["sunset"], lo=round(min(temps)), hi=round(max(temps)),
+                       clouds=None if cc is None else round(cc))
+        out.append(row)
+    return out
