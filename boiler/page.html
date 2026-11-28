@@ -121,6 +121,9 @@ input[type=time]{width:128px}.pcard input{width:100%}
 
 .field{display:grid;gap:4px;margin-top:10px}.field label{font-size:14px;font-weight:600}
 .field input{width:100%}.field .hint{font-size:13px;color:var(--mute)}
+details.grp{margin-bottom:12px}details.grp>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:10px;padding:12px 6px;font-size:17px}
+details.grp>summary::-webkit-details-marker{display:none}details.grp>summary::after{content:"▸";margin-left:auto;color:var(--mute)}details.grp[open]>summary::after{content:"▾"}
+details.grp>summary small{font-size:13px;color:var(--mute);font-weight:400}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
 .choice{display:grid;gap:8px;margin-top:8px}
 .opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer}
@@ -716,7 +719,27 @@ const fld = (label, key, opt = {}) => {
   w.append(l, inp); if (opt.hint) w.append(h("div", "hint", opt.hint)); return w;
 };
 let onChange = () => {};
-function connChoice(box) {
+function mqttFields(box) {
+  const g = h("div", "grid2"); g.append(fld("Broker address", "mqtt.host", {ph: "192.168.1.10"}), fld("Port", "mqtt.port", {type: "number"})); box.append(g);
+  const g2 = h("div", "grid2"); g2.append(fld("Broker user", "mqtt.username", {ph: "optional"}), fld("Broker password", "mqtt.password", {type: "password", secret: true, ph: "optional"})); box.append(g2);
+  box.append(fld("Device topic", "tasmota.topic", {ph: "e.g. WaterHeater", hint: "Tasmota > Configuration > MQTT > Topic"}),
+             fld("Full topic", "tasmota.full_topic", {hint: "Copy it from the same page. Default %prefix%/%topic%/"}));
+}
+function haFields(box) {
+  const g = h("div", "grid2"); g.append(fld("HA address", "ha.ip", {ph: "192.168.1.20"}), fld("Port", "ha.port", {type: "number"})); box.append(g);
+  box.append(fld("Long-lived token", "ha.token", {type: "password", secret: true, hint: "HA > your profile > Security > Long-lived access tokens"}),
+             fld("Minutes slider (1st)", "ha.slider_1"), fld("Minutes slider (2nd)", "ha.slider_2"),
+             fld("Start script (1st)", "ha.script_1"), fld("Start script (2nd)", "ha.script_2"));
+}
+function testRow(box) {
+  const res = h("div"); const b = h("button", "btn sm", "Test connection");
+  b.onclick = async () => { b.disabled = true; res.replaceChildren(h("div", "note", "Testing…"));
+    const r = await post("/api/settings/test", {changes: CHG}); b.disabled = false; res.replaceChildren();
+    if (!r.ok) { res.append(h("div", "note", r.message)); return; }
+    for (const x of r.services) { const row = h("div", "sv"); row.append(h("i", x.level), h("b", "", x.name), h("span", "", x.text)); res.append(row); } };
+  const row = h("div", "row"); row.append(b); box.append(row, res);
+}
+function connChoice(box, withFields = true) {
   const cur = (CHG.drivers || SET.drivers || [])[0] || "";
   const ch = h("div", "choice");
   for (const [k, label, desc] of [["mqtt_tasmota", "Tasmota plug or relay", "Over MQTT. The plug keeps its own off-timer, so it switches off on time even if this app stops."],
@@ -727,26 +750,9 @@ function connChoice(box) {
     const t = h("div"); t.append(h("b", "", label), h("span", "", desc)); o.append(r, t); ch.append(o);
   }
   box.append(ch);
-  const d = cur;
-  if (d === "mqtt_tasmota") {
-    const g = h("div", "grid2"); g.append(fld("Broker address", "mqtt.host", {ph: "192.168.1.10"}), fld("Port", "mqtt.port", {type: "number"})); box.append(g);
-    const g2 = h("div", "grid2"); g2.append(fld("Broker user", "mqtt.username", {ph: "optional"}), fld("Broker password", "mqtt.password", {type: "password", secret: true, ph: "optional"})); box.append(g2);
-    box.append(fld("Device topic", "tasmota.topic", {ph: "e.g. WaterHeater", hint: "Tasmota > Configuration > MQTT > Topic"}),
-               fld("Full topic", "tasmota.full_topic", {hint: "Copy it from the same page. Default %prefix%/%topic%/"}));
-  } else if (d === "homeassistant") {
-    const g = h("div", "grid2"); g.append(fld("HA address", "ha.ip", {ph: "192.168.1.20"}), fld("Port", "ha.port", {type: "number"})); box.append(g);
-    box.append(fld("Long-lived token", "ha.token", {type: "password", secret: true, hint: "HA > your profile > Security > Long-lived access tokens"}),
-               fld("Minutes slider (1st)", "ha.slider_1"), fld("Minutes slider (2nd)", "ha.slider_2"),
-               fld("Start script (1st)", "ha.script_1"), fld("Start script (2nd)", "ha.script_2"));
-  }
-  if (d && d !== "dryrun") {
-    const res = h("div"); const b = h("button", "btn sm", "Test connection");
-    b.onclick = async () => { b.disabled = true; res.replaceChildren(h("div", "note", "Testing…"));
-      const r = await post("/api/settings/test", {changes: CHG}); b.disabled = false; res.replaceChildren();
-      if (!r.ok) { res.append(h("div", "note", r.message)); return; }
-      for (const x of r.services) { const row = h("div", "sv"); row.append(h("i", x.level), h("b", "", x.name), h("span", "", x.text)); res.append(row); } };
-    const row = h("div", "row"); row.append(b); box.append(row, res);
-  }
+  if (!withFields) return;
+  if (cur === "mqtt_tasmota") mqttFields(box); else if (cur === "homeassistant") haFields(box);
+  if (cur && cur !== "dryrun") testRow(box);
 }
 function placeSearch(box, done) {
   const cur = SET["location.name"] || (SET["location.latitude"] != null ? `${SET["location.latitude"].toFixed(3)}, ${SET["location.longitude"].toFixed(3)}` : "");
@@ -852,22 +858,40 @@ function renderVer(d) {
 }
 function renderSettings() {
   const body = $("settings-body"); body.replaceChildren();
-  const card = (title, fill) => { const c = h("div", "card"); c.append(h("h2", "", title)); fill(c); body.append(c); return c; };
+  const drv = (CHG.drivers || SET.drivers || [])[0] || "";
+  let into = body;
+  const group = (icon, title, note, open) => { const d = h("details", "grp"); d.open = !!open; const sm = h("summary");
+    sm.append(h("span", "gi", icon), h("b", "", title), h("small", "", note)); d.append(sm); body.append(d); into = d; return d; };
+  const card = (title, fill) => { const c = h("div", "card"); c.append(h("h2", "", title)); fill(c); into.append(c); return c; };
+  const used = k => drv === k ? "switches the boiler" : "not used for switching";
+
+  group("⚙️", "App", "place, switching, price, password, updates");
   card("Location", c => placeSearch(c));
-  const conn = card("Boiler connection", c => connChoice(c));
+  card("What switches the boiler", c => { connChoice(c, false); c.append(h("div", "hint", "Its details are in the MQTT or Home Assistant group below.")); });
+  card("Energy price", c => { c.append(fld("Boiler power (kW)", "energy.boiler_kw", {type: "number", hint: "The heater's rating, e.g. 3. Cost = minutes on × kW × price."}),
+                                   fld("Price per kWh", "energy.price_kwh", {type: "number", hint: "Israel household tariff from 1 Jul 2026: 0.635 incl. VAT (63.52 agorot). Update when the tariff changes."})); });
+  card("Dashboard password", c => c.append(fld("Dashboard password", "dashboard.password", {secret: true})));
+  card("Updates", c => updatesCard(c));
+
+  group("🔥", "Thermal & prediction", "runs, heat-up time, formula");
   card("Runs", c => { c.append(fld("Max on per run (minutes)", "max_manual_minutes", {type: "number", hint: "No single run is longer than this: daily runs, presets and extra hot water."}),
                                fld("Min run (minutes)", "min_run", {type: "number", hint: "A daily run shorter than this is skipped: not worth switching on."}),
                                fld("Run 1 share of the day (%)", "run1_pct", {type: "number", hint: "100 = all in run 1. Less leaves the rest for run 2, for later showers."}),
                                fld("Run 2 time", "run2_at", {type: "time", hint: "When run 2 starts (never before the day's number is final). Empty = right after run 1."})); });
-  card("Energy price", c => { c.append(fld("Boiler power (kW)", "energy.boiler_kw", {type: "number", hint: "The heater's rating, e.g. 3. Cost = minutes on × kW × price."}),
-                                   fld("Price per kWh", "energy.price_kwh", {type: "number", hint: "Israel household tariff from 1 Jul 2026: 0.635 incl. VAT (63.52 agorot). Update when the tariff changes."})); });
   card("Boiler", c => { c.id = "fullheat"; fullHeat(c); });
+  card("Prediction formula", c => { const a = h("a", "btn sm", "Open Tune"); a.href = "#tune"; c.append(h("div", "note", "Temperature table, clouds and daily limits are on the Tune tab."), a); });
+
+  group("📡", "MQTT", "broker, Tasmota plug, power sensor · " + used("mqtt_tasmota"));
+  card("Broker & plug", c => { mqttFields(c); testRow(c); });
   card("Power sensor", c => { c.append(
     fld("Settle time (seconds)", "power.settle_seconds", {type: "number", hint: "How long the sensor takes to follow the relay after ON/OFF. Inside this time no alarm is raised and it is not counted as heating."}),
     fld("Counts as heating from (watts)", "power.on_watts", {type: "number"}),
     fld("Power multiplier", "power.scale", {type: "number", hint: "10 if the plug reads power 10x too low (voltage bug). 1 if it reads right."})); });
-  card("Updates", c => updatesCard(c));
-  card("Secrets", c => { c.append(fld("Dashboard password", "dashboard.password", {secret: true}), fld("MQTT broker password", "mqtt.password", {secret: true}), fld("Home Assistant token", "ha.token", {secret: true})); });
+
+  group("🏠", "Home Assistant", used("homeassistant"));
+  card("Connection", c => { haFields(c); testRow(c); });
+
+  into = body;
   const bar = h("div", "card"); const save = h("button", "btn go", "Save settings"); const undo = h("button", "btn ghost", "Undo changes");
   const st = h("div", "note"); const row = h("div", "row"); row.style.marginTop = "0"; row.append(save, undo); bar.append(row, st); body.append(bar);
   onChange = (redraw) => { if (redraw) { const y = scrollY; renderSettings(); scrollTo(0, y); return; } save.disabled = undo.disabled = !Object.keys(CHG).length; st.textContent = Object.keys(CHG).length ? "You have unsaved changes." : "All saved."; };
